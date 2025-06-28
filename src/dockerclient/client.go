@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -213,7 +214,7 @@ func (dc *DockerClient) ContainerExists(ctx context.Context, nameOrID string) (b
 
 	_, err := dc.client.ContainerInspect(ctx, nameOrID)
 	if err != nil {
-		if client.IsErrNotFound(err) {
+		if errdefs.IsNotFound(err) {
 			return false, nil
 		}
 		return false, fmt.Errorf("failed to check container existence: %w", err)
@@ -230,9 +231,9 @@ func (dc *DockerClient) ImageExists(ctx context.Context, nameOrID string) (bool,
 		defer cancel()
 	}
 
-	_, _, err := dc.client.ImageInspectWithRaw(ctx, nameOrID)
+	_, err := dc.client.ImageInspect(ctx, nameOrID)
 	if err != nil {
-		if client.IsErrNotFound(err) {
+		if errdefs.IsNotFound(err) {
 			return false, nil
 		}
 		return false, fmt.Errorf("failed to check image existence: %w", err)
@@ -265,7 +266,7 @@ func (dc *DockerClient) GetImageInfo(ctx context.Context, nameOrID string) (*typ
 		defer cancel()
 	}
 
-	info, _, err := dc.client.ImageInspectWithRaw(ctx, nameOrID)
+	info, err := dc.client.ImageInspect(ctx, nameOrID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to inspect image %s: %w", nameOrID, err)
 	}
