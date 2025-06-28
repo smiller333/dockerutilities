@@ -3,7 +3,6 @@ package analyzer
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -30,7 +29,7 @@ func AnalyzeDockerfile(dockerfilePath string) (*AnalysisResult, error) {
 	}
 
 	// Read the Dockerfile
-	content, err := ioutil.ReadFile(absPath)
+	content, err := os.ReadFile(absPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dockerfile %s: %w", absPath, err)
 	}

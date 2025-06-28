@@ -2,9 +2,11 @@
 
 ## Metadata
 
-**Source:** https://pkg.go.dev/github.com/moby/moby@v28.3.0+incompatible/client
+**Source:** https://pkg.go.dev/github.com/docker/docker@v28.3.0+incompatible/client
 
 **Version:** v28.3.0+incompatible
+
+**Generated:** 2025-06-28 21:27:14 UTC
 
 ## Overview
 
@@ -25,7 +27,7 @@ For example, to list running containers (the equivalent of "docker ps"):
 
 ## Constants
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/envvars.go#L3)
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/envvars.go#L3)
 
 ```go
 const (
@@ -118,13 +120,13 @@ const (
 )
 ```
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_unix.go#L7)
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_unix.go#L7)
 
 ```go
 const DefaultDockerHost = "unix:///var/run/docker.sock"
 ```
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L92)
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L92)
 
 ```go
 const DummyHost = "api.moby.localhost"
@@ -132,7 +134,7 @@ const DummyHost = "api.moby.localhost"
 
 ## Variables
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L151)
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L151)
 
 ```go
 var ErrRedirect = errors.New("unexpected redirect in response")
@@ -158,7 +160,7 @@ a 404 from the daemon. This behavior change manifests in the client in that
 before, the 301 was not followed and the client did not generate an error,
 but now results in a message like "Error response from daemon: page not found".
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L168)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L168)  
 
 ```go
 func CheckRedirect(_ *http.Request, via []*http.Request) error
@@ -168,7 +170,7 @@ func CheckRedirect(_ *http.Request, via []*http.Request) error
 
 ### ErrorConnectionFailed
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/errors.go#L36)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/errors.go#L36)  
 
 ```go
 func ErrorConnectionFailed(host string) error
@@ -184,7 +186,7 @@ and WithVersionFromEnv options.
 
 FromEnv uses the following environment variables:
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L35)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L35)  
 
 ```go
 func FromEnv(c *Client) error
@@ -196,7 +198,7 @@ func FromEnv(c *Client) error
 
 IsErrConnectionFailed returns true if the error is caused by connection failed.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/errors.go#L29)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/errors.go#L29)  
 
 ```go
 func IsErrConnectionFailed(err error) bool
@@ -206,7 +208,7 @@ func IsErrConnectionFailed(err error) bool
 
 ### IsErrNotFound
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/errors.go#L56)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/errors.go#L56)  
 
 ```go
 func IsErrNotFound(err error) bool
@@ -219,7 +221,7 @@ func IsErrNotFound(err error) bool
 ParseHostURL parses a url string, validates the string is a host url, and
 returns the parsed URL
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L412)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L412)  
 
 ```go
 func ParseHostURL(host string) (*url.URL, error)
@@ -233,7 +235,7 @@ func ParseHostURL(host string) (*url.URL, error)
 
 APIClient is an interface that clients that talk with a docker server must implement.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L29)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L29)  
 
 ```go
 type APIClient interface {
@@ -252,7 +254,7 @@ Experimental: checkpoint and restore is still an experimental feature,
 and only available if the daemon is running with experimental features
 enabled.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/checkpoint.go#L14)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/checkpoint.go#L14)  
 
 ```go
 type CheckpointAPIClient interface {
@@ -269,7 +271,7 @@ type CheckpointAPIClient interface {
 Client is the API client that performs all operations
 against a docker server.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L106)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L106)  
 
 ```go
 type Client struct {
@@ -281,7 +283,7 @@ type Client struct {
 
 ##### NewClient
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_deprecated.go#L17)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_deprecated.go#L17)  
 
 ```go
 func NewClient(host string, version string, client *http.Client, httpHeaders map[string]string) (*Client, error)
@@ -299,7 +301,7 @@ the client. For example, the following initializes a client that configures
 itself with values from environment variables (FromEnv), and has automatic
 API version negotiation enabled (WithAPIVersionNegotiation).
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L189)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L189)  
 
 ```go
 func NewClientWithOpts(ops ...Opt) (*Client, error)
@@ -307,7 +309,7 @@ func NewClientWithOpts(ops ...Opt) (*Client, error)
 
 ##### NewEnvClient
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_deprecated.go#L25)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_deprecated.go#L25)  
 
 ```go
 func NewEnvClient() (*Client, error)
@@ -319,7 +321,7 @@ func NewEnvClient() (*Client, error)
 
 BuildCachePrune requests the daemon to delete unused cache data
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/build_prune.go#L15)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/build_prune.go#L15)  
 
 ```go
 func (cli *Client) BuildCachePrune(ctx context.Context, opts build.CachePruneOptions) (*build.CachePruneReport, error)
@@ -329,7 +331,7 @@ func (cli *Client) BuildCachePrune(ctx context.Context, opts build.CachePruneOpt
 
 BuildCancel requests the daemon to cancel the ongoing build request.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/build_cancel.go#L9)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/build_cancel.go#L9)  
 
 ```go
 func (cli *Client) BuildCancel(ctx context.Context, id string) error
@@ -339,7 +341,7 @@ func (cli *Client) BuildCancel(ctx context.Context, id string) error
 
 CheckpointCreate creates a checkpoint from the given container with the given name
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/checkpoint_create.go#L10)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/checkpoint_create.go#L10)  
 
 ```go
 func (cli *Client) CheckpointCreate(ctx context.Context, containerID string, options checkpoint.CreateOptions) error
@@ -349,7 +351,7 @@ func (cli *Client) CheckpointCreate(ctx context.Context, containerID string, opt
 
 CheckpointDelete deletes the checkpoint with the given name from the given container
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/checkpoint_delete.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/checkpoint_delete.go#L11)  
 
 ```go
 func (cli *Client) CheckpointDelete(ctx context.Context, containerID string, options checkpoint.DeleteOptions) error
@@ -359,7 +361,7 @@ func (cli *Client) CheckpointDelete(ctx context.Context, containerID string, opt
 
 CheckpointList returns the checkpoints of the given container in the docker host
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/checkpoint_list.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/checkpoint_list.go#L12)  
 
 ```go
 func (cli *Client) CheckpointList(ctx context.Context, container string, options checkpoint.ListOptions) ([]checkpoint.Summary, error)
@@ -369,7 +371,7 @@ func (cli *Client) CheckpointList(ctx context.Context, container string, options
 
 ClientVersion returns the API version used by this client.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L317)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L317)  
 
 ```go
 func (cli *Client) ClientVersion() string
@@ -379,7 +381,7 @@ func (cli *Client) ClientVersion() string
 
 Close the transport used by the client
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L271)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L271)  
 
 ```go
 func (cli *Client) Close() error
@@ -389,7 +391,7 @@ func (cli *Client) Close() error
 
 ConfigCreate creates a new config.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/config_create.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/config_create.go#L11)  
 
 ```go
 func (cli *Client) ConfigCreate(ctx context.Context, config swarm.ConfigSpec) (swarm.ConfigCreateResponse, error)
@@ -399,7 +401,7 @@ func (cli *Client) ConfigCreate(ctx context.Context, config swarm.ConfigSpec) (s
 
 ConfigInspectWithRaw returns the config information with raw data
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/config_inspect.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/config_inspect.go#L13)  
 
 ```go
 func (cli *Client) ConfigInspectWithRaw(ctx context.Context, id string) (swarm.Config, []byte, error)
@@ -409,7 +411,7 @@ func (cli *Client) ConfigInspectWithRaw(ctx context.Context, id string) (swarm.C
 
 ConfigList returns the list of configs.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/config_list.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/config_list.go#L13)  
 
 ```go
 func (cli *Client) ConfigList(ctx context.Context, options swarm.ConfigListOptions) ([]swarm.Config, error)
@@ -419,7 +421,7 @@ func (cli *Client) ConfigList(ctx context.Context, options swarm.ConfigListOptio
 
 ConfigRemove removes a config.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/config_remove.go#L6)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/config_remove.go#L6)  
 
 ```go
 func (cli *Client) ConfigRemove(ctx context.Context, id string) error
@@ -429,7 +431,7 @@ func (cli *Client) ConfigRemove(ctx context.Context, id string) error
 
 ConfigUpdate attempts to update a config
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/config_update.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/config_update.go#L11)  
 
 ```go
 func (cli *Client) ConfigUpdate(ctx context.Context, id string, version swarm.Version, config swarm.ConfigSpec) error
@@ -460,7 +462,7 @@ This is the size of OUTPUT.
 You can use github.com/docker/docker/pkg/stdcopy.StdCopy to demultiplex this
 stream.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_attach.go#L36)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_attach.go#L36)  
 
 ```go
 func (cli *Client) ContainerAttach(ctx context.Context, containerID string, options container.AttachOptions) (types.HijackedResponse, error)
@@ -470,7 +472,7 @@ func (cli *Client) ContainerAttach(ctx context.Context, containerID string, opti
 
 ContainerCommit applies changes to a container and creates a new tagged image.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_commit.go#L14)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_commit.go#L14)  
 
 ```go
 func (cli *Client) ContainerCommit(ctx context.Context, containerID string, options container.CommitOptions) (container.CommitResponse, error)
@@ -481,7 +483,7 @@ func (cli *Client) ContainerCommit(ctx context.Context, containerID string, opti
 ContainerCreate creates a new container based on the given configuration.
 It can be associated with a name, but it's not mandatory.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_create.go#L20)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_create.go#L20)  
 
 ```go
 func (cli *Client) ContainerCreate(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *ocispec.Platform, containerName string) (container.CreateResponse, error)
@@ -491,7 +493,7 @@ func (cli *Client) ContainerCreate(ctx context.Context, config *container.Config
 
 ContainerDiff shows differences in a container filesystem since it was started.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_diff.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_diff.go#L12)  
 
 ```go
 func (cli *Client) ContainerDiff(ctx context.Context, containerID string) ([]container.FilesystemChange, error)
@@ -504,7 +506,7 @@ It returns a types.HijackedConnection with the hijacked connection
 and the a reader to get output. It's up to the called to close
 the hijacked connection by calling types.HijackedResponse.Close.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_exec.go#L61)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_exec.go#L61)  
 
 ```go
 func (cli *Client) ContainerExecAttach(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error)
@@ -514,7 +516,7 @@ func (cli *Client) ContainerExecAttach(ctx context.Context, execID string, confi
 
 ContainerExecCreate creates a new exec configuration to run an exec process.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_exec.go#L14)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_exec.go#L14)  
 
 ```go
 func (cli *Client) ContainerExecCreate(ctx context.Context, containerID string, options container.ExecOptions) (container.ExecCreateResponse, error)
@@ -524,7 +526,7 @@ func (cli *Client) ContainerExecCreate(ctx context.Context, containerID string, 
 
 ContainerExecInspect returns information about a specific exec process on the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_exec.go#L71)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_exec.go#L71)  
 
 ```go
 func (cli *Client) ContainerExecInspect(ctx context.Context, execID string) (container.ExecInspect, error)
@@ -534,7 +536,7 @@ func (cli *Client) ContainerExecInspect(ctx context.Context, execID string) (con
 
 ContainerExecResize changes the size of the tty for an exec process running inside a container.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_resize.go#L21)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_resize.go#L21)  
 
 ```go
 func (cli *Client) ContainerExecResize(ctx context.Context, execID string, options container.ResizeOptions) error
@@ -544,7 +546,7 @@ func (cli *Client) ContainerExecResize(ctx context.Context, execID string, optio
 
 ContainerExecStart starts an exec process already created in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_exec.go#L48)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_exec.go#L48)  
 
 ```go
 func (cli *Client) ContainerExecStart(ctx context.Context, execID string, config container.ExecStartOptions) error
@@ -556,7 +558,7 @@ ContainerExport retrieves the raw contents of a container
 and returns them as an io.ReadCloser. It's up to the caller
 to close the stream.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_export.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_export.go#L12)  
 
 ```go
 func (cli *Client) ContainerExport(ctx context.Context, containerID string) (io.ReadCloser, error)
@@ -566,7 +568,7 @@ func (cli *Client) ContainerExport(ctx context.Context, containerID string) (io.
 
 ContainerInspect returns the container information.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_inspect.go#L14)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_inspect.go#L14)  
 
 ```go
 func (cli *Client) ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error)
@@ -576,7 +578,7 @@ func (cli *Client) ContainerInspect(ctx context.Context, containerID string) (co
 
 ContainerInspectWithRaw returns the container information and its raw representation.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_inspect.go#L32)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_inspect.go#L32)  
 
 ```go
 func (cli *Client) ContainerInspectWithRaw(ctx context.Context, containerID string, getSize bool) (container.InspectResponse, []byte, error)
@@ -586,7 +588,7 @@ func (cli *Client) ContainerInspectWithRaw(ctx context.Context, containerID stri
 
 ContainerKill terminates the container process but does not remove the container from the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_kill.go#L9)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_kill.go#L9)  
 
 ```go
 func (cli *Client) ContainerKill(ctx context.Context, containerID, signal string) error
@@ -596,7 +598,7 @@ func (cli *Client) ContainerKill(ctx context.Context, containerID, signal string
 
 ContainerList returns the list of containers in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_list.go#L14)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_list.go#L14)  
 
 ```go
 func (cli *Client) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error)
@@ -625,7 +627,7 @@ This is the size of OUTPUT.
 You can use github.com/docker/docker/pkg/stdcopy.StdCopy to demultiplex this
 stream.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_logs.go#L36)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_logs.go#L36)  
 
 ```go
 func (cli *Client) ContainerLogs(ctx context.Context, containerID string, options container.LogsOptions) (io.ReadCloser, error)
@@ -635,7 +637,7 @@ func (cli *Client) ContainerLogs(ctx context.Context, containerID string, option
 
 ContainerPause pauses the main process of a given container without terminating it.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_pause.go#L6)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_pause.go#L6)  
 
 ```go
 func (cli *Client) ContainerPause(ctx context.Context, containerID string) error
@@ -645,7 +647,7 @@ func (cli *Client) ContainerPause(ctx context.Context, containerID string) error
 
 ContainerRemove kills and removes a container from the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_remove.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_remove.go#L11)  
 
 ```go
 func (cli *Client) ContainerRemove(ctx context.Context, containerID string, options container.RemoveOptions) error
@@ -655,7 +657,7 @@ func (cli *Client) ContainerRemove(ctx context.Context, containerID string, opti
 
 ContainerRename changes the name of a given container.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_rename.go#L9)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_rename.go#L9)  
 
 ```go
 func (cli *Client) ContainerRename(ctx context.Context, containerID, newContainerName string) error
@@ -665,7 +667,7 @@ func (cli *Client) ContainerRename(ctx context.Context, containerID, newContaine
 
 ContainerResize changes the size of the tty for a container.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_resize.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_resize.go#L12)  
 
 ```go
 func (cli *Client) ContainerResize(ctx context.Context, containerID string, options container.ResizeOptions) error
@@ -677,7 +679,7 @@ ContainerRestart stops and starts a container again.
 It makes the daemon wait for the container to be up again for
 a specific amount of time, given the timeout.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_restart.go#L15)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_restart.go#L15)  
 
 ```go
 func (cli *Client) ContainerRestart(ctx context.Context, containerID string, options container.StopOptions) error
@@ -687,7 +689,7 @@ func (cli *Client) ContainerRestart(ctx context.Context, containerID string, opt
 
 ContainerStart sends a request to the docker daemon to start a container.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_start.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_start.go#L11)  
 
 ```go
 func (cli *Client) ContainerStart(ctx context.Context, containerID string, options container.StartOptions) error
@@ -697,7 +699,7 @@ func (cli *Client) ContainerStart(ctx context.Context, containerID string, optio
 
 ContainerStatPath returns stat information about a path inside the container filesystem.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_copy.go#L18)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_copy.go#L18)  
 
 ```go
 func (cli *Client) ContainerStatPath(ctx context.Context, containerID, path string) (container.PathStat, error)
@@ -708,7 +710,7 @@ func (cli *Client) ContainerStatPath(ctx context.Context, containerID, path stri
 ContainerStats returns near realtime stats for a given container.
 It's up to the caller to close the io.ReadCloser returned.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_stats.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_stats.go#L12)  
 
 ```go
 func (cli *Client) ContainerStats(ctx context.Context, containerID string, stream bool) (container.StatsResponseReader, error)
@@ -719,7 +721,7 @@ func (cli *Client) ContainerStats(ctx context.Context, containerID string, strea
 ContainerStatsOneShot gets a single stat entry from a container.
 It differs from `ContainerStats` in that the API should not wait to prime the stats
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_stats.go#L37)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_stats.go#L37)  
 
 ```go
 func (cli *Client) ContainerStatsOneShot(ctx context.Context, containerID string) (container.StatsResponseReader, error)
@@ -735,7 +737,7 @@ If the timeout is nil, the container's StopTimeout value is used, if set,
 otherwise the engine default. A negative timeout value can be specified,
 meaning no timeout, i.e. no forceful termination is performed.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_stop.go#L19)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_stop.go#L19)  
 
 ```go
 func (cli *Client) ContainerStop(ctx context.Context, containerID string, options container.StopOptions) error
@@ -745,7 +747,7 @@ func (cli *Client) ContainerStop(ctx context.Context, containerID string, option
 
 ContainerTop shows process information from within a container.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_top.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_top.go#L13)  
 
 ```go
 func (cli *Client) ContainerTop(ctx context.Context, containerID string, arguments []string) (container.TopResponse, error)
@@ -755,7 +757,7 @@ func (cli *Client) ContainerTop(ctx context.Context, containerID string, argumen
 
 ContainerUnpause resumes the process execution within a container
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_unpause.go#L6)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_unpause.go#L6)  
 
 ```go
 func (cli *Client) ContainerUnpause(ctx context.Context, containerID string) error
@@ -765,7 +767,7 @@ func (cli *Client) ContainerUnpause(ctx context.Context, containerID string) err
 
 ContainerUpdate updates the resources of a container.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_update.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_update.go#L11)  
 
 ```go
 func (cli *Client) ContainerUpdate(ctx context.Context, containerID string, updateConfig container.UpdateConfig) (container.UpdateResponse, error)
@@ -789,7 +791,7 @@ wait request or in getting the response. This allows the caller to
 synchronize ContainerWait with other calls, such as specifying a
 "next-exit" condition before issuing a ContainerStart request.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_wait.go#L32)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_wait.go#L32)  
 
 ```go
 func (cli *Client) ContainerWait(ctx context.Context, containerID string, condition container.WaitCondition) (<-chan container.WaitResponse, <-chan error)
@@ -799,7 +801,7 @@ func (cli *Client) ContainerWait(ctx context.Context, containerID string, condit
 
 ContainersPrune requests the daemon to delete unused data
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_prune.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_prune.go#L13)  
 
 ```go
 func (cli *Client) ContainersPrune(ctx context.Context, pruneFilters filters.Args) (container.PruneReport, error)
@@ -810,7 +812,7 @@ func (cli *Client) ContainersPrune(ctx context.Context, pruneFilters filters.Arg
 CopyFromContainer gets the content from the container and returns it as a Reader
 for a TAR archive to manipulate it in the host. It's up to the caller to close the reader.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_copy.go#L65)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_copy.go#L65)  
 
 ```go
 func (cli *Client) CopyFromContainer(ctx context.Context, containerID, srcPath string) (io.ReadCloser, container.PathStat, error)
@@ -821,7 +823,7 @@ func (cli *Client) CopyFromContainer(ctx context.Context, containerID, srcPath s
 CopyToContainer copies content into the container filesystem.
 Note that `content` must be a Reader for a TAR archive
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/container_copy.go#L37)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/container_copy.go#L37)  
 
 ```go
 func (cli *Client) CopyToContainer(ctx context.Context, containerID, dstPath string, content io.Reader, options container.CopyToContainerOptions) error
@@ -831,7 +833,7 @@ func (cli *Client) CopyToContainer(ctx context.Context, containerID, dstPath str
 
 DaemonHost returns the host address used by the client
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L400)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L400)  
 
 ```go
 func (cli *Client) DaemonHost() string
@@ -841,7 +843,7 @@ func (cli *Client) DaemonHost() string
 
 DialHijack returns a hijacked connection with negotiated protocol proto.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/hijack.go#L42)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/hijack.go#L42)  
 
 ```go
 func (cli *Client) DialHijack(ctx context.Context, url, proto string, meta map[string][]string) (net.Conn, error)
@@ -853,7 +855,7 @@ Dialer returns a dialer for a raw stream connection, with an HTTP/1.1 header,
 that can be used for proxying the daemon connection. It is used by
 "docker dial-stdio".
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L453)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L453)  
 
 ```go
 func (cli *Client) Dialer() func(context.Context) (net.Conn, error)
@@ -863,7 +865,7 @@ func (cli *Client) Dialer() func(context.Context) (net.Conn, error)
 
 DiskUsage requests the current data usage from the daemon
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/disk_usage.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/disk_usage.go#L13)  
 
 ```go
 func (cli *Client) DiskUsage(ctx context.Context, options types.DiskUsageOptions) (types.DiskUsage, error)
@@ -873,7 +875,7 @@ func (cli *Client) DiskUsage(ctx context.Context, options types.DiskUsageOptions
 
 DistributionInspect returns the image digest with the full manifest.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/distribution_inspect.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/distribution_inspect.go#L13)  
 
 ```go
 func (cli *Client) DistributionInspect(ctx context.Context, imageRef, encodedRegistryAuth string) (registry.DistributionInspect, error)
@@ -886,7 +888,7 @@ by cancelling the context. Once the stream has been completely read an io.EOF er
 be sent over the error channel. If an error is sent all processing will be stopped. It's up
 to the caller to reopen the stream in the event of an error by reinvoking this method.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/events.go#L18)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/events.go#L18)  
 
 ```go
 func (cli *Client) Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error)
@@ -896,7 +898,7 @@ func (cli *Client) Events(ctx context.Context, options events.ListOptions) (<-ch
 
 HTTPClient returns a copy of the HTTP client bound to the server
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L405)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L405)  
 
 ```go
 func (cli *Client) HTTPClient() *http.Client
@@ -908,7 +910,7 @@ ImageBuild sends a request to the daemon to build images.
 The Body in the response implements an io.ReadCloser and it's up to the caller to
 close it.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_build.go#L21)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_build.go#L21)  
 
 ```go
 func (cli *Client) ImageBuild(ctx context.Context, buildContext io.Reader, options build.ImageBuildOptions) (build.ImageBuildResponse, error)
@@ -919,7 +921,7 @@ func (cli *Client) ImageBuild(ctx context.Context, buildContext io.Reader, optio
 ImageCreate creates a new image based on the parent options.
 It returns the JSON content in the response body.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_create.go#L17)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_create.go#L17)  
 
 ```go
 func (cli *Client) ImageCreate(ctx context.Context, parentReference string, options image.CreateOptions) (io.ReadCloser, error)
@@ -929,7 +931,7 @@ func (cli *Client) ImageCreate(ctx context.Context, parentReference string, opti
 
 ImageHistory returns the changes in an image in history format.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_history.go#L25)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_history.go#L25)  
 
 ```go
 func (cli *Client) ImageHistory(ctx context.Context, imageID string, historyOpts ...ImageHistoryOption) ([]image.HistoryResponseItem, error)
@@ -940,7 +942,7 @@ func (cli *Client) ImageHistory(ctx context.Context, imageID string, historyOpts
 ImageImport creates a new image based on the source options.
 It returns the JSON content in the response body.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_import.go#L15)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_import.go#L15)  
 
 ```go
 func (cli *Client) ImageImport(ctx context.Context, source image.ImportSource, ref string, options image.ImportOptions) (io.ReadCloser, error)
@@ -950,7 +952,7 @@ func (cli *Client) ImageImport(ctx context.Context, source image.ImportSource, r
 
 ImageInspect returns the image information.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_inspect.go#L15)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_inspect.go#L15)  
 
 ```go
 func (cli *Client) ImageInspect(ctx context.Context, imageID string, inspectOpts ...ImageInspectOption) (image.InspectResponse, error)
@@ -958,7 +960,7 @@ func (cli *Client) ImageInspect(ctx context.Context, imageID string, inspectOpts
 
 ##### Client.ImageInspectWithRaw
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_inspect.go#L69)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_inspect.go#L69)  
 
 ```go
 func (cli *Client) ImageInspectWithRaw(ctx context.Context, imageID string) (image.InspectResponse, []byte, error)
@@ -973,7 +975,7 @@ image.Summary.Manifests with information about image manifests.
 This is experimental and might change in the future without any backward
 compatibility.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_list.go#L19)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_list.go#L19)  
 
 ```go
 func (cli *Client) ImageList(ctx context.Context, options image.ListOptions) ([]image.Summary, error)
@@ -989,7 +991,7 @@ Platform is an optional parameter that specifies the platform to load from
 the provided multi-platform image. This is only has effect if the input image
 is a multi-platform image.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_load.go#L19)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_load.go#L19)  
 
 ```go
 func (cli *Client) ImageLoad(ctx context.Context, input io.Reader, loadOpts ...ImageLoadOption) (image.LoadResponse, error)
@@ -1006,7 +1008,7 @@ FIXME(vdemeester): there is currently used in a few way in docker/docker
 - if not in trusted content, ref is used to pass the whole reference, and tag is empty
 - if in trusted content, ref is used to pass the reference name, and tag for the digest
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_pull.go#L22)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_pull.go#L22)  
 
 ```go
 func (cli *Client) ImagePull(ctx context.Context, refStr string, options image.PullOptions) (io.ReadCloser, error)
@@ -1019,7 +1021,7 @@ It executes the privileged function if the operation is unauthorized
 and it tries one more time.
 It's up to the caller to handle the io.ReadCloser and close it properly.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_push.go#L22)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_push.go#L22)  
 
 ```go
 func (cli *Client) ImagePush(ctx context.Context, image string, options image.PushOptions) (io.ReadCloser, error)
@@ -1029,7 +1031,7 @@ func (cli *Client) ImagePush(ctx context.Context, image string, options image.Pu
 
 ImageRemove removes an image from the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_remove.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_remove.go#L12)  
 
 ```go
 func (cli *Client) ImageRemove(ctx context.Context, imageID string, options image.RemoveOptions) ([]image.DeleteResponse, error)
@@ -1042,7 +1044,7 @@ ImageSave retrieves one or more images from the docker host as an io.ReadCloser.
 Platforms is an optional parameter that specifies the platforms to save from the image.
 This is only has effect if the input image is a multi-platform image.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_save.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_save.go#L13)  
 
 ```go
 func (cli *Client) ImageSave(ctx context.Context, imageIDs []string, saveOpts ...ImageSaveOption) (io.ReadCloser, error)
@@ -1053,7 +1055,7 @@ func (cli *Client) ImageSave(ctx context.Context, imageIDs []string, saveOpts ..
 ImageSearch makes the docker host search by a term in a remote registry.
 The list of results is not sorted in any fashion.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_search.go#L17)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_search.go#L17)  
 
 ```go
 func (cli *Client) ImageSearch(ctx context.Context, term string, options registry.SearchOptions) ([]registry.SearchResult, error)
@@ -1063,7 +1065,7 @@ func (cli *Client) ImageSearch(ctx context.Context, term string, options registr
 
 ImageTag tags an image in the docker host
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_tag.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_tag.go#L12)  
 
 ```go
 func (cli *Client) ImageTag(ctx context.Context, source, target string) error
@@ -1073,7 +1075,7 @@ func (cli *Client) ImageTag(ctx context.Context, source, target string) error
 
 ImagesPrune requests the daemon to delete unused data
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_prune.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_prune.go#L13)  
 
 ```go
 func (cli *Client) ImagesPrune(ctx context.Context, pruneFilters filters.Args) (image.PruneReport, error)
@@ -1083,7 +1085,7 @@ func (cli *Client) ImagesPrune(ctx context.Context, pruneFilters filters.Args) (
 
 Info returns information about the docker server.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/info.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/info.go#L13)  
 
 ```go
 func (cli *Client) Info(ctx context.Context) (system.Info, error)
@@ -1107,7 +1109,7 @@ an old daemon that does not support API version negotiation, in which case it
 downgrades to the latest version of the API before version negotiation was
 added (1.24).
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L336)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L336)  
 
 ```go
 func (cli *Client) NegotiateAPIVersion(ctx context.Context)
@@ -1129,7 +1131,7 @@ we are connected with an old daemon without API version negotiation support,
 and downgrade to the latest version of the API before version negotiation was
 added (1.24).
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client.go#L364)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client.go#L364)  
 
 ```go
 func (cli *Client) NegotiateAPIVersionPing(pingResponse types.Ping)
@@ -1139,7 +1141,7 @@ func (cli *Client) NegotiateAPIVersionPing(pingResponse types.Ping)
 
 NetworkConnect connects a container to an existent network in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/network_connect.go#L10)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/network_connect.go#L10)  
 
 ```go
 func (cli *Client) NetworkConnect(ctx context.Context, networkID, containerID string, config *network.EndpointSettings) error
@@ -1149,7 +1151,7 @@ func (cli *Client) NetworkConnect(ctx context.Context, networkID, containerID st
 
 NetworkCreate creates a new network in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/network_create.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/network_create.go#L12)  
 
 ```go
 func (cli *Client) NetworkCreate(ctx context.Context, name string, options network.CreateOptions) (network.CreateResponse, error)
@@ -1159,7 +1161,7 @@ func (cli *Client) NetworkCreate(ctx context.Context, name string, options netwo
 
 NetworkDisconnect disconnects a container from an existent network in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/network_disconnect.go#L10)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/network_disconnect.go#L10)  
 
 ```go
 func (cli *Client) NetworkDisconnect(ctx context.Context, networkID, containerID string, force bool) error
@@ -1169,7 +1171,7 @@ func (cli *Client) NetworkDisconnect(ctx context.Context, networkID, containerID
 
 NetworkInspect returns the information for a specific network configured in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/network_inspect.go#L14)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/network_inspect.go#L14)  
 
 ```go
 func (cli *Client) NetworkInspect(ctx context.Context, networkID string, options network.InspectOptions) (network.Inspect, error)
@@ -1179,7 +1181,7 @@ func (cli *Client) NetworkInspect(ctx context.Context, networkID string, options
 
 NetworkInspectWithRaw returns the information for a specific network configured in the docker host and its raw representation.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/network_inspect.go#L20)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/network_inspect.go#L20)  
 
 ```go
 func (cli *Client) NetworkInspectWithRaw(ctx context.Context, networkID string, options network.InspectOptions) (network.Inspect, []byte, error)
@@ -1189,7 +1191,7 @@ func (cli *Client) NetworkInspectWithRaw(ctx context.Context, networkID string, 
 
 NetworkList returns the list of networks configured in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/network_list.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/network_list.go#L13)  
 
 ```go
 func (cli *Client) NetworkList(ctx context.Context, options network.ListOptions) ([]network.Summary, error)
@@ -1199,7 +1201,7 @@ func (cli *Client) NetworkList(ctx context.Context, options network.ListOptions)
 
 NetworkRemove removes an existent network from the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/network_remove.go#L6)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/network_remove.go#L6)  
 
 ```go
 func (cli *Client) NetworkRemove(ctx context.Context, networkID string) error
@@ -1209,7 +1211,7 @@ func (cli *Client) NetworkRemove(ctx context.Context, networkID string) error
 
 NetworksPrune requests the daemon to delete unused networks
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/network_prune.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/network_prune.go#L13)  
 
 ```go
 func (cli *Client) NetworksPrune(ctx context.Context, pruneFilters filters.Args) (network.PruneReport, error)
@@ -1223,7 +1225,7 @@ current supported version.
 It performs API-version negotiation if the Client is configured with this
 option, otherwise it assumes the latest API version is used.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/errors.go#L76)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/errors.go#L76)  
 
 ```go
 func (cli *Client) NewVersionError(ctx context.Context, APIrequired, feature string) error
@@ -1233,7 +1235,7 @@ func (cli *Client) NewVersionError(ctx context.Context, APIrequired, feature str
 
 NodeInspectWithRaw returns the node information.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/node_inspect.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/node_inspect.go#L13)  
 
 ```go
 func (cli *Client) NodeInspectWithRaw(ctx context.Context, nodeID string) (swarm.Node, []byte, error)
@@ -1243,7 +1245,7 @@ func (cli *Client) NodeInspectWithRaw(ctx context.Context, nodeID string) (swarm
 
 NodeList returns the list of nodes.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/node_list.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/node_list.go#L13)  
 
 ```go
 func (cli *Client) NodeList(ctx context.Context, options swarm.NodeListOptions) ([]swarm.Node, error)
@@ -1253,7 +1255,7 @@ func (cli *Client) NodeList(ctx context.Context, options swarm.NodeListOptions) 
 
 NodeRemove removes a Node.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/node_remove.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/node_remove.go#L11)  
 
 ```go
 func (cli *Client) NodeRemove(ctx context.Context, nodeID string, options swarm.NodeRemoveOptions) error
@@ -1263,7 +1265,7 @@ func (cli *Client) NodeRemove(ctx context.Context, nodeID string, options swarm.
 
 NodeUpdate updates a Node.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/node_update.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/node_update.go#L11)  
 
 ```go
 func (cli *Client) NodeUpdate(ctx context.Context, nodeID string, version swarm.Version, node swarm.NodeSpec) error
@@ -1279,7 +1281,7 @@ may be returned if the daemon is in an unhealthy state, but returns errors
 for other non-success status codes, failing to connect to the API, or failing
 to parse the API response.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/ping.go#L21)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/ping.go#L21)  
 
 ```go
 func (cli *Client) Ping(ctx context.Context) (types.Ping, error)
@@ -1289,7 +1291,7 @@ func (cli *Client) Ping(ctx context.Context) (types.Ping, error)
 
 PluginCreate creates a plugin
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_create.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_create.go#L13)  
 
 ```go
 func (cli *Client) PluginCreate(ctx context.Context, createContext io.Reader, createOptions types.PluginCreateOptions) error
@@ -1299,7 +1301,7 @@ func (cli *Client) PluginCreate(ctx context.Context, createContext io.Reader, cr
 
 PluginDisable disables a plugin
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_disable.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_disable.go#L11)  
 
 ```go
 func (cli *Client) PluginDisable(ctx context.Context, name string, options types.PluginDisableOptions) error
@@ -1309,7 +1311,7 @@ func (cli *Client) PluginDisable(ctx context.Context, name string, options types
 
 PluginEnable enables a plugin
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_enable.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_enable.go#L12)  
 
 ```go
 func (cli *Client) PluginEnable(ctx context.Context, name string, options types.PluginEnableOptions) error
@@ -1319,7 +1321,7 @@ func (cli *Client) PluginEnable(ctx context.Context, name string, options types.
 
 PluginInspectWithRaw inspects an existing plugin
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_inspect.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_inspect.go#L13)  
 
 ```go
 func (cli *Client) PluginInspectWithRaw(ctx context.Context, name string) (*types.Plugin, []byte, error)
@@ -1329,7 +1331,7 @@ func (cli *Client) PluginInspectWithRaw(ctx context.Context, name string) (*type
 
 PluginInstall installs a plugin
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_install.go#L18)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_install.go#L18)  
 
 ```go
 func (cli *Client) PluginInstall(ctx context.Context, name string, options types.PluginInstallOptions) (_ io.ReadCloser, retErr error)
@@ -1339,7 +1341,7 @@ func (cli *Client) PluginInstall(ctx context.Context, name string, options types
 
 PluginList returns the installed plugins
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_list.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_list.go#L13)  
 
 ```go
 func (cli *Client) PluginList(ctx context.Context, filter filters.Args) (types.PluginsListResponse, error)
@@ -1349,7 +1351,7 @@ func (cli *Client) PluginList(ctx context.Context, filter filters.Args) (types.P
 
 PluginPush pushes a plugin to a registry
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_push.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_push.go#L12)  
 
 ```go
 func (cli *Client) PluginPush(ctx context.Context, name string, registryAuth string) (io.ReadCloser, error)
@@ -1359,7 +1361,7 @@ func (cli *Client) PluginPush(ctx context.Context, name string, registryAuth str
 
 PluginRemove removes a plugin
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_remove.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_remove.go#L11)  
 
 ```go
 func (cli *Client) PluginRemove(ctx context.Context, name string, options types.PluginRemoveOptions) error
@@ -1369,7 +1371,7 @@ func (cli *Client) PluginRemove(ctx context.Context, name string, options types.
 
 PluginSet modifies settings for an existing plugin
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_set.go#L8)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_set.go#L8)  
 
 ```go
 func (cli *Client) PluginSet(ctx context.Context, name string, args []string) error
@@ -1379,7 +1381,7 @@ func (cli *Client) PluginSet(ctx context.Context, name string, args []string) er
 
 PluginUpgrade upgrades a plugin
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/plugin_upgrade.go#L16)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/plugin_upgrade.go#L16)  
 **Added in:** v1.13.1
 
 ```go
@@ -1391,7 +1393,7 @@ func (cli *Client) PluginUpgrade(ctx context.Context, name string, options types
 RegistryLogin authenticates the docker server with a given docker registry.
 It returns unauthorizedError when the authentication fails.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/login.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/login.go#L13)  
 
 ```go
 func (cli *Client) RegistryLogin(ctx context.Context, auth registry.AuthConfig) (registry.AuthenticateOKBody, error)
@@ -1401,7 +1403,7 @@ func (cli *Client) RegistryLogin(ctx context.Context, auth registry.AuthConfig) 
 
 SecretCreate creates a new secret.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/secret_create.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/secret_create.go#L11)  
 
 ```go
 func (cli *Client) SecretCreate(ctx context.Context, secret swarm.SecretSpec) (swarm.SecretCreateResponse, error)
@@ -1411,7 +1413,7 @@ func (cli *Client) SecretCreate(ctx context.Context, secret swarm.SecretSpec) (s
 
 SecretInspectWithRaw returns the secret information with raw data
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/secret_inspect.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/secret_inspect.go#L13)  
 
 ```go
 func (cli *Client) SecretInspectWithRaw(ctx context.Context, id string) (swarm.Secret, []byte, error)
@@ -1421,7 +1423,7 @@ func (cli *Client) SecretInspectWithRaw(ctx context.Context, id string) (swarm.S
 
 SecretList returns the list of secrets.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/secret_list.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/secret_list.go#L13)  
 
 ```go
 func (cli *Client) SecretList(ctx context.Context, options swarm.SecretListOptions) ([]swarm.Secret, error)
@@ -1431,7 +1433,7 @@ func (cli *Client) SecretList(ctx context.Context, options swarm.SecretListOptio
 
 SecretRemove removes a secret.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/secret_remove.go#L6)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/secret_remove.go#L6)  
 
 ```go
 func (cli *Client) SecretRemove(ctx context.Context, id string) error
@@ -1441,7 +1443,7 @@ func (cli *Client) SecretRemove(ctx context.Context, id string) error
 
 SecretUpdate attempts to update a secret.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/secret_update.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/secret_update.go#L11)  
 **Added in:** v1.13.1
 
 ```go
@@ -1452,7 +1454,7 @@ func (cli *Client) SecretUpdate(ctx context.Context, id string, version swarm.Ve
 
 ServerVersion returns information of the docker client and server host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/version.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/version.go#L11)  
 
 ```go
 func (cli *Client) ServerVersion(ctx context.Context) (types.Version, error)
@@ -1462,7 +1464,7 @@ func (cli *Client) ServerVersion(ctx context.Context) (types.Version, error)
 
 ServiceCreate creates a new service.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/service_create.go#L19)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/service_create.go#L19)  
 
 ```go
 func (cli *Client) ServiceCreate(ctx context.Context, service swarm.ServiceSpec, options swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)
@@ -1472,7 +1474,7 @@ func (cli *Client) ServiceCreate(ctx context.Context, service swarm.ServiceSpec,
 
 ServiceInspectWithRaw returns the service information and the raw data.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/service_inspect.go#L15)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/service_inspect.go#L15)  
 
 ```go
 func (cli *Client) ServiceInspectWithRaw(ctx context.Context, serviceID string, opts swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
@@ -1482,7 +1484,7 @@ func (cli *Client) ServiceInspectWithRaw(ctx context.Context, serviceID string, 
 
 ServiceList returns the list of services.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/service_list.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/service_list.go#L13)  
 
 ```go
 func (cli *Client) ServiceList(ctx context.Context, options swarm.ServiceListOptions) ([]swarm.Service, error)
@@ -1493,7 +1495,7 @@ func (cli *Client) ServiceList(ctx context.Context, options swarm.ServiceListOpt
 ServiceLogs returns the logs generated by a service in an io.ReadCloser.
 It's up to the caller to close the stream.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/service_logs.go#L16)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/service_logs.go#L16)  
 
 ```go
 func (cli *Client) ServiceLogs(ctx context.Context, serviceID string, options container.LogsOptions) (io.ReadCloser, error)
@@ -1503,7 +1505,7 @@ func (cli *Client) ServiceLogs(ctx context.Context, serviceID string, options co
 
 ServiceRemove kills and removes a service.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/service_remove.go#L6)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/service_remove.go#L6)  
 
 ```go
 func (cli *Client) ServiceRemove(ctx context.Context, serviceID string) error
@@ -1515,7 +1517,7 @@ ServiceUpdate updates a Service. The version number is required to avoid conflic
 It should be the value as set *before* the update. You can find this value in the Meta field
 of swarm.Service, which can be found using ServiceInspectWithRaw.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/service_update.go#L17)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/service_update.go#L17)  
 
 ```go
 func (cli *Client) ServiceUpdate(ctx context.Context, serviceID string, version swarm.Version, service swarm.ServiceSpec, options swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
@@ -1525,7 +1527,7 @@ func (cli *Client) ServiceUpdate(ctx context.Context, serviceID string, version 
 
 SwarmGetUnlockKey retrieves the swarm's unlock key.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/swarm_get_unlock_key.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/swarm_get_unlock_key.go#L11)  
 
 ```go
 func (cli *Client) SwarmGetUnlockKey(ctx context.Context) (swarm.UnlockKeyResponse, error)
@@ -1535,7 +1537,7 @@ func (cli *Client) SwarmGetUnlockKey(ctx context.Context) (swarm.UnlockKeyRespon
 
 SwarmInit initializes the swarm.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/swarm_init.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/swarm_init.go#L11)  
 
 ```go
 func (cli *Client) SwarmInit(ctx context.Context, req swarm.InitRequest) (string, error)
@@ -1545,7 +1547,7 @@ func (cli *Client) SwarmInit(ctx context.Context, req swarm.InitRequest) (string
 
 SwarmInspect inspects the swarm.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/swarm_inspect.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/swarm_inspect.go#L11)  
 
 ```go
 func (cli *Client) SwarmInspect(ctx context.Context) (swarm.Swarm, error)
@@ -1555,7 +1557,7 @@ func (cli *Client) SwarmInspect(ctx context.Context) (swarm.Swarm, error)
 
 SwarmJoin joins the swarm.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/swarm_join.go#L10)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/swarm_join.go#L10)  
 
 ```go
 func (cli *Client) SwarmJoin(ctx context.Context, req swarm.JoinRequest) error
@@ -1565,7 +1567,7 @@ func (cli *Client) SwarmJoin(ctx context.Context, req swarm.JoinRequest) error
 
 SwarmLeave leaves the swarm.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/swarm_leave.go#L9)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/swarm_leave.go#L9)  
 
 ```go
 func (cli *Client) SwarmLeave(ctx context.Context, force bool) error
@@ -1575,7 +1577,7 @@ func (cli *Client) SwarmLeave(ctx context.Context, force bool) error
 
 SwarmUnlock unlocks locked swarm.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/swarm_unlock.go#L10)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/swarm_unlock.go#L10)  
 
 ```go
 func (cli *Client) SwarmUnlock(ctx context.Context, req swarm.UnlockRequest) error
@@ -1585,7 +1587,7 @@ func (cli *Client) SwarmUnlock(ctx context.Context, req swarm.UnlockRequest) err
 
 SwarmUpdate updates the swarm.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/swarm_update.go#L12)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/swarm_update.go#L12)  
 
 ```go
 func (cli *Client) SwarmUpdate(ctx context.Context, version swarm.Version, swarm swarm.Spec, flags swarm.UpdateFlags) error
@@ -1595,7 +1597,7 @@ func (cli *Client) SwarmUpdate(ctx context.Context, version swarm.Version, swarm
 
 TaskInspectWithRaw returns the task information and its raw representation.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/task_inspect.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/task_inspect.go#L13)  
 
 ```go
 func (cli *Client) TaskInspectWithRaw(ctx context.Context, taskID string) (swarm.Task, []byte, error)
@@ -1605,7 +1607,7 @@ func (cli *Client) TaskInspectWithRaw(ctx context.Context, taskID string) (swarm
 
 TaskList returns the list of tasks.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/task_list.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/task_list.go#L13)  
 
 ```go
 func (cli *Client) TaskList(ctx context.Context, options swarm.TaskListOptions) ([]swarm.Task, error)
@@ -1616,7 +1618,7 @@ func (cli *Client) TaskList(ctx context.Context, options swarm.TaskListOptions) 
 TaskLogs returns the logs generated by a task in an io.ReadCloser.
 It's up to the caller to close the stream.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/task_logs.go#L15)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/task_logs.go#L15)  
 
 ```go
 func (cli *Client) TaskLogs(ctx context.Context, taskID string, options container.LogsOptions) (io.ReadCloser, error)
@@ -1626,7 +1628,7 @@ func (cli *Client) TaskLogs(ctx context.Context, taskID string, options containe
 
 VolumeCreate creates a volume in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/volume_create.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/volume_create.go#L11)  
 
 ```go
 func (cli *Client) VolumeCreate(ctx context.Context, options volume.CreateOptions) (volume.Volume, error)
@@ -1636,7 +1638,7 @@ func (cli *Client) VolumeCreate(ctx context.Context, options volume.CreateOption
 
 VolumeInspect returns the information about a specific volume in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/volume_inspect.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/volume_inspect.go#L13)  
 
 ```go
 func (cli *Client) VolumeInspect(ctx context.Context, volumeID string) (volume.Volume, error)
@@ -1646,7 +1648,7 @@ func (cli *Client) VolumeInspect(ctx context.Context, volumeID string) (volume.V
 
 VolumeInspectWithRaw returns the information about a specific volume in the docker host and its raw representation
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/volume_inspect.go#L19)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/volume_inspect.go#L19)  
 
 ```go
 func (cli *Client) VolumeInspectWithRaw(ctx context.Context, volumeID string) (volume.Volume, []byte, error)
@@ -1656,7 +1658,7 @@ func (cli *Client) VolumeInspectWithRaw(ctx context.Context, volumeID string) (v
 
 VolumeList returns the volumes configured in the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/volume_list.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/volume_list.go#L13)  
 
 ```go
 func (cli *Client) VolumeList(ctx context.Context, options volume.ListOptions) (volume.ListResponse, error)
@@ -1666,7 +1668,7 @@ func (cli *Client) VolumeList(ctx context.Context, options volume.ListOptions) (
 
 VolumeRemove removes a volume from the docker host.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/volume_remove.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/volume_remove.go#L11)  
 
 ```go
 func (cli *Client) VolumeRemove(ctx context.Context, volumeID string, force bool) error
@@ -1677,7 +1679,7 @@ func (cli *Client) VolumeRemove(ctx context.Context, volumeID string, force bool
 VolumeUpdate updates a volume. This only works for Cluster Volumes, and
 only some fields can be updated.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/volume_update.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/volume_update.go#L13)  
 
 ```go
 func (cli *Client) VolumeUpdate(ctx context.Context, volumeID string, version swarm.Version, options volume.UpdateOptions) error
@@ -1687,7 +1689,7 @@ func (cli *Client) VolumeUpdate(ctx context.Context, volumeID string, version sw
 
 VolumesPrune requests the daemon to delete unused data
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/volume_prune.go#L13)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/volume_prune.go#L13)  
 
 ```go
 func (cli *Client) VolumesPrune(ctx context.Context, pruneFilters filters.Args) (volume.PruneReport, error)
@@ -1697,7 +1699,7 @@ func (cli *Client) VolumesPrune(ctx context.Context, pruneFilters filters.Args) 
 
 ### CommonAPIClient
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L26)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L26)  
 
 ```go
 type CommonAPIClient = stableAPIClient
@@ -1709,7 +1711,7 @@ type CommonAPIClient = stableAPIClient
 
 ConfigAPIClient defines API client methods for configs
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L231)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L231)  
 
 ```go
 type ConfigAPIClient interface {
@@ -1727,7 +1729,7 @@ type ConfigAPIClient interface {
 
 ContainerAPIClient defines API client methods for the containers
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L71)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L71)  
 
 ```go
 type ContainerAPIClient interface {
@@ -1772,7 +1774,7 @@ type ContainerAPIClient interface {
 
 DistributionAPIClient defines API client methods for the registry
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L107)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L107)  
 
 ```go
 type DistributionAPIClient interface {
@@ -1786,7 +1788,7 @@ type DistributionAPIClient interface {
 
 HijackDialer defines methods for a hijack dialer.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L66)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L66)  
 
 ```go
 type HijackDialer interface {
@@ -1800,7 +1802,7 @@ type HijackDialer interface {
 
 ImageAPIClient defines API client methods for the images
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L112)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L112)  
 
 ```go
 type ImageAPIClient interface {
@@ -1833,7 +1835,7 @@ type ImageAPIClient interface {
 
 ImageAPIClientDeprecated defines deprecated methods of the ImageAPIClient.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L136)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L136)  
 
 ```go
 type ImageAPIClientDeprecated interface {
@@ -1850,7 +1852,7 @@ type ImageAPIClientDeprecated interface {
 
 ImageHistoryOption is a type representing functional options for the image history operation.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_history_opts.go#L8)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_history_opts.go#L8)  
 
 ```go
 type ImageHistoryOption interface {
@@ -1864,7 +1866,7 @@ type ImageHistoryOption interface {
 
 ImageHistoryWithPlatform sets the platform for the image history operation.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_history.go#L14)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_history.go#L14)  
 
 ```go
 func ImageHistoryWithPlatform(platform ocispec.Platform) ImageHistoryOption
@@ -1876,7 +1878,7 @@ func ImageHistoryWithPlatform(platform ocispec.Platform) ImageHistoryOption
 
 ImageInspectOption is a type representing functional options for the image inspect operation.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_inspect_opts.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_inspect_opts.go#L11)  
 
 ```go
 type ImageInspectOption interface {
@@ -1890,7 +1892,7 @@ type ImageInspectOption interface {
 
 ImageInspectWithAPIOpts sets the API options for the image inspect operation.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_inspect_opts.go#L52)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_inspect_opts.go#L52)  
 
 ```go
 func ImageInspectWithAPIOpts(opts image.InspectOptions) ImageInspectOption
@@ -1903,7 +1905,7 @@ This option is only available for API version 1.48 and up.
 With this option set, the image inspect operation response will have the
 image.InspectResponse.Manifests field populated if the server is multi-platform capable.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_inspect_opts.go#L33)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_inspect_opts.go#L33)  
 
 ```go
 func ImageInspectWithManifests(manifests bool) ImageInspectOption
@@ -1916,7 +1918,7 @@ This option is only available for API version 1.49 and up.
 With this option set, the image inspect operation will return information for the
 specified platform variant of the multi-platform image.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_inspect_opts.go#L44)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_inspect_opts.go#L44)  
 
 ```go
 func ImageInspectWithPlatform(platform *ocispec.Platform) ImageInspectOption
@@ -1927,7 +1929,7 @@ func ImageInspectWithPlatform(platform *ocispec.Platform) ImageInspectOption
 ImageInspectWithRawResponse instructs the client to additionally store the
 raw inspect response in the provided buffer.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_inspect_opts.go#L22)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_inspect_opts.go#L22)  
 
 ```go
 func ImageInspectWithRawResponse(raw *bytes.Buffer) ImageInspectOption
@@ -1939,7 +1941,7 @@ func ImageInspectWithRawResponse(raw *bytes.Buffer) ImageInspectOption
 
 ImageLoadOption is a type representing functional options for the image load operation.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_load_opts.go#L11)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_load_opts.go#L11)  
 
 ```go
 type ImageLoadOption interface {
@@ -1953,7 +1955,7 @@ type ImageLoadOption interface {
 
 ImageLoadWithPlatforms sets the platforms to be loaded from the image.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_load_opts.go#L33)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_load_opts.go#L33)  
 
 ```go
 func ImageLoadWithPlatforms(platforms ...ocispec.Platform) ImageLoadOption
@@ -1963,7 +1965,7 @@ func ImageLoadWithPlatforms(platforms ...ocispec.Platform) ImageLoadOption
 
 ImageLoadWithQuiet sets the quiet option for the image load operation.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_load_opts.go#L25)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_load_opts.go#L25)  
 
 ```go
 func ImageLoadWithQuiet(quiet bool) ImageLoadOption
@@ -1973,7 +1975,7 @@ func ImageLoadWithQuiet(quiet bool) ImageLoadOption
 
 ### ImageSaveOption
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_save_opts.go#L10)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_save_opts.go#L10)  
 
 ```go
 type ImageSaveOption interface {
@@ -1987,7 +1989,7 @@ type ImageSaveOption interface {
 
 ImageSaveWithPlatforms sets the platforms to be saved from the image.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/image_save_opts.go#L21)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_save_opts.go#L21)  
 
 ```go
 func ImageSaveWithPlatforms(platforms ...ocispec.Platform) ImageSaveOption
@@ -1999,7 +2001,7 @@ func ImageSaveWithPlatforms(platforms ...ocispec.Platform) ImageSaveOption
 
 NetworkAPIClient defines API client methods for the networks
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L144)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L144)  
 
 ```go
 type NetworkAPIClient interface {
@@ -2020,7 +2022,7 @@ type NetworkAPIClient interface {
 
 NodeAPIClient defines API client methods for the nodes
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L156)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L156)  
 
 ```go
 type NodeAPIClient interface {
@@ -2037,7 +2039,7 @@ type NodeAPIClient interface {
 
 Opt is a configuration option to initialize a Client.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L20)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L20)  
 
 ```go
 type Opt func(*Client) error
@@ -2052,7 +2054,7 @@ With this option enabled, the client automatically negotiates the API version
 to use when making requests. API version negotiation is performed on the first
 request; subsequent requests do not re-negotiate.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L221)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L221)  
 
 ```go
 func WithAPIVersionNegotiation() Opt
@@ -2064,7 +2066,7 @@ WithDialContext applies the dialer to the client transport. This can be
 used to set the Timeout and KeepAlive settings of the client. It returns
 an error if the client does not have a http.Transport configured.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L52)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L52)  
 
 ```go
 func WithDialContext(dialContext func(ctx context.Context, network, addr string) (net.Conn, error)) Opt
@@ -2074,7 +2076,7 @@ func WithDialContext(dialContext func(ctx context.Context, network, addr string)
 
 WithHTTPClient overrides the client's HTTP client with the specified one.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L93)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L93)  
 
 ```go
 func WithHTTPClient(client *http.Client) Opt
@@ -2086,7 +2088,7 @@ WithHTTPHeaders appends custom HTTP headers to the client's default headers.
 It does not allow for built-in headers (such as "User-Agent", if set) to
 be overridden. Also see WithUserAgent.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L123)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L123)  
 
 ```go
 func WithHTTPHeaders(headers map[string]string) Opt
@@ -2096,7 +2098,7 @@ func WithHTTPHeaders(headers map[string]string) Opt
 
 WithHost overrides the client host with the specified one.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L63)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L63)  
 
 ```go
 func WithHost(host string) Opt
@@ -2108,7 +2110,7 @@ WithHostFromEnv overrides the client host with the host specified in the
 DOCKER_HOST (EnvOverrideHost) environment variable. If DOCKER_HOST is not set,
 or set to an empty value, the host is not modified.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L83)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L83)  
 
 ```go
 func WithHostFromEnv() Opt
@@ -2118,7 +2120,7 @@ func WithHostFromEnv() Opt
 
 WithScheme overrides the client scheme with the specified one.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L131)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L131)  
 
 ```go
 func WithScheme(scheme string) Opt
@@ -2128,7 +2130,7 @@ func WithScheme(scheme string) Opt
 
 WithTLSClientConfig applies a TLS config to the client transport.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L139)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L139)  
 
 ```go
 func WithTLSClientConfig(cacertPath, certPath, keyPath string) Opt
@@ -2143,7 +2145,7 @@ TLS configuration is not modified.
 
 WithTLSClientConfigFromEnv uses the following environment variables:
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L170)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L170)  
 
 ```go
 func WithTLSClientConfigFromEnv() Opt
@@ -2153,7 +2155,7 @@ func WithTLSClientConfigFromEnv() Opt
 
 WithTimeout configures the time limit for requests made by the HTTP client.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L103)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L103)  
 
 ```go
 func WithTimeout(timeout time.Duration) Opt
@@ -2163,7 +2165,7 @@ func WithTimeout(timeout time.Duration) Opt
 
 WithTraceOptions sets tracing span options for the client.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L235)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L235)  
 
 ```go
 func WithTraceOptions(opts ...otelhttp.Option) Opt
@@ -2174,7 +2176,7 @@ func WithTraceOptions(opts ...otelhttp.Option) Opt
 WithTraceProvider sets the trace provider for the client.
 If this is not set then the global trace provider will be used.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L230)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L230)  
 
 ```go
 func WithTraceProvider(provider trace.TracerProvider) Opt
@@ -2186,7 +2188,7 @@ WithUserAgent configures the User-Agent header to use for HTTP requests.
 It overrides any User-Agent set in headers. When set to an empty string,
 the User-Agent header is removed, and no header is sent.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L113)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L113)  
 
 ```go
 func WithUserAgent(ua string) Opt
@@ -2198,7 +2200,7 @@ WithVersion overrides the client version with the specified one. If an empty
 version is provided, the value is ignored to allow version negotiation
 (see WithAPIVersionNegotiation).
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L197)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L197)  
 
 ```go
 func WithVersion(version string) Opt
@@ -2211,7 +2213,7 @@ the DOCKER_API_VERSION (EnvOverrideAPIVersion) environment variable.
 If DOCKER_API_VERSION is not set, or set to an empty value, the version
 is not modified.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/options.go#L211)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/options.go#L211)  
 
 ```go
 func WithVersionFromEnv() Opt
@@ -2223,7 +2225,7 @@ func WithVersionFromEnv() Opt
 
 PluginAPIClient defines API client methods for the plugins
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L164)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L164)  
 
 ```go
 type PluginAPIClient interface {
@@ -2246,7 +2248,7 @@ type PluginAPIClient interface {
 
 SecretAPIClient defines API client methods for secrets
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L222)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L222)  
 
 ```go
 type SecretAPIClient interface {
@@ -2264,7 +2266,7 @@ type SecretAPIClient interface {
 
 ServiceAPIClient defines API client methods for the services
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L178)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L178)  
 
 ```go
 type ServiceAPIClient interface {
@@ -2286,7 +2288,7 @@ type ServiceAPIClient interface {
 
 SwarmAPIClient defines API client methods for the swarm
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L191)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L191)  
 
 ```go
 type SwarmAPIClient interface {
@@ -2307,7 +2309,7 @@ type SwarmAPIClient interface {
 SwarmManagementAPIClient defines all methods for managing Swarm-specific
 objects.
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L57)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L57)  
 
 ```go
 type SwarmManagementAPIClient interface {
@@ -2325,7 +2327,7 @@ type SwarmManagementAPIClient interface {
 
 SystemAPIClient defines API client methods for the system
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L202)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L202)  
 
 ```go
 type SystemAPIClient interface {
@@ -2343,7 +2345,7 @@ type SystemAPIClient interface {
 
 VolumeAPIClient defines API client methods for the volumes
 
-**Source:** [View Source](https://github.com/moby/moby/blob/v28.3.0/client/client_interfaces.go#L211)  
+**Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_interfaces.go#L211)  
 
 ```go
 type VolumeAPIClient interface {

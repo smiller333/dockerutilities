@@ -48,6 +48,7 @@ Enhance Copilot's understanding of the project:
 - **Context Directories**:
   - `src/**` (implementation logic)
   - `cmd/**` (CLI command definitions)
+  - `docs/apis/**` (API documentation)
 
 ### File Exclusions
 Exclude specific file patterns from Copilot suggestions:
