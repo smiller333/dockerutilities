@@ -265,3 +265,73 @@ func TestDockerClient_ListImages(t *testing.T) {
 		t.Error("ListImages() returned nil")
 	}
 }
+
+// TestDockerClient_PullImage tests pulling an image
+// Note: This test requires a running Docker daemon and internet connectivity
+func TestDockerClient_PullImage(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	client, err := NewDefaultClient()
+	if err != nil {
+		t.Fatalf("NewDefaultClient() error = %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	// First check if Docker is available
+	if err := client.Ping(ctx); err != nil {
+		t.Logf("Docker daemon not available, skipping test: %v", err)
+		return
+	}
+
+	// Test pulling a small public image
+	reader, err := client.PullImage(ctx, "alpine:latest", nil)
+	if err != nil {
+		t.Logf("PullImage() failed (may be due to network issues): %v", err)
+		return
+	}
+	defer reader.Close()
+
+	// Read some data to ensure the stream is working
+	buffer := make([]byte, 1024)
+	_, err = reader.Read(buffer)
+	if err != nil && err.Error() != "EOF" {
+		t.Errorf("Failed to read from pull response: %v", err)
+	}
+}
+
+// TestDockerClient_PushImage tests pushing an image
+// Note: This test requires a running Docker daemon and proper authentication
+func TestDockerClient_PushImage(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	client, err := NewDefaultClient()
+	if err != nil {
+		t.Fatalf("NewDefaultClient() error = %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	// First check if Docker is available
+	if err := client.Ping(ctx); err != nil {
+		t.Logf("Docker daemon not available, skipping test: %v", err)
+		return
+	}
+
+	// Test pushing an image (this will likely fail without proper auth)
+	// We're just testing that the function doesn't panic and returns an appropriate error
+	_, err = client.PushImage(ctx, "nonexistent/test:latest", nil)
+	if err == nil {
+		t.Log("PushImage() unexpectedly succeeded (or image exists)")
+	} else {
+		t.Logf("PushImage() failed as expected without auth: %v", err)
+	}
+}

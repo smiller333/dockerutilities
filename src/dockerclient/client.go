@@ -4,7 +4,10 @@ package dockerclient
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -13,6 +16,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/client"
 )
@@ -292,4 +296,62 @@ func (dc *DockerClient) SetTimeout(timeout time.Duration) {
 // GetConfig returns the client configuration
 func (dc *DockerClient) GetConfig() *Config {
 	return dc.config
+}
+
+// PullImage pulls an image from a registry
+func (dc *DockerClient) PullImage(ctx context.Context, imageName string, authConfig *registry.AuthConfig) (io.ReadCloser, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
+		defer cancel()
+	}
+
+	// Create the options for the image pull
+	options := image.PullOptions{}
+
+	// Encode the auth config to base64 if provided
+	if authConfig != nil {
+		authBytes, err := json.Marshal(authConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal auth config: %w", err)
+		}
+		options.RegistryAuth = base64.URLEncoding.EncodeToString(authBytes)
+	}
+
+	// Pull the image
+	reader, err := dc.client.ImagePull(ctx, imageName, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pull image %s: %w", imageName, err)
+	}
+
+	return reader, nil
+}
+
+// PushImage pushes an image to a registry
+func (dc *DockerClient) PushImage(ctx context.Context, imageName string, authConfig *registry.AuthConfig) (io.ReadCloser, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
+		defer cancel()
+	}
+
+	// Create the options for the image push
+	options := image.PushOptions{}
+
+	// Encode the auth config to base64 if provided
+	if authConfig != nil {
+		authBytes, err := json.Marshal(authConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal auth config: %w", err)
+		}
+		options.RegistryAuth = base64.URLEncoding.EncodeToString(authBytes)
+	}
+
+	// Push the image
+	reader, err := dc.client.ImagePush(ctx, imageName, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to push image %s: %w", imageName, err)
+	}
+
+	return reader, nil
 }
