@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:36:54 UTC
+**Generated:** 2025-06-28 23:15:33 UTC
 
 ## Constants
 
@@ -100,7 +100,11 @@ Addr returns the net.Addr to use to connect to the plugin socket
 func (p *Plugin) Addr() net.Addr
 ```
 
-##### Plugin.Client
+##### Plugin.Client ⚠️ **DEPRECATED**
+
+Client returns the plugin client.
+
+Deprecated: use p.Addr() and manually create the client
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/plugin/v2/plugin.go#L60)  
 
@@ -260,7 +264,11 @@ SetAddr sets the plugin address which can be used for dialing the plugin.
 func (p *Plugin) SetAddr(addr net.Addr)
 ```
 
-##### Plugin.SetPClient
+##### Plugin.SetPClient ⚠️ **DEPRECATED**
+
+SetPClient set the plugin client.
+
+Deprecated: Hardcoded plugin client is deprecated
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/plugin/v2/plugin.go#L70)  
 

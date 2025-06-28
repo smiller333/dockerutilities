@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:35:48 UTC
+**Generated:** 2025-06-28 23:11:42 UTC
 
 ## Overview
 
@@ -25,7 +25,12 @@ This section is empty.
 
 ## Functions
 
-### ParseKeyValueOpt
+### ParseKeyValueOpt ⚠️ **DEPRECATED**
+
+ParseKeyValueOpt parses and validates the specified string as a key/value
+pair (key=value).
+
+Deprecated: use strings.Cut instead. This utility was only used internally, and will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/parsers/parsers.go#L16)  
 
@@ -35,7 +40,16 @@ func ParseKeyValueOpt(opt string) (key string, value string, _ error)
 
 ---
 
-### ParseUintList
+### ParseUintList ⚠️ **DEPRECATED**
+
+ParseUintList parses and validates the specified string as the value
+found in some cgroup file (e.g. `cpuset.cpus`, `cpuset.mems`), which could be
+one of the formats below. Note that duplicates are actually allowed in the
+input string. It returns a `map[int]bool` with available elements from `val`
+set to `true`.
+Supported formats:
+
+Deprecated: ParseUintList was only used internally and will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/parsers/parsers.go#L61)  
 **Added in:** v1.9.0
@@ -46,7 +60,17 @@ func ParseUintList(val string) (map[int]bool, error)
 
 ---
 
-### ParseUintListMaximum
+### ParseUintListMaximum ⚠️ **DEPRECATED**
+
+ParseUintListMaximum parses and validates the specified string as the value
+found in some cgroup file (e.g. `cpuset.cpus`, `cpuset.mems`), which could be
+one of the formats below. Note that duplicates are actually allowed in the
+input string. It returns a `map[int]bool` with available elements from `val`
+set to `true`. Values larger than `maximum` cause an error if max is non zero,
+in order to stop the map becoming excessively large.
+Supported formats:
+
+Deprecated: ParseUintListMaximum was only used internally and will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/parsers/parsers.go#L41)  
 

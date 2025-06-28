@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:31:40 UTC
+**Generated:** 2025-06-28 23:07:34 UTC
 
 ## Constants
 
@@ -36,7 +36,13 @@ func Architecture() string
 
 ---
 
-### NumProcs
+### NumProcs ⚠️ **DEPRECATED**
+
+NumProcs returns the number of processors on the system
+
+Deprecated: temporary stub for non-Windows to provide an alias for the deprecated github.com/docker/docker/pkg/platform package.
+
+FIXME(thaJeztah): remove once we remove  github.com/docker/docker/pkg/platform
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/internal/platform/platform_unix.go#L23)  
 

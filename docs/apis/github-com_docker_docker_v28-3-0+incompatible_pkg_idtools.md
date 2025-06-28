@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:35:33 UTC
+**Generated:** 2025-06-28 23:11:28 UTC
 
 ## Constants
 
@@ -18,7 +18,12 @@ This section is empty.
 
 ## Functions
 
-### GetRootUIDGID
+### GetRootUIDGID ⚠️ **DEPRECATED**
+
+GetRootUIDGID retrieves the remapped root uid/gid pair from the set of maps.
+If the maps are empty, then the root uid/gid will default to "real" 0/0
+
+Deprecated: use [(user.IdentityMapping).RootPair] instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/idtools/idtools.go#L53)  
 
@@ -28,7 +33,13 @@ func GetRootUIDGID(uidMap, gidMap []IDMap) (int, int, error)
 
 ---
 
-### MkdirAllAndChown
+### MkdirAllAndChown ⚠️ **DEPRECATED**
+
+MkdirAllAndChown creates a directory (include any along the path) and then modifies
+ownership to the requested uid/gid.  If the directory already exists, this
+function will still change ownership and permissions.
+
+Deprecated: use user.MkdirAllAndChown instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/idtools/idtools.go#L26)  
 
@@ -38,7 +49,13 @@ func MkdirAllAndChown(path string, mode os.FileMode, owner Identity) error
 
 ---
 
-### MkdirAllAndChownNew
+### MkdirAllAndChownNew ⚠️ **DEPRECATED**
+
+MkdirAllAndChownNew creates a directory (include any along the path) and then modifies
+ownership ONLY of newly created directories to the requested uid/gid. If the
+directories along the path exist, no change of ownership or permissions will be performed
+
+Deprecated: use user.MkdirAllAndChown with the user.WithOnlyNew option instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/idtools/idtools.go#L45)  
 
@@ -48,7 +65,14 @@ func MkdirAllAndChownNew(path string, mode os.FileMode, owner Identity) error
 
 ---
 
-### MkdirAndChown
+### MkdirAndChown ⚠️ **DEPRECATED**
+
+MkdirAndChown creates a directory and then modifies ownership to the requested uid/gid.
+If the directory already exists, this function still changes ownership and permissions.
+Note that unlike os.Mkdir(), this function does not return IsExist error
+in case path already exists.
+
+Deprecated: use user.MkdirAndChown instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/idtools/idtools.go#L36)  
 
@@ -58,7 +82,11 @@ func MkdirAndChown(path string, mode os.FileMode, owner Identity) error
 
 ---
 
-### ToUserIdentityMapping
+### ToUserIdentityMapping ⚠️ **DEPRECATED**
+
+ToUserIdentityMapping converts an idtools.IdentityMapping to a user.IdentityMapping.
+
+Deprecated: use user.IdentityMapping directly, this is transitioning to user package.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/idtools/idtools.go#L154)  
 
@@ -100,7 +128,11 @@ type Identity struct {
 
 #### Functions
 
-##### CurrentIdentity
+##### CurrentIdentity ⚠️ **DEPRECATED**
+
+CurrentIdentity returns the identity of the current process
+
+Deprecated: use os.Getuid and os.Getegid instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/idtools/idtools.go#L221)  
 
@@ -110,7 +142,11 @@ func CurrentIdentity() Identity
 
 #### Methods
 
-##### Identity.Chown
+##### Identity.Chown ⚠️ **DEPRECATED**
+
+Chown changes the numeric uid and gid of the named file to id.UID and id.GID.
+
+Deprecated: this method is deprecated and will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/idtools/idtools.go#L113)  
 

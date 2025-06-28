@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:37:06 UTC
+**Generated:** 2025-06-28 23:15:44 UTC
 
 ## Overview
 
@@ -114,7 +114,11 @@ func Headers(userAgent string, metaHeaders http.Header) []transport.RequestModif
 
 ---
 
-### HostCertsDir
+### HostCertsDir ⚠️ **DEPRECATED**
+
+HostCertsDir returns the config directory for a specific host.
+
+Deprecated: this function was only used internally, and will be removed in a future release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/registry/registry.go#L22)  
 
@@ -199,7 +203,13 @@ func ResolveAuthConfig(authConfigs map[string]registry.AuthConfig, index *regist
 
 ---
 
-### SetCertsDir
+### SetCertsDir ⚠️ **DEPRECATED**
+
+SetCertsDir allows the default certs directory to be changed. This function
+is used at daemon startup to set the correct location when running in
+rootless mode.
+
+Deprecated: the cert-directory is now automatically selected when running with rootlessKit, and should no longer be set manually.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/registry/config.go#L99)  
 
@@ -435,7 +445,12 @@ IMPORTANT: This function is for internal use and should not be used by external 
 func (s *Service) ResolveAuthConfig(authConfigs map[string]registry.AuthConfig, ref reference.Named) registry.AuthConfig
 ```
 
-##### Service.ResolveRepository
+##### Service.ResolveRepository ⚠️ **DEPRECATED**
+
+ResolveRepository splits a repository name into its components
+and configuration of the associated registry.
+
+Deprecated: this function was only used internally and is no longer used. It will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/registry/service.go#L115)  
 **Added in:** v1.5.0

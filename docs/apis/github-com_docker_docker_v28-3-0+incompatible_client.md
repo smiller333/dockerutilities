@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:27:14 UTC
+**Generated:** 2025-06-28 23:03:11 UTC
 
 ## Overview
 
@@ -168,7 +168,11 @@ func CheckRedirect(_ *http.Request, via []*http.Request) error
 
 ---
 
-### ErrorConnectionFailed
+### ErrorConnectionFailed ⚠️ **DEPRECATED**
+
+ErrorConnectionFailed returns an error with host in the error message when connection to docker daemon failed.
+
+Deprecated: this function was only used internally, and will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/errors.go#L36)  
 
@@ -206,7 +210,12 @@ func IsErrConnectionFailed(err error) bool
 
 ---
 
-### IsErrNotFound
+### IsErrNotFound ⚠️ **DEPRECATED**
+
+IsErrNotFound returns true if the error is a NotFound error, which is returned
+by the API when some object is not found. It is an alias for cerrdefs.IsNotFound.
+
+Deprecated: use cerrdefs.IsNotFound instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/errors.go#L56)  
 
@@ -281,7 +290,20 @@ type Client struct {
 
 #### Functions
 
-##### NewClient
+##### NewClient ⚠️ **DEPRECATED**
+
+NewClient initializes a new API client for the given host and API version.
+It uses the given http client as transport.
+It also initializes the custom http headers to add to each request.
+
+It won't send any version information if the version number is empty. It is
+highly recommended that you set a version or your client may break if the
+server is upgraded.
+
+Deprecated: use NewClientWithOpts passing the WithHost, WithVersion,
+WithHTTPClient and WithHTTPHeaders options. We recommend enabling API
+version negotiation by passing the WithAPIVersionNegotiation option instead
+of WithVersion.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_deprecated.go#L17)  
 
@@ -307,7 +329,12 @@ API version negotiation enabled (WithAPIVersionNegotiation).
 func NewClientWithOpts(ops ...Opt) (*Client, error)
 ```
 
-##### NewEnvClient
+##### NewEnvClient ⚠️ **DEPRECATED**
+
+NewEnvClient initializes a new API client based on environment variables.
+See FromEnv for a list of support environment variables.
+
+Deprecated: use NewClientWithOpts passing the FromEnv option.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/client_deprecated.go#L25)  
 
@@ -958,7 +985,11 @@ ImageInspect returns the image information.
 func (cli *Client) ImageInspect(ctx context.Context, imageID string, inspectOpts ...ImageInspectOption) (image.InspectResponse, error)
 ```
 
-##### Client.ImageInspectWithRaw
+##### Client.ImageInspectWithRaw ⚠️ **DEPRECATED**
+
+ImageInspectWithRaw returns the image information and its raw representation.
+
+Deprecated: Use Client.ImageInspect instead. Raw response can be obtained using the ImageInspectWithRawResponse option.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/client/image_inspect.go#L69)  
 

@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:30:04 UTC
+**Generated:** 2025-06-28 23:05:58 UTC
 
 ## Overview
 
@@ -187,7 +187,11 @@ func FromContext(ctx context.Context) error
 
 ---
 
-### FromStatusCode
+### FromStatusCode ⚠️ **DEPRECATED**
+
+FromStatusCode creates an errdef error, based on the provided HTTP status-code
+
+Deprecated: Use cerrdefs.ToNative instead
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/errdefs/http_helpers.go#L10)  
 

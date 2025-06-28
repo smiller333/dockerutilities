@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:27:04 UTC
+**Generated:** 2025-06-28 23:03:01 UTC
 
 ## Constants
 
@@ -117,7 +117,11 @@ func NewLazySource(root string) (builder.Source, error)
 
 ---
 
-### Rel
+### Rel ⚠️ **DEPRECATED**
+
+Rel is an alias for filepath.Rel.
+
+Deprecated: use filepath.Rel instead; this function is no longer used and will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/builder/remotecontext/lazycontext.go#L89)  
 

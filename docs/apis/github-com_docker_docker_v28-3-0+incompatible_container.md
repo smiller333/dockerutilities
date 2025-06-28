@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:27:30 UTC
+**Generated:** 2025-06-28 23:03:28 UTC
 
 ## Constants
 
@@ -29,7 +29,12 @@ This section is empty.
 
 ## Functions
 
-### IsValidHealthString
+### IsValidHealthString ⚠️ **DEPRECATED**
+
+IsValidHealthString checks if the provided string is a valid
+container.HealthStatus.
+
+Deprecated: use container.ValidateHealthStatus and check for nil-errors.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/container/state.go#L114)  
 **Added in:** v1.13.0
@@ -40,7 +45,11 @@ func IsValidHealthString(s string) bool
 
 ---
 
-### IsValidStateString
+### IsValidStateString ⚠️ **DEPRECATED**
+
+IsValidStateString checks if the provided string is a valid container state.
+
+Deprecated: use container.ValidateContainerState instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/container/state.go#L152)  
 

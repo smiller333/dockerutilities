@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:36:40 UTC
+**Generated:** 2025-06-28 23:15:18 UTC
 
 ## Constants
 
@@ -98,7 +98,12 @@ func Lsetxattr(path string, attr string, data []byte, flags int) error
 
 ---
 
-### MkdirAll
+### MkdirAll ⚠️ **DEPRECATED**
+
+MkdirAll creates a directory named path along with any necessary parents,
+with permission specified by attribute perm for all dir created.
+
+Deprecated: os.MkdirAll now natively supports Windows GUID volume paths, and should be used instead. This alias will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/system/filesys.go#L25)  
 **Added in:** v1.7.0

@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:28:00 UTC
+**Generated:** 2025-06-28 23:03:57 UTC
 
 ## Constants
 
@@ -616,7 +616,11 @@ LookupInitPath returns an absolute path to the "docker-init" binary by searching
 func (conf *Config) LookupInitPath() (string, error)
 ```
 
-##### Config.ValidatePlatformConfig
+##### Config.ValidatePlatformConfig ⚠️ **DEPRECATED**
+
+ValidatePlatformConfig checks if any platform-specific configuration settings are invalid.
+
+Deprecated: this function was only used internally and is no longer used. Use Validate instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/daemon/config/config_linux.go#L135)  
 

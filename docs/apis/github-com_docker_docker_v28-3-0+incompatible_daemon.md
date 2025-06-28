@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:27:42 UTC
+**Generated:** 2025-06-28 23:03:40 UTC
 
 ## Overview
 
@@ -1409,7 +1409,11 @@ RawSysInfo returns *sysinfo.SysInfo .
 func (daemon *Daemon) RawSysInfo() *sysinfo.SysInfo
 ```
 
-##### Daemon.Register
+##### Daemon.Register ⚠️ **DEPRECATED**
+
+Register makes a container object usable by the daemon as <container.ID>
+
+Deprecated: this function is unused and will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/daemon/container.go#L101)  
 

@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:28:10 UTC
+**Generated:** 2025-06-28 23:04:06 UTC
 
 ## Constants
 
@@ -142,7 +142,11 @@ type Driver interface {
 
 #### Functions
 
-##### GetDriver
+##### GetDriver ⚠️ **DEPRECATED**
+
+GetDriver initializes and returns the registered driver.
+
+Deprecated: this function was exported for (integration-)tests, but no longer used, and will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/daemon/graphdriver/driver.go#L131)  
 

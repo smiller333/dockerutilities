@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:26:00 UTC
+**Generated:** 2025-06-28 23:01:59 UTC
 
 ## Overview
 
@@ -38,7 +38,13 @@ func ToJSON(a Args) (string, error)
 
 ---
 
-### ToParamWithVersion
+### ToParamWithVersion ⚠️ **DEPRECATED**
+
+ToParamWithVersion encodes Args as a JSON string. If version is less than 1.22
+then the encoded format will use an older legacy format where the values are a
+list of strings, instead of a set.
+
+Deprecated: do not use in any new code; use ToJSON instead
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/api/types/filters/parse.go#L71)  
 

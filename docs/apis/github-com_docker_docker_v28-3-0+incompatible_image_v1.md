@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:30:13 UTC
+**Generated:** 2025-06-28 23:06:07 UTC
 
 ## Constants
 
@@ -55,7 +55,11 @@ func MakeConfigFromV1Config(imageJSON []byte, rootfs *image.RootFS, history []im
 
 ---
 
-### ValidateID
+### ValidateID ⚠️ **DEPRECATED**
+
+ValidateID checks whether an ID string is a valid image ID.
+
+Deprecated: ValidateID is no longer used and will be removed in the next release.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/image/v1/imagev1.go#L124)  
 

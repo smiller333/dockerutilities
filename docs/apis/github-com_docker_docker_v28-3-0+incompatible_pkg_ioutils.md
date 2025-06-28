@@ -6,7 +6,7 @@
 
 **Version:** v28.3.0+incompatible
 
-**Generated:** 2025-06-28 21:35:36 UTC
+**Generated:** 2025-06-28 23:11:30 UTC
 
 ## Constants
 
@@ -18,7 +18,12 @@ This section is empty.
 
 ## Functions
 
-### AtomicWriteFile
+### AtomicWriteFile ⚠️ **DEPRECATED**
+
+AtomicWriteFile atomically writes data to a file named by filename and with the specified permission bits.
+NOTE: umask is not considered for the file's permissions.
+
+Deprecated: use atomicwriter.WriteFile instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/ioutils/fswriters_deprecated.go#L24)  
 **Added in:** v1.12.0
@@ -29,7 +34,14 @@ func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error
 
 ---
 
-### NewAtomicFileWriter
+### NewAtomicFileWriter ⚠️ **DEPRECATED**
+
+NewAtomicFileWriter returns WriteCloser so that writing to it writes to a
+temporary file and closing it atomically changes the temporary file to
+destination path. Writing and closing concurrently is not allowed.
+NOTE: umask is not considered for the file's permissions.
+
+Deprecated: use atomicwriter.New instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/ioutils/fswriters_deprecated.go#L16)  
 **Added in:** v1.12.0
@@ -40,7 +52,15 @@ func NewAtomicFileWriter(filename string, perm os.FileMode) (io.WriteCloser, err
 
 ---
 
-### NewAtomicWriteSet
+### NewAtomicWriteSet ⚠️ **DEPRECATED**
+
+NewAtomicWriteSet creates a new atomic write set to
+atomically create a set of files. The given directory
+is used as the base directory for storing files before
+commit. If no temporary directory is given the system
+default is used.
+
+Deprecated: use atomicwriter.NewWriteSet instead.
 
 **Source:** [View Source](https://github.com/docker/docker/blob/v28.3.0/pkg/ioutils/fswriters_deprecated.go#L42)  
 **Added in:** v1.13.0
