@@ -195,9 +195,7 @@ func TestDockerClient_GetVersion(t *testing.T) {
 
 	if version == nil {
 		t.Error("GetVersion() returned nil version")
-	}
-
-	if version.Version == "" {
+	} else if version.Version == "" {
 		t.Error("GetVersion() returned empty version string")
 	}
 }
