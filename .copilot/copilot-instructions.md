@@ -88,11 +88,13 @@ Define custom prompts for Go-specific tasks:
 - **Test Generation**:
   ```
   Write a unit test for the following Go code in a _test.go file. The test should:
-  - Use Go's testing package and testify for assertions
+  - Use only Go's standard testing package (no external assert libraries)
+  - Use table-driven tests with t.Run() for all test cases
+  - Use t.Errorf() and t.Fatalf() for assertions and error reporting
   - Cover all exported functions in the package
-  - Include table-driven tests where applicable
   - Follow Go naming conventions (e.g., TestFunctionName)
   - Mock dependencies using interfaces
+  - Include clear test case names and expected vs actual value comparisons
   Format the code with gofmt and include necessary imports.
   ```
 
