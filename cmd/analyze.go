@@ -80,6 +80,14 @@ func analyzeDockerfile(path string, showBuildOutput bool) error {
 
 // analyzeImage analyzes the specified Docker image
 func analyzeImage(image string) error {
-	_ = image // Placeholder for future implementation
-	return fmt.Errorf("image analysis is not yet implemented")
+	// Use the analyzer package to perform the image analysis
+	result, err := analyzer.AnalyzeImage(image)
+	if err != nil {
+		return err
+	}
+
+	// Print the analysis result
+	analyzer.PrintAnalysisResult(result, showBuildOutput)
+
+	return nil
 }

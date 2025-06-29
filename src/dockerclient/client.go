@@ -301,3 +301,24 @@ func (dc *DockerClient) InspectImage(ctx context.Context, nameOrID string) (*ima
 
 	return &info, nil
 }
+
+// SaveImage saves one or more images to a tar archive
+func (dc *DockerClient) SaveImage(ctx context.Context, imageNames []string) (io.ReadCloser, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
+		defer cancel()
+	}
+
+	if len(imageNames) == 0 {
+		return nil, fmt.Errorf("at least one image name must be provided")
+	}
+
+	// Save the images to a tar archive
+	reader, err := dc.client.ImageSave(ctx, imageNames)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save images %v: %w", imageNames, err)
+	}
+
+	return reader, nil
+}
