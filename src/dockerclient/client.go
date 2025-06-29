@@ -3,16 +3,20 @@
 package dockerclient
 
 import (
+	"archive/tar"
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/build"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
@@ -208,7 +212,7 @@ func (dc *DockerClient) ListImages(ctx context.Context, all bool, filterArgs ...
 	return images, nil
 }
 
-// ContainerExists checks if a container exists by name or ID
+// ContainerExists is a helper function that checks if a container exists by name or ID
 func (dc *DockerClient) ContainerExists(ctx context.Context, nameOrID string) (bool, error) {
 	if ctx == nil {
 		var cancel context.CancelFunc
@@ -216,7 +220,7 @@ func (dc *DockerClient) ContainerExists(ctx context.Context, nameOrID string) (b
 		defer cancel()
 	}
 
-	_, err := dc.client.ContainerInspect(ctx, nameOrID)
+	_, err := dc.ContainerInspect(ctx, nameOrID)
 	if err != nil {
 		if errdefs.IsNotFound(err) {
 			return false, nil
@@ -227,7 +231,7 @@ func (dc *DockerClient) ContainerExists(ctx context.Context, nameOrID string) (b
 	return true, nil
 }
 
-// ImageExists checks if an image exists by name or ID
+// ImageExists is a helper function that checks if an image exists by name or ID
 func (dc *DockerClient) ImageExists(ctx context.Context, nameOrID string) (bool, error) {
 	if ctx == nil {
 		var cancel context.CancelFunc
@@ -235,7 +239,7 @@ func (dc *DockerClient) ImageExists(ctx context.Context, nameOrID string) (bool,
 		defer cancel()
 	}
 
-	_, err := dc.client.ImageInspect(ctx, nameOrID)
+	_, err := dc.ImageInspect(ctx, nameOrID)
 	if err != nil {
 		if errdefs.IsNotFound(err) {
 			return false, nil
@@ -246,8 +250,8 @@ func (dc *DockerClient) ImageExists(ctx context.Context, nameOrID string) (bool,
 	return true, nil
 }
 
-// GetContainerInfo retrieves detailed information about a container
-func (dc *DockerClient) GetContainerInfo(ctx context.Context, nameOrID string) (*container.InspectResponse, error) {
+// ContainerInspect retrieves detailed information about a container
+func (dc *DockerClient) ContainerInspect(ctx context.Context, nameOrID string) (*container.InspectResponse, error) {
 	if ctx == nil {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
@@ -262,8 +266,8 @@ func (dc *DockerClient) GetContainerInfo(ctx context.Context, nameOrID string) (
 	return &info, nil
 }
 
-// GetImageInfo retrieves detailed information about an image
-func (dc *DockerClient) GetImageInfo(ctx context.Context, nameOrID string) (*image.InspectResponse, error) {
+// ImageInspect retrieves detailed information about an image
+func (dc *DockerClient) ImageInspect(ctx context.Context, nameOrID string) (*image.InspectResponse, error) {
 	if ctx == nil {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
@@ -276,6 +280,23 @@ func (dc *DockerClient) GetImageInfo(ctx context.Context, nameOrID string) (*ima
 	}
 
 	return &info, nil
+}
+
+// GetImageLayerCount is a helper function that retrieves the number of layers in a Docker image
+func (dc *DockerClient) GetImageLayerCount(ctx context.Context, nameOrID string) (int, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
+		defer cancel()
+	}
+
+	info, err := dc.ImageInspect(ctx, nameOrID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to inspect image %s for layer count: %w", nameOrID, err)
+	}
+
+	// Return the number of layers from the RootFS
+	return len(info.RootFS.Layers), nil
 }
 
 // IsConnected checks if the client is connected to the Docker daemon
@@ -354,4 +375,61 @@ func (dc *DockerClient) PushImage(ctx context.Context, imageName string, authCon
 	}
 
 	return reader, nil
+}
+
+// BuildImage builds a Docker image from a single Dockerfile
+func (dc *DockerClient) BuildImage(ctx context.Context, dockerfilePath string, tag string) (io.ReadCloser, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
+		defer cancel()
+	}
+
+	// Read the Dockerfile content
+	dockerfileContent, err := os.ReadFile(dockerfilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Dockerfile %s: %w", dockerfilePath, err)
+	}
+
+	// Create a tar archive with just the Dockerfile
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+
+	// Add the Dockerfile to the archive
+	header := &tar.Header{
+		Name:     "Dockerfile",
+		Mode:     0644,
+		Size:     int64(len(dockerfileContent)),
+		ModTime:  time.Now(),
+		Typeflag: tar.TypeReg,
+	}
+
+	if err := tw.WriteHeader(header); err != nil {
+		return nil, fmt.Errorf("failed to write Dockerfile header: %w", err)
+	}
+
+	if _, err := tw.Write(dockerfileContent); err != nil {
+		return nil, fmt.Errorf("failed to write Dockerfile content: %w", err)
+	}
+
+	if err := tw.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close tar writer: %w", err)
+	}
+
+	// Create build options
+	options := build.ImageBuildOptions{
+		Tags:           []string{tag},
+		Remove:         true,
+		SuppressOutput: false,
+		NoCache:        false,
+		PullParent:     true,
+	}
+
+	// Build the image
+	response, err := dc.client.ImageBuild(ctx, &buf, options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build image with tag %s: %w", tag, err)
+	}
+
+	return response.Body, nil
 }

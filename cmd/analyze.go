@@ -10,8 +10,9 @@ import (
 
 var (
 	// Flags for the analyze command
-	dockerfilePath string
-	imageTag       string
+	dockerfilePath  string
+	imageTag        string
+	showBuildOutput bool
 )
 
 // analyzeCmd represents the analyze command
@@ -39,6 +40,7 @@ func init() {
 	// Add mutually exclusive flags
 	analyzeCmd.Flags().StringVar(&dockerfilePath, "dockerfile", "", "Path to the Dockerfile to analyze")
 	analyzeCmd.Flags().StringVar(&imageTag, "image", "", "Docker image name and tag to analyze (e.g., nginx:latest)")
+	analyzeCmd.Flags().BoolVar(&showBuildOutput, "build-output", false, "Show Docker build output in analysis results")
 
 	// Mark the flags as mutually exclusive
 	analyzeCmd.MarkFlagsMutuallyExclusive("dockerfile", "image")
@@ -51,12 +53,8 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("you must specify either --dockerfile or --image flag")
 	}
 
-	if dockerfilePath != "" && imageTag != "" {
-		return fmt.Errorf("--dockerfile and --image flags are mutually exclusive")
-	}
-
 	if dockerfilePath != "" {
-		return analyzeDockerfile(dockerfilePath)
+		return analyzeDockerfile(dockerfilePath, showBuildOutput)
 	}
 
 	if imageTag != "" {
@@ -67,7 +65,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 }
 
 // analyzeDockerfile reads and analyzes the specified Dockerfile
-func analyzeDockerfile(path string) error {
+func analyzeDockerfile(path string, showBuildOutput bool) error {
 	// Use the analyzer package to perform the analysis
 	result, err := analyzer.AnalyzeDockerfile(path)
 	if err != nil {
@@ -75,7 +73,7 @@ func analyzeDockerfile(path string) error {
 	}
 
 	// Print the analysis result
-	analyzer.PrintAnalysisResult(result)
+	analyzer.PrintAnalysisResult(result, showBuildOutput)
 
 	return nil
 }
