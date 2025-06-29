@@ -151,7 +151,7 @@ func (dc *DockerClient) GetVersion(ctx context.Context) (*types.Version, error) 
 }
 
 // ListContainers lists containers with optional filtering
-func (dc *DockerClient) ListContainers(ctx context.Context, all bool, filterArgs ...string) ([]types.Container, error) {
+func (dc *DockerClient) ListContainers(ctx context.Context, all bool, filterArgs ...string) ([]container.Summary, error) {
 	if ctx == nil {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
@@ -247,7 +247,7 @@ func (dc *DockerClient) ImageExists(ctx context.Context, nameOrID string) (bool,
 }
 
 // GetContainerInfo retrieves detailed information about a container
-func (dc *DockerClient) GetContainerInfo(ctx context.Context, nameOrID string) (*types.ContainerJSON, error) {
+func (dc *DockerClient) GetContainerInfo(ctx context.Context, nameOrID string) (*container.InspectResponse, error) {
 	if ctx == nil {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
@@ -263,7 +263,7 @@ func (dc *DockerClient) GetContainerInfo(ctx context.Context, nameOrID string) (
 }
 
 // GetImageInfo retrieves detailed information about an image
-func (dc *DockerClient) GetImageInfo(ctx context.Context, nameOrID string) (*types.ImageInspect, error) {
+func (dc *DockerClient) GetImageInfo(ctx context.Context, nameOrID string) (*image.InspectResponse, error) {
 	if ctx == nil {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
