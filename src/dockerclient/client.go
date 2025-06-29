@@ -14,11 +14,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/build"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/api/types/system"
@@ -154,151 +151,6 @@ func (dc *DockerClient) GetVersion(ctx context.Context) (*types.Version, error) 
 	return &version, nil
 }
 
-// ListContainers lists containers with optional filtering
-func (dc *DockerClient) ListContainers(ctx context.Context, all bool, filterArgs ...string) ([]container.Summary, error) {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
-		defer cancel()
-	}
-
-	// Build filters
-	filterSet := filters.NewArgs()
-	for i := 0; i < len(filterArgs); i += 2 {
-		if i+1 < len(filterArgs) {
-			filterSet.Add(filterArgs[i], filterArgs[i+1])
-		}
-	}
-
-	options := container.ListOptions{
-		All:     all,
-		Filters: filterSet,
-	}
-
-	containers, err := dc.client.ContainerList(ctx, options)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list containers: %w", err)
-	}
-
-	return containers, nil
-}
-
-// ListImages lists images with optional filtering
-func (dc *DockerClient) ListImages(ctx context.Context, all bool, filterArgs ...string) ([]image.Summary, error) {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
-		defer cancel()
-	}
-
-	// Build filters
-	filterSet := filters.NewArgs()
-	for i := 0; i < len(filterArgs); i += 2 {
-		if i+1 < len(filterArgs) {
-			filterSet.Add(filterArgs[i], filterArgs[i+1])
-		}
-	}
-
-	options := image.ListOptions{
-		All:     all,
-		Filters: filterSet,
-	}
-
-	images, err := dc.client.ImageList(ctx, options)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list images: %w", err)
-	}
-
-	return images, nil
-}
-
-// ContainerExists is a helper function that checks if a container exists by name or ID
-func (dc *DockerClient) ContainerExists(ctx context.Context, nameOrID string) (bool, error) {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
-		defer cancel()
-	}
-
-	_, err := dc.ContainerInspect(ctx, nameOrID)
-	if err != nil {
-		if errdefs.IsNotFound(err) {
-			return false, nil
-		}
-		return false, fmt.Errorf("failed to check container existence: %w", err)
-	}
-
-	return true, nil
-}
-
-// ImageExists is a helper function that checks if an image exists by name or ID
-func (dc *DockerClient) ImageExists(ctx context.Context, nameOrID string) (bool, error) {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
-		defer cancel()
-	}
-
-	_, err := dc.ImageInspect(ctx, nameOrID)
-	if err != nil {
-		if errdefs.IsNotFound(err) {
-			return false, nil
-		}
-		return false, fmt.Errorf("failed to check image existence: %w", err)
-	}
-
-	return true, nil
-}
-
-// ContainerInspect retrieves detailed information about a container
-func (dc *DockerClient) ContainerInspect(ctx context.Context, nameOrID string) (*container.InspectResponse, error) {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
-		defer cancel()
-	}
-
-	info, err := dc.client.ContainerInspect(ctx, nameOrID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to inspect container %s: %w", nameOrID, err)
-	}
-
-	return &info, nil
-}
-
-// ImageInspect retrieves detailed information about an image
-func (dc *DockerClient) ImageInspect(ctx context.Context, nameOrID string) (*image.InspectResponse, error) {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
-		defer cancel()
-	}
-
-	info, err := dc.client.ImageInspect(ctx, nameOrID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to inspect image %s: %w", nameOrID, err)
-	}
-
-	return &info, nil
-}
-
-// GetImageLayerCount is a helper function that retrieves the number of layers in a Docker image
-func (dc *DockerClient) GetImageLayerCount(ctx context.Context, nameOrID string) (int, error) {
-	if ctx == nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
-		defer cancel()
-	}
-
-	info, err := dc.ImageInspect(ctx, nameOrID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to inspect image %s for layer count: %w", nameOrID, err)
-	}
-
-	// Return the number of layers from the RootFS
-	return len(info.RootFS.Layers), nil
-}
-
 // IsConnected checks if the client is connected to the Docker daemon
 func (dc *DockerClient) IsConnected(ctx context.Context) bool {
 	return dc.Ping(ctx) == nil
@@ -432,4 +284,20 @@ func (dc *DockerClient) BuildImage(ctx context.Context, dockerfilePath string, t
 	}
 
 	return response.Body, nil
+}
+
+// InspectImage retrieves detailed information about an image
+func (dc *DockerClient) InspectImage(ctx context.Context, nameOrID string) (*image.InspectResponse, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
+		defer cancel()
+	}
+
+	info, err := dc.client.ImageInspect(ctx, nameOrID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to inspect image %s: %w", nameOrID, err)
+	}
+
+	return &info, nil
 }

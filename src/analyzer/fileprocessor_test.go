@@ -33,8 +33,8 @@ CMD ["./app"]`
 		t.Errorf("Expected path %s, got %s", testDockerfile, result.Path)
 	}
 
-	if result.Size != len(testContent) {
-		t.Errorf("Expected size %d, got %d", len(testContent), result.Size)
+	if result.DFSize != len(testContent) {
+		t.Errorf("Expected size %d, got %d", len(testContent), result.DFSize)
 	}
 
 	if result.Content != testContent {

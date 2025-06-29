@@ -9,7 +9,8 @@ import (
 type AnalysisResult struct {
 	Path         string
 	AbsolutePath string
-	Size         int
+	DFSize       int   // Dockerfile size in bytes
+	ImageSize    int64 // Size of the built Docker image in bytes
 	Content      string
 	ImageTag     string
 	BuildOutput  string
@@ -21,11 +22,12 @@ type AnalysisResult struct {
 // PrintAnalysisResult prints a formatted summary of the analysis result
 func PrintAnalysisResult(result *AnalysisResult, showBuildOutput bool) {
 	fmt.Printf("Successfully read Dockerfile: %s\n", result.AbsolutePath)
-	fmt.Printf("File size: %d bytes\n", result.Size)
+	fmt.Printf("File size: %d bytes\n", result.DFSize)
 
 	if result.ImageTag != "" {
 		if result.BuildSuccess {
 			fmt.Printf("Image layers: %d\n", result.LayerCount)
+			fmt.Printf("Image size: %d bytes\n", result.ImageSize)
 			fmt.Printf("Docker image: %s\n", result.ImageTag)
 			fmt.Printf("Build time: %.3f seconds\n\n", result.BuildTime)
 
@@ -40,12 +42,7 @@ func PrintAnalysisResult(result *AnalysisResult, showBuildOutput bool) {
 	if showBuildOutput && result.BuildOutput != "" {
 		fmt.Println("Build Output:")
 		fmt.Println("---")
-		// Show last 1000 characters of build output
-		buildPreview := result.BuildOutput
-		if len(buildPreview) > 1000 {
-			buildPreview = "..." + buildPreview[len(buildPreview)-1000:]
-		}
-		fmt.Println(buildPreview)
+		fmt.Println(result.BuildOutput)
 		fmt.Println("---")
 	}
 }

@@ -37,7 +37,7 @@ func AnalyzeDockerfile(dockerfilePath string) (*AnalysisResult, error) {
 	result := &AnalysisResult{
 		Path:         dockerfilePath,
 		AbsolutePath: absPath,
-		Size:         len(content),
+		DFSize:       len(content),
 		Content:      string(content),
 		ImageTag:     imageTag,
 		BuildSuccess: false,
@@ -93,13 +93,23 @@ func AnalyzeDockerfile(dockerfilePath string) (*AnalysisResult, error) {
 	result.BuildOutput = string(buildOutput)
 	result.BuildSuccess = true
 
-	// Get layer count from the built image
-	layerCount, err := dockerClient.GetImageLayerCount(buildCtx, imageTag)
+	// Get the image information
+	imageInfo, err := dockerClient.InspectImage(buildCtx, imageTag)
 	if err != nil {
-		// Don't fail the analysis if we can't get layer count, just log it in build output
-		result.BuildOutput += fmt.Sprintf("\nWarning: Failed to get layer count: %v", err)
+		result.BuildOutput += fmt.Sprintf("\nWarning: Failed to inspect image: %v", err)
 	} else {
-		result.LayerCount = layerCount
+		result.LayerCount = len(imageInfo.RootFS.Layers)
+		result.ImageSize = imageInfo.Size
+
+		if len(imageInfo.RootFS.Layers) > 0 {
+			result.BuildOutput += fmt.Sprintln("\n---")
+			result.BuildOutput += fmt.Sprintln("\nRootFS layers:")
+			for _, layer := range imageInfo.RootFS.Layers {
+				result.BuildOutput += fmt.Sprintf("- %s\n", layer)
+			}
+		} else {
+			result.BuildOutput += "\nNo RootFS layers found in the image."
+		}
 	}
 
 	return result, nil
