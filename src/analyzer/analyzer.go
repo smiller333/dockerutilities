@@ -1,4 +1,4 @@
-// Package analyzer provides functionality for analyzing Dockerfiles.
+// Package analyzer provides functionality for analyzing Dockerfiles and Docker images.
 package analyzer
 
 import (
