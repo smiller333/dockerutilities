@@ -52,7 +52,7 @@ type DockerManifest struct {
 }
 
 // AnalyzeImage pulls and analyzes the specified Docker image
-func AnalyzeImage(imageName string) (*AnalysisResult, error) {
+func AnalyzeImage(imageName string, keepTempFiles bool) (*AnalysisResult, error) {
 	if imageName == "" {
 		return nil, fmt.Errorf("image name cannot be empty")
 	}
@@ -178,10 +178,14 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 	}
 
 	// Clean up temporary files and directories, keeping only container_contents and layer_contents
-	err = cleanupTemporaryFiles(result)
-	if err != nil {
-		fmt.Printf("Failed to cleanup temporary files: %v", err)
-		// Continue even if cleanup fails - analysis is still successful
+	if !keepTempFiles {
+		err = cleanupTemporaryFiles(result)
+		if err != nil {
+			fmt.Printf("Failed to cleanup temporary files: %v", err)
+			// Continue even if cleanup fails - analysis is still successful
+		}
+	} else {
+		fmt.Printf("Temporary files preserved at: %s\n", result.ExtractedPath)
 	}
 
 	// Clean up the created container if it exists
@@ -842,14 +846,4 @@ func writeSummaryToFile(summary ImageSummary, filePath string) error {
 	}
 
 	return nil
-}
-
-// isHexString checks if a string contains only hexadecimal characters (0-9, a-f, A-F)
-func isHexString(s string) bool {
-	for _, char := range s {
-		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
-			return false
-		}
-	}
-	return true
 }
