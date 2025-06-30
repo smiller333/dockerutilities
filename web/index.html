@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Image Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .error {
+            background-color: #fee;
+            border: 1px solid #fcc;
+            border-radius: 5px;
+            padding: 1rem;
+            margin: 1rem 0;
+            color: #c33;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .image-tag {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+
+        .image-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #666;
+            background-color: #f8f9fa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            word-break: break-all;
+        }
+
+        .summary-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-value {
+            font-size: 0.95rem;
+            color: #333;
+            margin-top: 0.2rem;
+        }
+
+        .analyzed-at {
+            font-size: 0.85rem;
+            color: #888;
+            text-align: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .no-summaries {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .no-summaries h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #999;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.2s ease;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .json-container {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .summary-info {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐳 Docker Image Viewer</h1>
+            <p class="subtitle">Browse and analyze your Docker image summaries</p>
+        </header>
+
+        <div id="content">
+            <div class="loading">Loading image summaries...</div>
+        </div>
+    </div>
+
+    <!-- Modal for detailed view -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Image Details</h2>
+            <div id="modalContent" class="json-container">
+                <pre id="jsonData"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let summaries = [];
+
+        // DOM elements
+        const content = document.getElementById('content');
+        const modal = document.getElementById('detailModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const jsonData = document.getElementById('jsonData');
+        const closeBtn = document.getElementsByClassName('close')[0];
+
+        // Initialize the application
+        async function init() {
+            await loadSummaries();
+            renderSummaries();
+        }
+
+        // Load summaries from the API
+        async function loadSummaries() {
+            try {
+                const response = await fetch('/api/summaries');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                summaries = await response.json();
+            } catch (error) {
+                showError(`Failed to load summaries: ${error.message}`);
+            }
+        }
+
+        // Render summaries in the UI
+        function renderSummaries() {
+            if (summaries.length === 0) {
+                content.innerHTML = `
+                    <div class="no-summaries">
+                        <h2>No Image Summaries Found</h2>
+                        <p>No Docker image analysis results were found in the tmp directory.</p>
+                        <p>Run <code>dockerutils analyze --image &lt;image-name&gt;</code> to create analysis results.</p>
+                        <button class="refresh-btn" onclick="refresh()">Refresh</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const summaryCards = summaries.map(summary => createSummaryCard(summary)).join('');
+            content.innerHTML = `
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <button class="refresh-btn" onclick="refresh()">Refresh</button>
+                </div>
+                <div class="summary-grid">
+                    ${summaryCards}
+                </div>
+            `;
+        }
+
+        // Create a summary card HTML
+        function createSummaryCard(summary) {
+            const imageSize = formatBytes(summary.image_size || 0);
+            const analyzedAt = formatDate(summary.analyzed_at);
+            const shortImageId = (summary.image_id || '').replace('sha256:', '').substring(0, 12);
+
+            return `
+                <div class="summary-card" onclick="showDetails('${shortImageId}')">
+                    <div class="image-tag">${summary.image_tag || 'Unknown'}</div>
+                    <div class="image-id">${shortImageId}</div>
+                    <div class="summary-info">
+                        <div class="info-item">
+                            <span class="info-label">Architecture</span>
+                            <span class="info-value">${summary.architecture || 'Unknown'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">OS</span>
+                            <span class="info-value">${summary.os || 'Unknown'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Layers</span>
+                            <span class="info-value">${summary.layer_count || 0}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Size</span>
+                            <span class="info-value">${imageSize}</span>
+                        </div>
+                    </div>
+                    <div class="analyzed-at">Analyzed ${analyzedAt}</div>
+                </div>
+            `;
+        }
+
+        // Show detailed view in modal
+        async function showDetails(id) {
+            try {
+                const response = await fetch(`/api/summaries/${id}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const details = await response.json();
+                
+                modalTitle.textContent = `${details.image_tag || 'Unknown Image'}`;
+                jsonData.textContent = JSON.stringify(details, null, 2);
+                modal.style.display = 'block';
+            } catch (error) {
+                showError(`Failed to load details: ${error.message}`);
+            }
+        }
+
+        // Refresh the data
+        async function refresh() {
+            content.innerHTML = '<div class="loading">Refreshing...</div>';
+            await loadSummaries();
+            renderSummaries();
+        }
+
+        // Show error message
+        function showError(message) {
+            content.innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${message}
+                </div>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button class="refresh-btn" onclick="refresh()">Try Again</button>
+                </div>
+            `;
+        }
+
+        // Format bytes to human readable format
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Format date to human readable format
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            } catch {
+                return 'Unknown';
+            }
+        }
+
+        // Modal event handlers
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
