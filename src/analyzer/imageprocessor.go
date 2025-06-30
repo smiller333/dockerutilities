@@ -23,21 +23,25 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 		return nil, fmt.Errorf("image name cannot be empty")
 	}
 
-	// Create a temporary directory for this analysis session
-	// Generate safe name for the image
-	baseTempDir, err := os.MkdirTemp("", "dockerutils-*")
+	// Create a tmp directory at the current working location
+	// Get current working directory
+	cwd, err := os.Getwd()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
+		return nil, fmt.Errorf("failed to get current working directory: %w", err)
 	}
 
-	fmt.Printf("Created temporary analysis directory: %s\n", baseTempDir)
+	// Create tmp directory if it doesn't exist
+	tmpBaseDir := filepath.Join(cwd, "tmp")
+	if err := os.MkdirAll(tmpBaseDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create tmp directory: %w", err)
+	}
 
 	// Initialize result structure for image analysis
 	result := &AnalysisResult{
 		ImageTag:        imageName,
 		IsImageAnalysis: true,
-		BuildSuccess:    false,       // For images, this indicates successful inspection
-		ExtractedPath:   baseTempDir, // Set the base directory for all operations
+		BuildSuccess:    false,      // For images, this indicates successful inspection
+		ExtractedPath:   tmpBaseDir, // Set the base directory for all operations
 	}
 
 	// Create Docker client
@@ -89,10 +93,6 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 	// Count layers (RootFS layers)
 	if imageInfo.RootFS.Type == "layers" {
 		result.LayerCount = len(imageInfo.RootFS.Layers)
-
-		// for i, layer := range imageInfo.RootFS.Layers {
-		// 	fmt.Printf("Layer %d: %s\n", i+1, layer)
-		// }
 	}
 
 	// Save the image to a tar file
