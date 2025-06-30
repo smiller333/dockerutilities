@@ -7,6 +7,7 @@ import (
 
 // AnalysisResult contains the results of analyzing a Dockerfile or Docker image
 type AnalysisResult struct {
+	ImageID      string // ID of the Docker image
 	Path         string
 	AbsolutePath string
 	DFSize       int   // Dockerfile size in bytes
@@ -34,7 +35,7 @@ type AnalysisResult struct {
 	ContainerName     string   // Name of the created container
 	ContainerSuccess  bool     // Whether container creation was successful
 	ContainerWarnings []string // Warnings from container creation
-	
+
 	// Container filesystem fields
 	ContainerFSPath    string // Path to the extracted container filesystem
 	ContainerFSSuccess bool   // Whether container filesystem extraction was successful

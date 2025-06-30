@@ -3,6 +3,7 @@ package analyzer
 import (
 	"archive/tar"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -16,6 +17,39 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/smiller333/dockerutils/src/dockerclient"
 )
+
+// ImageSummary represents the JSON summary of an analyzed Docker image
+type ImageSummary struct {
+	ImageID            string                    `json:"image_id"` // ID of the Docker image
+	ImageTag           string                    `json:"image_tag"`
+	LayerCount         int                       `json:"layer_count"`
+	Layers             []string                  `json:"layers"`     // Layer hashes without "blobs/sha256/" prefix
+	ImageSize          int64                     `json:"image_size"` // Size in bytes
+	Architecture       string                    `json:"architecture"`
+	OS                 string                    `json:"os"`
+	Created            string                    `json:"created"`
+	Author             string                    `json:"author"`
+	AnalyzedAt         string                    `json:"analyzed_at"`                   // Timestamp when analysis was performed
+	ContainerDirectory *DirectoryInfo            `json:"container_directory,omitempty"` // Container filesystem analysis
+	LayerDirectories   map[string]*DirectoryInfo `json:"layer_directories,omitempty"`   // Layer filesystem analysis by layer hash
+}
+
+// DirectoryInfo represents information about a directory and its contents
+type DirectoryInfo struct {
+	Path        string                    `json:"path"`        // Relative path from analysis root
+	Size        int64                     `json:"size"`        // Total size in bytes (including subdirectories)
+	FileCount   int                       `json:"file_count"`  // Number of files in this directory
+	DirCount    int                       `json:"dir_count"`   // Number of subdirectories
+	Directories map[string]*DirectoryInfo `json:"directories"` // Subdirectories mapped by name
+}
+
+// DockerManifest represents the structure of Docker image manifest.json
+type DockerManifest struct {
+	Config       string                 `json:"Config"`
+	RepoTags     []string               `json:"RepoTags"`
+	Layers       []string               `json:"Layers"`
+	LayerSources map[string]interface{} `json:"LayerSources,omitempty"`
+}
 
 // AnalyzeImage pulls and analyzes the specified Docker image
 func AnalyzeImage(imageName string) (*AnalysisResult, error) {
@@ -84,6 +118,7 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 
 	// Extract image information
 	result.BuildSuccess = true
+	result.ImageID = imageInfo.ID
 	result.ImageSize = imageInfo.Size
 	result.Architecture = imageInfo.Architecture
 	result.OS = imageInfo.Os
@@ -133,6 +168,13 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 			fmt.Printf("Failed to copy container filesystem: %v", err)
 			// Continue even if filesystem copy fails
 		}
+	}
+
+	// Create image summary JSON file after filesystem operations are complete
+	err = createImageSummary(result)
+	if err != nil {
+		fmt.Printf("Failed to create image summary: %v", err)
+		// Continue even if summary creation fails - analysis is still successful
 	}
 
 	// Clean up temporary files and directories, keeping only container_contents and layer_contents
@@ -460,20 +502,33 @@ func extractTarReader(reader io.Reader, destDir string) error {
 
 		// Handle symbolic links
 		if header.Typeflag == tar.TypeSymlink {
+			// Check if the symlink already exists
+			if _, err := os.Lstat(destPath); err == nil {
+				// File already exists, skip symlink creation to avoid warnings
+				continue
+			}
+
 			err := os.Symlink(header.Linkname, destPath)
 			if err != nil {
-				// On some systems, symlink creation might fail, but we can continue
-				fmt.Printf("Warning: failed to create symlink %s -> %s: %v\n", destPath, header.Linkname, err)
+				// Symlink creation failed, but we can continue analysis without it
+				// Only log detailed errors in debug mode to reduce noise
+				continue
 			}
 		}
 
 		// Handle hard links
 		if header.Typeflag == tar.TypeLink {
+			// Check if the target file already exists
+			if _, err := os.Lstat(destPath); err == nil {
+				// File already exists, skip hard link creation
+				continue
+			}
+
 			linkTarget := filepath.Join(destDir, header.Linkname)
 			err := os.Link(linkTarget, destPath)
 			if err != nil {
-				// Hard link creation might fail, but we can continue
-				fmt.Printf("Warning: failed to create hard link %s -> %s: %v\n", destPath, linkTarget, err)
+				// Hard link creation failed, but we can continue analysis without it
+				continue
 			}
 		}
 	}
@@ -482,7 +537,7 @@ func extractTarReader(reader io.Reader, destDir string) error {
 }
 
 // cleanupTemporaryFiles removes temporary files and directories created during analysis,
-// keeping only the container_contents and layer_contents directories.
+// keeping only the summary JSON files.
 func cleanupTemporaryFiles(result *AnalysisResult) error {
 	var errors []error
 
@@ -514,23 +569,12 @@ func cleanupTemporaryFiles(result *AnalysisResult) error {
 }
 
 // cleanupExtractedDirectory removes all files and directories in the extracted path
-// except for container_contents and layer_contents directories.
+// except for the summary JSON files.
 func cleanupExtractedDirectory(extractedPath string) error {
 	// Read all entries in the extracted directory
 	entries, err := os.ReadDir(extractedPath)
 	if err != nil {
 		return fmt.Errorf("failed to read extracted directory %s: %w", extractedPath, err)
-	}
-
-	// Directories to keep
-	keepDirs := map[string]bool{
-		"container_contents": true,
-		"layer_contents":     true,
-	}
-
-	// Files to keep
-	keepFiles := map[string]bool{
-		"manifest.json": true,
 	}
 
 	var errors []error
@@ -540,14 +584,9 @@ func cleanupExtractedDirectory(extractedPath string) error {
 		entryName := entry.Name()
 		entryPath := filepath.Join(extractedPath, entryName)
 
-		// Skip directories we want to keep
-		if entry.IsDir() && keepDirs[entryName] {
-			continue
-		}
-
-		// Skip files we want to keep
-		if !entry.IsDir() && keepFiles[entryName] {
-			continue
+		// Keep JSON files that match the summary pattern: "summary.{12 hex chars}.json"
+		if !entry.IsDir() && strings.HasPrefix(entryName, "summary.") && strings.HasSuffix(entryName, ".json") {
+			continue // Keep summary JSON files
 		}
 
 		// Remove the file or directory
@@ -566,4 +605,251 @@ func cleanupExtractedDirectory(extractedPath string) error {
 	}
 
 	return nil
+}
+
+// analyzeDirectory recursively analyzes a directory and returns DirectoryInfo
+func analyzeDirectory(dirPath string, relativePath string) (*DirectoryInfo, error) {
+	// Get directory info
+	dirStat, err := os.Stat(dirPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat directory %s: %w", dirPath, err)
+	}
+
+	if !dirStat.IsDir() {
+		return nil, fmt.Errorf("path %s is not a directory", dirPath)
+	}
+
+	dirInfo := &DirectoryInfo{
+		Path:        relativePath,
+		Size:        0,
+		FileCount:   0,
+		DirCount:    0,
+		Directories: make(map[string]*DirectoryInfo),
+	}
+
+	// Read directory contents
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory %s: %w", dirPath, err)
+	}
+
+	// Process each entry
+	for _, entry := range entries {
+		entryPath := filepath.Join(dirPath, entry.Name())
+		entryRelativePath := filepath.Join(relativePath, entry.Name())
+
+		if entry.IsDir() {
+			// Recursively analyze subdirectory
+			subDirInfo, err := analyzeDirectory(entryPath, entryRelativePath)
+			if err != nil {
+				// Log error but continue with other directories
+				fmt.Printf("Warning: failed to analyze subdirectory %s: %v\n", entryPath, err)
+				continue
+			}
+
+			// Add to directories map and update counts
+			dirInfo.Directories[entry.Name()] = subDirInfo
+			dirInfo.DirCount++
+			dirInfo.Size += subDirInfo.Size
+		} else {
+			// Process file - only collect size and count, not individual file details
+			fileInfo, err := entry.Info()
+			if err != nil {
+				// Log error but continue with other files
+				fmt.Printf("Warning: failed to get info for file %s: %v\n", entryPath, err)
+				continue
+			}
+
+			// Only track file count and add size to directory total
+			dirInfo.FileCount++
+			dirInfo.Size += fileInfo.Size()
+		}
+	}
+
+	return dirInfo, nil
+}
+
+// analyzeLayerContents analyzes all layer directories in layer_contents folder
+func analyzeLayerContents(extractedPath string) (map[string]*DirectoryInfo, error) {
+	layerContentsPath := filepath.Join(extractedPath, "layer_contents")
+
+	// Check if layer_contents directory exists
+	if _, err := os.Stat(layerContentsPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("layer_contents directory not found in %s", extractedPath)
+	}
+
+	layerDirectories := make(map[string]*DirectoryInfo)
+
+	// Read all layer directories
+	layerDirs, err := os.ReadDir(layerContentsPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read layer_contents directory: %w", err)
+	}
+
+	for _, layerDir := range layerDirs {
+		if !layerDir.IsDir() {
+			continue // Skip non-directories
+		}
+
+		layerName := layerDir.Name()
+		layerPath := filepath.Join(layerContentsPath, layerName)
+
+		// Analyze this layer directory
+		layerInfo, err := analyzeDirectory(layerPath, layerName)
+		if err != nil {
+			fmt.Printf("Warning: failed to analyze layer %s: %v\n", layerName, err)
+			continue
+		}
+
+		layerDirectories[layerName] = layerInfo
+	}
+
+	return layerDirectories, nil
+}
+
+// analyzeContainerContents analyzes the container_contents directory
+func analyzeContainerContents(extractedPath string) (*DirectoryInfo, error) {
+	containerContentsPath := filepath.Join(extractedPath, "container_contents")
+
+	// Check if container_contents directory exists
+	if _, err := os.Stat(containerContentsPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("container_contents directory not found in %s", extractedPath)
+	}
+
+	// Analyze the container contents directory
+	containerInfo, err := analyzeDirectory(containerContentsPath, "container_contents")
+	if err != nil {
+		return nil, fmt.Errorf("failed to analyze container_contents: %w", err)
+	}
+
+	return containerInfo, nil
+}
+
+// createImageSummary creates a JSON summary file with key information about the analyzed image
+func createImageSummary(result *AnalysisResult) error {
+	if result.ExtractedPath == "" {
+		return fmt.Errorf("extracted path not available in analysis result")
+	}
+
+	// Read and parse the manifest.json file
+	manifestPath := filepath.Join(result.ExtractedPath, "manifest.json")
+	layers, err := extractLayersFromManifest(manifestPath)
+	if err != nil {
+		return fmt.Errorf("failed to extract layers from manifest: %w", err)
+	}
+
+	// Analyze container filesystem if available
+	var containerDirInfo *DirectoryInfo
+	if result.ContainerFSSuccess && result.ContainerFSPath != "" {
+		containerDirInfo, err = analyzeContainerContents(result.ExtractedPath)
+		if err != nil {
+			fmt.Printf("Warning: failed to analyze container contents: %v\n", err)
+		}
+	}
+
+	// Analyze layer filesystems if available
+	var layerDirInfos map[string]*DirectoryInfo
+	if result.ExtractSuccess {
+		layerDirInfos, err = analyzeLayerContents(result.ExtractedPath)
+		if err != nil {
+			fmt.Printf("Warning: failed to analyze layer contents: %v\n", err)
+		}
+	}
+
+	// Create the image summary
+	summary := ImageSummary{
+		ImageID:            result.ImageID,
+		ImageTag:           result.ImageTag,
+		LayerCount:         result.LayerCount,
+		Layers:             layers,
+		ImageSize:          result.ImageSize,
+		Architecture:       result.Architecture,
+		OS:                 result.OS,
+		Created:            result.Created,
+		Author:             result.Author,
+		AnalyzedAt:         time.Now().UTC().Format(time.RFC3339),
+		ContainerDirectory: containerDirInfo,
+		LayerDirectories:   layerDirInfos,
+	}
+
+	// Generate filename based on first 12 characters of image ID (without sha256: prefix)
+	imageIDShort := strings.TrimPrefix(result.ImageID, "sha256:")
+	if len(imageIDShort) > 12 {
+		imageIDShort = imageIDShort[:12]
+	}
+	summaryFileName := fmt.Sprintf("summary.%s.json", imageIDShort)
+
+	// Write the summary to a JSON file
+	summaryPath := filepath.Join(result.ExtractedPath, summaryFileName)
+	err = writeSummaryToFile(summary, summaryPath)
+	if err != nil {
+		return fmt.Errorf("failed to write summary to file: %w", err)
+	}
+
+	return nil
+}
+
+// extractLayersFromManifest reads the manifest.json file and extracts layer hashes without the "blobs/sha256/" prefix
+func extractLayersFromManifest(manifestPath string) ([]string, error) {
+	// Check if manifest file exists
+	if _, err := os.Stat(manifestPath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("manifest.json not found at %s", manifestPath)
+	}
+
+	// Read the manifest file
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read manifest file: %w", err)
+	}
+
+	// Parse the manifest JSON
+	var manifests []DockerManifest
+	err = json.Unmarshal(manifestData, &manifests)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse manifest JSON: %w", err)
+	}
+
+	// Check if we have at least one manifest entry
+	if len(manifests) == 0 {
+		return nil, fmt.Errorf("no manifest entries found")
+	}
+
+	// Extract layers from the first manifest entry
+	manifest := manifests[0]
+	var cleanLayers []string
+
+	for _, layer := range manifest.Layers {
+		// Remove the "blobs/sha256/" prefix from each layer
+		cleanLayer := strings.TrimPrefix(layer, "blobs/sha256/")
+		cleanLayers = append(cleanLayers, cleanLayer)
+	}
+
+	return cleanLayers, nil
+}
+
+// writeSummaryToFile marshals the ImageSummary to JSON and writes it to the specified file
+func writeSummaryToFile(summary ImageSummary, filePath string) error {
+	// Marshal the summary to JSON with proper indentation
+	jsonData, err := json.MarshalIndent(summary, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal summary to JSON: %w", err)
+	}
+
+	// Write the JSON data to the file
+	err = os.WriteFile(filePath, jsonData, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write JSON to file %s: %w", filePath, err)
+	}
+
+	return nil
+}
+
+// isHexString checks if a string contains only hexadecimal characters (0-9, a-f, A-F)
+func isHexString(s string) bool {
+	for _, char := range s {
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
+			return false
+		}
+	}
+	return true
 }
