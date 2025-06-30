@@ -99,7 +99,7 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 
 	// Extract file systems from layer tar files if extraction was successful
 	if result.ExtractSuccess {
-		err = extractLayerFileSystems(result.ExtractedPath, result)
+		err = extractLayerFileSystems(result.ExtractedPath)
 		if err != nil {
 			fmt.Printf("Failed to extract layer file systems: %v", err)
 		}
@@ -189,7 +189,7 @@ func extractImageTar(tarPath string, result *AnalysisResult) error {
 }
 
 // extractLayerFileSystems extracts tar files from blobs/sha256 directory into layer_contents subdirectories
-func extractLayerFileSystems(extractedImagePath string, result *AnalysisResult) error {
+func extractLayerFileSystems(extractedImagePath string) error {
 	blobsPath := filepath.Join(extractedImagePath, "blobs", "sha256")
 
 	// Check if blobs/sha256 directory exists
