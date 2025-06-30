@@ -23,11 +23,21 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 		return nil, fmt.Errorf("image name cannot be empty")
 	}
 
+	// Create a temporary directory for this analysis session
+	// Generate safe name for the image
+	baseTempDir, err := os.MkdirTemp("", "dockerutils")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
+	}
+
+	fmt.Printf("Created temporary analysis directory: %s\n", baseTempDir)
+
 	// Initialize result structure for image analysis
 	result := &AnalysisResult{
 		ImageTag:        imageName,
 		IsImageAnalysis: true,
-		BuildSuccess:    false, // For images, this indicates successful inspection
+		BuildSuccess:    false,       // For images, this indicates successful inspection
+		ExtractedPath:   baseTempDir, // Set the base directory for all operations
 	}
 
 	// Create Docker client
@@ -144,12 +154,12 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 	return result, nil
 }
 
-// saveImageToTar saves the Docker image to a tar file in the tmp directory
+// saveImageToTar saves the Docker image to a tar file in a temporary directory
 func saveImageToTar(ctx context.Context, dockerClient *dockerclient.DockerClient, imageName string, result *AnalysisResult) error {
-	// Create tmp directory if it doesn't exist
-	tmpDir := "tmp"
-	if err := os.MkdirAll(tmpDir, 0755); err != nil {
-		return fmt.Errorf("failed to create tmp directory: %w", err)
+	// Use the pre-created temporary directory from the result
+	tmpDir := result.ExtractedPath
+	if tmpDir == "" {
+		return fmt.Errorf("temporary directory not set in result")
 	}
 
 	// Generate tar filename from image name and tag
@@ -364,19 +374,12 @@ func copyContainerFilesystem(ctx context.Context, dockerClient *dockerclient.Doc
 	}
 
 	// Determine the target directory path
-	// If we have an extracted path, use it; otherwise create based on image name
+	// Use the pre-created temporary directory from the result
 	var baseDir string
 	if result.ExtractedPath != "" {
 		baseDir = result.ExtractedPath
 	} else {
-		// Create a directory based on the image name in tmp/
-		tmpDir := "tmp"
-		safeName := strings.ReplaceAll(result.ImageTag, ":", "_")
-		safeName = strings.ReplaceAll(safeName, "/", "_")
-		baseDir = filepath.Join(tmpDir, safeName)
-		if err := os.MkdirAll(baseDir, 0755); err != nil {
-			return fmt.Errorf("failed to create base directory %s: %w", baseDir, err)
-		}
+		return fmt.Errorf("temporary directory not set in result")
 	}
 
 	// Create container_contents subdirectory
