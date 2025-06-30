@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"archive/tar"
 	"context"
 	"fmt"
 	"io"
@@ -10,6 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/smiller333/dockerutils/src/dockerclient"
 )
 
@@ -102,6 +106,38 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 		err = extractLayerFileSystems(result.ExtractedPath)
 		if err != nil {
 			fmt.Printf("Failed to extract layer file systems: %v", err)
+		}
+	}
+
+	// Create a container from the image without starting it
+	err = createContainerFromImage(ctx, dockerClient, imageName, result)
+	if err != nil {
+		fmt.Printf("Failed to create container from image %s: %v", imageName, err)
+		// Continue even if container creation fails
+	}
+
+	// Copy the container's root filesystem if container creation was successful
+	if result.ContainerSuccess {
+		err = copyContainerFilesystem(ctx, dockerClient, result)
+		if err != nil {
+			fmt.Printf("Failed to copy container filesystem: %v", err)
+			// Continue even if filesystem copy fails
+		}
+	}
+
+	// Clean up temporary files and directories, keeping only container_contents and layer_contents
+	err = cleanupTemporaryFiles(result)
+	if err != nil {
+		fmt.Printf("Failed to cleanup temporary files: %v", err)
+		// Continue even if cleanup fails - analysis is still successful
+	}
+
+	// Clean up the created container if it exists
+	if result.ContainerSuccess && result.ContainerID != "" {
+		err = dockerClient.RemoveContainer(ctx, result.ContainerID, true)
+		if err != nil {
+			fmt.Printf("Failed to remove container %s: %v", result.ContainerID, err)
+			// Continue even if container removal fails
 		}
 	}
 
@@ -252,6 +288,268 @@ func extractBlobTar(blobPath, extractDir string) error {
 	output, err := execCmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to extract blob tar file: %w, output: %s", err, string(output))
+	}
+
+	return nil
+}
+
+// createContainerFromImage creates a container from the specified image without starting it
+func createContainerFromImage(ctx context.Context, dockerClient *dockerclient.DockerClient, imageName string, result *AnalysisResult) error {
+	// Generate container name based on image name
+	// Replace problematic characters with underscores
+	safeName := strings.ReplaceAll(imageName, ":", "_")
+	safeName = strings.ReplaceAll(safeName, "/", "_")
+	containerName := fmt.Sprintf("analysis_%s_%d", safeName, time.Now().Unix())
+
+	// Create basic container configuration
+	// Use minimal configuration to just create the container without starting it
+	config := &container.Config{
+		Image: imageName,
+		// Set a simple command that won't interfere with analysis
+		Cmd: []string{"true"}, // 'true' command that does nothing and exits successfully
+		// Disable networking for security during analysis
+		NetworkDisabled: true,
+		// Set working directory to root
+		WorkingDir: "/",
+		// Disable stdin/stdout/stderr attachment
+		AttachStdin:  false,
+		AttachStdout: false,
+		AttachStderr: false,
+		Tty:          false,
+		OpenStdin:    false,
+		StdinOnce:    false,
+	}
+
+	// Create host configuration with minimal privileges
+	hostConfig := &container.HostConfig{
+		// Set restart policy to never restart
+		RestartPolicy: container.RestartPolicy{
+			Name: "no",
+		},
+		// Disable auto-removal to allow inspection
+		AutoRemove: false,
+		// Use default resource limits
+		Resources: container.Resources{},
+		// Disable privileged mode for security
+		Privileged: false,
+		// Set read-only root filesystem for analysis safety
+		ReadonlyRootfs: true,
+	}
+
+	// Create empty networking configuration
+	networkingConfig := &network.NetworkingConfig{}
+
+	// Set platform to nil to use default
+	var platform *ocispec.Platform = nil
+
+	// Create the container
+	createResp, err := dockerClient.CreateContainer(ctx, config, hostConfig, networkingConfig, platform, containerName)
+	if err != nil {
+		return fmt.Errorf("failed to create container from image %s: %w", imageName, err)
+	}
+
+	// Update result with container information
+	result.ContainerID = createResp.ID
+	result.ContainerName = containerName
+	result.ContainerSuccess = true
+	result.ContainerWarnings = createResp.Warnings
+
+	return nil
+}
+
+// copyContainerFilesystem copies the entire root filesystem from a container to a subdirectory
+func copyContainerFilesystem(ctx context.Context, dockerClient *dockerclient.DockerClient, result *AnalysisResult) error {
+	if result.ContainerID == "" {
+		return fmt.Errorf("container ID is empty")
+	}
+
+	// Determine the target directory path
+	// If we have an extracted path, use it; otherwise create based on image name
+	var baseDir string
+	if result.ExtractedPath != "" {
+		baseDir = result.ExtractedPath
+	} else {
+		// Create a directory based on the image name in tmp/
+		tmpDir := "tmp"
+		safeName := strings.ReplaceAll(result.ImageTag, ":", "_")
+		safeName = strings.ReplaceAll(safeName, "/", "_")
+		baseDir = filepath.Join(tmpDir, safeName)
+		if err := os.MkdirAll(baseDir, 0755); err != nil {
+			return fmt.Errorf("failed to create base directory %s: %w", baseDir, err)
+		}
+	}
+
+	// Create container_contents subdirectory
+	containerFSPath := filepath.Join(baseDir, "container_contents")
+	if err := os.MkdirAll(containerFSPath, 0755); err != nil {
+		return fmt.Errorf("failed to create container_contents directory %s: %w", containerFSPath, err)
+	}
+
+	// Copy the entire root filesystem from the container
+	// Use "/" as the source path to copy everything from the root
+	reader, _, err := dockerClient.CopyFromContainer(ctx, result.ContainerID, "/")
+	if err != nil {
+		return fmt.Errorf("failed to copy filesystem from container %s: %w", result.ContainerID, err)
+	}
+	defer reader.Close()
+
+	// Extract the tar archive directly to the container_contents directory
+	err = extractTarReader(reader, containerFSPath)
+	if err != nil {
+		return fmt.Errorf("failed to extract container filesystem tar: %w", err)
+	}
+
+	// Update result with successful filesystem copy information
+	result.ContainerFSPath = containerFSPath
+	result.ContainerFSSuccess = true
+
+	return nil
+}
+
+// extractTarReader extracts a tar archive from a reader to the specified directory
+func extractTarReader(reader io.Reader, destDir string) error {
+	tarReader := tar.NewReader(reader)
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break // End of archive
+		}
+		if err != nil {
+			return fmt.Errorf("error reading tar header: %w", err)
+		}
+
+		// Build the full path for extraction
+		destPath := filepath.Join(destDir, header.Name)
+
+		// Ensure the destination path is within the target directory (security check)
+		if !strings.HasPrefix(destPath, filepath.Clean(destDir)+string(os.PathSeparator)) &&
+			destPath != filepath.Clean(destDir) {
+			return fmt.Errorf("invalid path in tar archive: %s", header.Name)
+		}
+
+		// Create the directory structure if needed
+		if header.Typeflag == tar.TypeDir {
+			if err := os.MkdirAll(destPath, os.FileMode(header.Mode)); err != nil {
+				return fmt.Errorf("failed to create directory %s: %w", destPath, err)
+			}
+			continue
+		}
+
+		// Ensure parent directory exists
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			return fmt.Errorf("failed to create parent directory for %s: %w", destPath, err)
+		}
+
+		// Handle regular files
+		if header.Typeflag == tar.TypeReg {
+			outFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(header.Mode))
+			if err != nil {
+				return fmt.Errorf("failed to create file %s: %w", destPath, err)
+			}
+
+			_, err = io.Copy(outFile, tarReader)
+			outFile.Close()
+			if err != nil {
+				return fmt.Errorf("failed to write file %s: %w", destPath, err)
+			}
+		}
+
+		// Handle symbolic links
+		if header.Typeflag == tar.TypeSymlink {
+			err := os.Symlink(header.Linkname, destPath)
+			if err != nil {
+				// On some systems, symlink creation might fail, but we can continue
+				fmt.Printf("Warning: failed to create symlink %s -> %s: %v\n", destPath, header.Linkname, err)
+			}
+		}
+
+		// Handle hard links
+		if header.Typeflag == tar.TypeLink {
+			linkTarget := filepath.Join(destDir, header.Linkname)
+			err := os.Link(linkTarget, destPath)
+			if err != nil {
+				// Hard link creation might fail, but we can continue
+				fmt.Printf("Warning: failed to create hard link %s -> %s: %v\n", destPath, linkTarget, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// cleanupTemporaryFiles removes temporary files and directories created during analysis,
+// keeping only the container_contents and layer_contents directories.
+func cleanupTemporaryFiles(result *AnalysisResult) error {
+	var errors []error
+
+	// Remove the original tar file if it exists
+	if result.SavedTarPath != "" {
+		if err := os.Remove(result.SavedTarPath); err != nil && !os.IsNotExist(err) {
+			errors = append(errors, fmt.Errorf("failed to remove tar file %s: %w", result.SavedTarPath, err))
+		}
+	}
+
+	// Clean up extracted directory contents, keeping only container_contents and layer_contents
+	if result.ExtractedPath != "" {
+		err := cleanupExtractedDirectory(result.ExtractedPath)
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	// Return combined errors if any occurred
+	if len(errors) > 0 {
+		var errorStrings []string
+		for _, err := range errors {
+			errorStrings = append(errorStrings, err.Error())
+		}
+		return fmt.Errorf("cleanup errors: %s", strings.Join(errorStrings, "; "))
+	}
+
+	return nil
+}
+
+// cleanupExtractedDirectory removes all files and directories in the extracted path
+// except for container_contents and layer_contents directories.
+func cleanupExtractedDirectory(extractedPath string) error {
+	// Read all entries in the extracted directory
+	entries, err := os.ReadDir(extractedPath)
+	if err != nil {
+		return fmt.Errorf("failed to read extracted directory %s: %w", extractedPath, err)
+	}
+
+	// Directories to keep
+	keepDirs := map[string]bool{
+		"container_contents": true,
+		"layer_contents":     true,
+	}
+
+	var errors []error
+
+	// Remove entries that are not in the keep list
+	for _, entry := range entries {
+		entryName := entry.Name()
+		entryPath := filepath.Join(extractedPath, entryName)
+
+		// Skip directories we want to keep
+		if entry.IsDir() && keepDirs[entryName] {
+			continue
+		}
+
+		// Remove the file or directory
+		if err := os.RemoveAll(entryPath); err != nil {
+			errors = append(errors, fmt.Errorf("failed to remove %s: %w", entryPath, err))
+		}
+	}
+
+	// Return combined errors if any occurred
+	if len(errors) > 0 {
+		var errorStrings []string
+		for _, err := range errors {
+			errorStrings = append(errorStrings, err.Error())
+		}
+		return fmt.Errorf("cleanup errors in %s: %s", extractedPath, strings.Join(errorStrings, "; "))
 	}
 
 	return nil

@@ -16,10 +16,13 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/build"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/client"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Config holds configuration options for the Docker client wrapper
@@ -321,4 +324,62 @@ func (dc *DockerClient) SaveImage(ctx context.Context, imageNames []string) (io.
 	}
 
 	return reader, nil
+}
+
+// CreateContainer creates a new container based on the given configuration.
+// It returns the container ID and any warnings from the creation process.
+func (dc *DockerClient) CreateContainer(ctx context.Context, config *container.Config, hostConfig *container.HostConfig, networkingConfig *network.NetworkingConfig, platform *ocispec.Platform, containerName string) (*container.CreateResponse, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
+		defer cancel()
+	}
+
+	// Create the container
+	resp, err := dc.client.ContainerCreate(ctx, config, hostConfig, networkingConfig, platform, containerName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create container %s: %w", containerName, err)
+	}
+
+	return &resp, nil
+}
+
+// CopyFromContainer gets the content from the container and returns it as a Reader
+// for a TAR archive to manipulate it in the host. It's up to the caller to close the reader.
+// Returns the tar archive reader, path statistics, and any error that occurred.
+func (dc *DockerClient) CopyFromContainer(ctx context.Context, containerID, srcPath string) (io.ReadCloser, container.PathStat, error) {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
+		defer cancel()
+	}
+
+	// Copy content from the container
+	reader, stat, err := dc.client.CopyFromContainer(ctx, containerID, srcPath)
+	if err != nil {
+		return nil, container.PathStat{}, fmt.Errorf("failed to copy from container %s (path: %s): %w", containerID, srcPath, err)
+	}
+
+	return reader, stat, nil
+}
+
+// RemoveContainer removes a container by ID or name
+func (dc *DockerClient) RemoveContainer(ctx context.Context, containerID string, force bool) error {
+	if ctx == nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.Background(), dc.timeout)
+		defer cancel()
+	}
+
+	options := container.RemoveOptions{
+		RemoveVolumes: true,
+		Force:         force,
+	}
+
+	err := dc.client.ContainerRemove(ctx, containerID, options)
+	if err != nil {
+		return fmt.Errorf("failed to remove container %s: %w", containerID, err)
+	}
+
+	return nil
 }

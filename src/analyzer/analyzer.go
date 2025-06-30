@@ -28,6 +28,16 @@ type AnalysisResult struct {
 	SaveSuccess     bool   // Whether the image save was successful
 	ExtractedPath   string // Path to the extracted image contents
 	ExtractSuccess  bool   // Whether the image extraction was successful
+
+	// Container-specific fields
+	ContainerID       string   // ID of the created container
+	ContainerName     string   // Name of the created container
+	ContainerSuccess  bool     // Whether container creation was successful
+	ContainerWarnings []string // Warnings from container creation
+	
+	// Container filesystem fields
+	ContainerFSPath    string // Path to the extracted container filesystem
+	ContainerFSSuccess bool   // Whether container filesystem extraction was successful
 }
 
 // PrintAnalysisResult prints a formatted summary of the analysis result
@@ -63,6 +73,31 @@ func PrintAnalysisResult(result *AnalysisResult, showBuildOutput bool) {
 				fmt.Println("Extract status: SUCCESS")
 			} else if result.ExtractedPath != "" {
 				fmt.Println("Extract status: FAILED")
+			}
+
+			// Print container creation information
+			if result.ContainerSuccess {
+				fmt.Printf("Container ID: %s\n", result.ContainerID)
+				if result.ContainerName != "" {
+					fmt.Printf("Container Name: %s\n", result.ContainerName)
+				}
+				fmt.Println("Container creation status: SUCCESS")
+				if len(result.ContainerWarnings) > 0 {
+					fmt.Println("Container warnings:")
+					for _, warning := range result.ContainerWarnings {
+						fmt.Printf("  - %s\n", warning)
+					}
+				}
+
+				// Print container filesystem copy information
+				if result.ContainerFSSuccess {
+					fmt.Printf("Container filesystem copied to: %s\n", result.ContainerFSPath)
+					fmt.Println("Container filesystem copy status: SUCCESS")
+				} else if result.ContainerFSPath != "" {
+					fmt.Println("Container filesystem copy status: FAILED")
+				}
+			} else if result.ContainerID != "" {
+				fmt.Println("Container creation status: FAILED")
 			}
 		} else {
 			fmt.Println("Inspection status: FAILED")
