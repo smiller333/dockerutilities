@@ -25,7 +25,7 @@ func AnalyzeImage(imageName string) (*AnalysisResult, error) {
 
 	// Create a temporary directory for this analysis session
 	// Generate safe name for the image
-	baseTempDir, err := os.MkdirTemp("", "dockerutils")
+	baseTempDir, err := os.MkdirTemp("", "dockerutils-*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
@@ -528,6 +528,11 @@ func cleanupExtractedDirectory(extractedPath string) error {
 		"layer_contents":     true,
 	}
 
+	// Files to keep
+	keepFiles := map[string]bool{
+		"manifest.json": true,
+	}
+
 	var errors []error
 
 	// Remove entries that are not in the keep list
@@ -537,6 +542,11 @@ func cleanupExtractedDirectory(extractedPath string) error {
 
 		// Skip directories we want to keep
 		if entry.IsDir() && keepDirs[entryName] {
+			continue
+		}
+
+		// Skip files we want to keep
+		if !entry.IsDir() && keepFiles[entryName] {
 			continue
 		}
 
