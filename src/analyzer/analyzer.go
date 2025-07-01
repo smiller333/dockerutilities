@@ -15,6 +15,7 @@ type AnalysisResult struct {
 	ImageSize    int64 // Size of the built Docker image in bytes
 	Content      string
 	ImageTag     string
+	ImageSource  string // Source registry for non-DockerHub images
 	BuildOutput  string
 	BuildSuccess bool
 	LayerCount   int
@@ -48,6 +49,8 @@ func PrintAnalysisResult(result *AnalysisResult, showBuildOutput bool) {
 		// Print image analysis results
 		fmt.Printf("Successfully analyzed Docker image: %s\n", result.ImageTag)
 		fmt.Printf("Image Pulled: %t\n", result.Pulled)
+		fmt.Printf("Image Tag: %s\n", result.ImageTag)
+		fmt.Printf("Image Source: %s\n", result.ImageSource)
 
 		if result.BuildSuccess {
 			fmt.Printf("Image size: %d bytes\n", result.ImageSize)

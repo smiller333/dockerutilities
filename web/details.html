@@ -107,7 +107,8 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 id="imageTag" class="text-2xl font-bold text-gray-800"></h2>
-          <p id="imageId" class="text-sm text-gray-600 font-mono"></p>
+          <p id="imageSource" class="text-sm text-gray-600" style="display: none;"></p>
+          <p id="imageId" class="text-sm text-gray-600 mt-1 font-mono"></p>
         </div>
         <div class="text-right">
           <p class="text-sm text-gray-600">Analyzed on</p>
@@ -144,7 +145,7 @@
       <!-- Left Panel: Directory Selection -->
       <div class="bg-white shadow rounded-md p-4 lg:w-1/3">
         <h3 class="text-lg font-medium text-gray-800 mb-4">Final Image and Layers</h3>
-        <div class="space-y-2">
+        <div class="overflow-y-auto space-y-2" style="height: 70vh;">
           <div id="containerDirCard" class="directory-item p-3 rounded border cursor-pointer" data-dir="container_directory">
             <div class="flex justify-between items-center">
               <div>
@@ -245,6 +246,16 @@
     function populateImageDetails() {
       document.getElementById('imageTag').textContent = imageData.image_tag || 'Unknown';
       document.getElementById('imageId').textContent = (imageData.image_id || 'Unknown').replace('sha256:', '');
+      
+      // Show image source if it exists
+      const imageSourceElement = document.getElementById('imageSource');
+      if (imageData.image_source) {
+        imageSourceElement.textContent = imageData.image_source;
+        imageSourceElement.style.display = 'block';
+      } else {
+        imageSourceElement.style.display = 'none';
+      }
+      
       document.getElementById('analyzedAt').textContent = formatDate(imageData.analyzed_at);
       document.getElementById('imageSize').textContent = formatSize(imageData.image_size);
       document.getElementById('layerCount').textContent = imageData.layer_count || 0;

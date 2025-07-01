@@ -244,9 +244,7 @@
                                 </th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            ${tableRows}
-                        </tbody>
+                        ${tableRows}
                     </table>
                 </div>
             `;
@@ -282,16 +280,28 @@
             const analyzedAt = new Date(summary.analyzed_at).toLocaleDateString();
             const shortImageId = (summary.image_id || '').replace('sha256:', '').substring(0, 12);
 
-            return `
-                <tr class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="showDetails('${shortImageId}')" title="Click to view detailed analysis">
-                    <td class="px-4 py-2 text-sm text-gray-900">${summary.image_tag || 'Unknown'}</td>
-                    <td class="px-4 py-2 text-sm text-gray-500">${shortImageId}</td>
-                    <td class="px-4 py-2 text-sm text-gray-900">${imageSize}</td>
-                    <td class="px-4 py-2 text-sm text-gray-900">${summary.layer_count || 0}</td>
-                    <td class="px-4 py-2 text-sm text-gray-900">${summary.architecture || 'Unknown'}</td>
-                    <td class="px-4 py-2 text-sm text-gray-900">${analyzedAt}</td>
-                </tr>
-            `;
+            let rowHtml = `
+                <tbody class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="showDetails('${shortImageId}')" title="Click to view detailed analysis">
+                    <tr>
+                        <td class="px-4 py-2 text-sm text-gray-900">${summary.image_tag || 'Unknown'}</td>
+                        <td class="px-4 py-2 text-sm text-gray-500">${shortImageId}</td>
+                        <td class="px-4 py-2 text-sm text-gray-900">${imageSize}</td>
+                        <td class="px-4 py-2 text-sm text-gray-900">${summary.layer_count || 0}</td>
+                        <td class="px-4 py-2 text-sm text-gray-900">${summary.architecture || 'Unknown'}</td>
+                        <td class="px-4 py-2 text-sm text-gray-900">${analyzedAt}</td>
+                    </tr>`;
+
+            // Add source row if image_source is available
+            if (summary.image_source) {
+                rowHtml += `
+                    <tr>
+                        <td colspan="6" class="px-4 py-1 text-xs text-gray-400 italic border-t-0">Source: ${summary.image_source}</td>
+                    </tr>`;
+            }
+
+            rowHtml += `</tbody>`;
+
+            return rowHtml;
         }
 
         // Navigate to details page

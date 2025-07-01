@@ -22,6 +22,7 @@ import (
 type ImageSummary struct {
 	ImageID            string                    `json:"image_id"` // ID of the Docker image
 	ImageTag           string                    `json:"image_tag"`
+	ImageSource        string                    `json:"image_source,omitempty"` // Source registry for non-DockerHub images
 	LayerCount         int                       `json:"layer_count"`
 	Layers             []string                  `json:"layers"`     // Layer hashes without "blobs/sha256/" prefix
 	ImageSize          int64                     `json:"image_size"` // Size in bytes
@@ -52,6 +53,50 @@ type DockerManifest struct {
 	LayerSources map[string]interface{} `json:"LayerSources,omitempty"`
 }
 
+// parseImageNameAndSource parses a full image name and returns the image tag and source
+// For DockerHub images (e.g., "nginx:latest"), returns tag="nginx:latest", source=""
+// For external registries (e.g., "registry.gitlab.com/user/repo/image:tag"),
+// returns tag="image:tag", source="registry.gitlab.com/user/repo"
+func parseImageNameAndSource(fullImageName string) (imageTag, imageSource string) {
+	// Remove any potential docker.io prefix for DockerHub images
+	fullImageName = strings.TrimPrefix(fullImageName, "docker.io/")
+
+	// Check if this looks like an external registry (contains domain-like pattern)
+	// Split by '/' to analyze the path structure
+	parts := strings.Split(fullImageName, "/")
+
+	// If there's only one part or two parts without dots, it's likely DockerHub
+	if len(parts) <= 2 && !strings.Contains(parts[0], ".") {
+		return fullImageName, ""
+	}
+
+	// If the first part contains a dot, it's likely a registry domain
+	if strings.Contains(parts[0], ".") {
+		// Find the image name (last part before tag)
+		imagePart := parts[len(parts)-1]
+
+		// Extract tag if present
+		var tag string
+		if colonIndex := strings.LastIndex(imagePart, ":"); colonIndex != -1 {
+			tag = imagePart[colonIndex:]
+			imagePart = imagePart[:colonIndex]
+		}
+
+		// Build the image tag (image name + tag)
+		imageTag = imagePart + tag
+
+		// Build the source (everything except the last path component)
+		if len(parts) > 1 {
+			imageSource = strings.Join(parts[:len(parts)-1], "/")
+		}
+
+		return imageTag, imageSource
+	}
+
+	// Fallback: treat as DockerHub image
+	return fullImageName, ""
+}
+
 // AnalyzeImage pulls and analyzes the specified Docker image
 // If forcePull is false, it will only pull the image if it doesn't already exist locally
 func AnalyzeImage(imageName string, keepTempFiles bool, forcePull bool) (*AnalysisResult, error) {
@@ -72,9 +117,13 @@ func AnalyzeImage(imageName string, keepTempFiles bool, forcePull bool) (*Analys
 		return nil, fmt.Errorf("failed to create tmp directory: %w", err)
 	}
 
+	// Parse the image name to extract tag and source
+	imageTag, imageSource := parseImageNameAndSource(imageName)
+
 	// Initialize result structure for image analysis
 	result := &AnalysisResult{
-		ImageTag:        imageName,
+		ImageTag:        imageTag,
+		ImageSource:     imageSource,
 		IsImageAnalysis: true,
 		BuildSuccess:    false,      // For images, this indicates successful inspection
 		ExtractedPath:   tmpBaseDir, // Set the base directory for all operations
@@ -783,6 +832,7 @@ func createImageSummary(result *AnalysisResult) error {
 	summary := ImageSummary{
 		ImageID:            result.ImageID,
 		ImageTag:           result.ImageTag,
+		ImageSource:        result.ImageSource,
 		LayerCount:         result.LayerCount,
 		Layers:             layers,
 		ImageSize:          result.ImageSize,
