@@ -28,6 +28,21 @@ type Server struct {
 	webRoot    string
 }
 
+// AnalyzeRequest represents the request body for analyzing an image
+type AnalyzeRequest struct {
+	ImageName     string `json:"image_name"`
+	KeepTempFiles bool   `json:"keep_temp_files,omitempty"`
+	ForcePull     bool   `json:"force_pull,omitempty"`
+}
+
+// AnalyzeResponse represents the response for a successful image analysis
+type AnalyzeResponse struct {
+	Success bool   `json:"success"`
+	ImageID string `json:"image_id,omitempty"`
+	Message string `json:"message,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+
 // New creates a new web server instance with the given configuration
 func New(config *Config) (*Server, error) {
 	if config == nil {
@@ -104,6 +119,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/summaries", s.handleGetSummaries)
 	mux.HandleFunc("/api/summaries/", s.handleGetSummary)
 	mux.HandleFunc("/api/health", s.handleHealth)
+	mux.HandleFunc("/api/analyze", s.handleAnalyzeImage)
 }
 
 // handleHealth returns server health status
@@ -164,6 +180,91 @@ func (s *Server) handleGetSummary(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(summary)
+}
+
+// handleAnalyzeImage handles POST requests to analyze a Docker image
+func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse request body
+	var req AnalyzeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response := AnalyzeResponse{
+			Success: false,
+			Error:   "Invalid request body",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Validate image name
+	if req.ImageName == "" {
+		response := AnalyzeResponse{
+			Success: false,
+			Error:   "Image name is required",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Check if image has already been analyzed
+	existingSummaries, err := s.findSummaryFiles()
+	if err == nil {
+		for _, summary := range existingSummaries {
+			if strings.EqualFold(summary.ImageTag, req.ImageName) {
+				// Extract short image ID for response
+				shortImageID := strings.Replace(summary.ImageID, "sha256:", "", 1)
+				if len(shortImageID) > 12 {
+					shortImageID = shortImageID[:12]
+				}
+
+				response := AnalyzeResponse{
+					Success: true,
+					ImageID: shortImageID,
+					Message: "Image has already been analyzed",
+				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(response)
+				return
+			}
+		}
+	}
+
+	// Perform the analysis using the existing AnalyzeImage function
+	result, err := analyzer.AnalyzeImage(req.ImageName, req.KeepTempFiles, req.ForcePull)
+	if err != nil {
+		response := AnalyzeResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Analysis failed: %v", err),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Extract short image ID for response (first 12 characters without sha256: prefix)
+	imageID := strings.TrimPrefix(result.ImageID, "sha256:")
+	if len(imageID) > 12 {
+		imageID = imageID[:12]
+	}
+
+	// Return success response with image ID
+	response := AnalyzeResponse{
+		Success: true,
+		ImageID: imageID,
+		Message: "Image analysis completed successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 // findSummaryFiles searches for summary JSON files in the tmp directory

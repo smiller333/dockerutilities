@@ -37,6 +37,18 @@
             align-items: center;
             justify-content: center;
         }
+        
+        .loading-modal {
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(2px);
+        }
+        
+        .loading-modal .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-gray-100">
@@ -102,10 +114,19 @@
         </div>
     </div>
 
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="modal loading-modal">
+        <div class="bg-white rounded-lg shadow-xl p-8 mx-4 text-center">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Analyzing Image</h3>
+            <p class="text-gray-600" id="loadingMessage">Please wait while we analyze the Docker image...</p>
+        </div>
+    </div>
+
     <script>
         let summaries = [];
-        let currentSortField = 'image_tag';
-        let currentSortOrder = 'asc';
+        let currentSortField = 'analyzed_at';
+        let currentSortOrder = 'desc';
         let currentFilter = '';
 
         // DOM elements
@@ -117,6 +138,8 @@
         const filterInput = document.getElementById('filterInput');
         const analyzeInput = document.getElementById('analyzeInput');
         const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingModal = document.getElementById('loadingModal');
+        const loadingMessage = document.getElementById('loadingMessage');
 
         // Initialize the application
         async function init() {
@@ -132,10 +155,22 @@
                 renderSummaries();
             });
 
+            analyzeInput.addEventListener('input', (e) => {
+                const hasValue = e.target.value.trim().length > 0;
+                analyzeBtn.disabled = !hasValue;
+                if (hasValue) {
+                    analyzeBtn.classList.remove('bg-gray-400', 'cursor-not-allowed', 'opacity-50');
+                    analyzeBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                } else {
+                    analyzeBtn.classList.add('bg-gray-400', 'cursor-not-allowed', 'opacity-50');
+                    analyzeBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                }
+            });
+
             analyzeBtn.addEventListener('click', handleAnalyzeImage);
 
             analyzeInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !analyzeBtn.disabled) {
                     handleAnalyzeImage();
                 }
             });
@@ -152,7 +187,7 @@
         }
 
         // Handle analyze image functionality
-        function handleAnalyzeImage() {
+        async function handleAnalyzeImage() {
             const imageTag = analyzeInput.value.trim();
             if (!imageTag) return;
 
@@ -162,10 +197,52 @@
                 return;
             }
 
-            // For now, we'll just show an alert since this is a frontend-only demo
-            // In a real implementation, this would call the backend API
-            alert(`Analysis request submitted for: ${imageTag}`);
-            analyzeInput.value = '';
+            // Show loading modal
+            loadingMessage.textContent = `Analyzing ${imageTag}...`;
+            loadingModal.classList.add('show');
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_name: imageTag,
+                        keep_temp_files: false,
+                        force_pull: false
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Clear the input
+                    analyzeInput.value = '';
+                    
+                    // Reload summaries to show the new analysis
+                    await loadSummaries();
+                    renderSummaries();
+                    
+                    // Hide loading modal
+                    loadingModal.classList.remove('show');
+                    
+                    // Navigate to details page for the analyzed image
+                    if (result.image_id) {
+                        showDetails(result.image_id);
+                    } else {
+                        alert('Image analysis completed successfully!');
+                    }
+                } else {
+                    // Hide loading modal before showing error
+                    loadingModal.classList.remove('show');
+                    alert(`Analysis failed: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                // Hide loading modal before showing error
+                loadingModal.classList.remove('show');
+                alert(`Analysis failed: ${error.message}`);
+            }
         }
 
         // Sort by field (called by clicking table headers)
@@ -233,9 +310,6 @@
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-700" onclick="sortBy('image_size')">
                                     Size <span class="inline-block ml-1">↑↓</span>
                                 </th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-700" onclick="sortBy('layer_count')">
-                                    Layers <span class="inline-block ml-1">↑↓</span>
-                                </th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-700" onclick="sortBy('architecture')">
                                     Arch <span class="inline-block ml-1">↑↓</span>
                                 </th>
@@ -286,7 +360,7 @@
         // Create a table row HTML
         function createTableRow(summary) {
             const imageSize = formatSize(summary.image_size);
-            const analyzedAt = new Date(summary.analyzed_at).toLocaleDateString();
+            const analyzedAt = new Date(summary.analyzed_at).toLocaleString();
             const shortImageId = (summary.image_id || '').replace('sha256:', '').substring(0, 12);
 
             let rowHtml = `
@@ -295,7 +369,6 @@
                         <td class="px-4 py-2 text-sm text-gray-900">${summary.image_tag || 'Unknown'}</td>
                         <td class="px-4 py-2 text-sm text-gray-500">${shortImageId}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${imageSize}</td>
-                        <td class="px-4 py-2 text-sm text-gray-900">${summary.layer_count || 0}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${summary.architecture || 'Unknown'}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${analyzedAt}</td>
                     </tr>`;
@@ -304,7 +377,7 @@
             if (summary.image_source) {
                 rowHtml += `
                     <tr>
-                        <td colspan="6" class="px-4 py-1 text-xs text-gray-400 italic border-t-0">Source: ${summary.image_source}</td>
+                        <td colspan="5" class="px-4 py-1 text-xs text-gray-400 italic border-t-0">Source: ${summary.image_source}</td>
                     </tr>`;
             }
 
