@@ -231,7 +231,7 @@
                                     ID <span class="inline-block ml-1">↑↓</span>
                                 </th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-700" onclick="sortBy('image_size')">
-                                    Size (MB) <span class="inline-block ml-1">↑↓</span>
+                                    Size <span class="inline-block ml-1">↑↓</span>
                                 </th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-700" onclick="sortBy('layer_count')">
                                     Layers <span class="inline-block ml-1">↑↓</span>
@@ -274,9 +274,18 @@
                 });
         }
 
+        // Format file size
+        function formatSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
         // Create a table row HTML
         function createTableRow(summary) {
-            const imageSize = (summary.image_size / 1024 / 1024).toFixed(2);
+            const imageSize = formatSize(summary.image_size);
             const analyzedAt = new Date(summary.analyzed_at).toLocaleDateString();
             const shortImageId = (summary.image_id || '').replace('sha256:', '').substring(0, 12);
 
