@@ -14,6 +14,7 @@ var (
 	imageTag        string
 	showBuildOutput bool
 	keepTempFiles   bool
+	forcePull       bool
 )
 
 // analyzeCmd represents the analyze command
@@ -43,6 +44,7 @@ func init() {
 	analyzeCmd.Flags().StringVar(&imageTag, "image", "", "Docker image name and tag to analyze (e.g., nginx:latest)")
 	analyzeCmd.Flags().BoolVar(&showBuildOutput, "build-output", false, "Show Docker build output in analysis results")
 	analyzeCmd.Flags().BoolVar(&keepTempFiles, "keep-temp", false, "Keep temporary files after analysis (useful for debugging)")
+	analyzeCmd.Flags().BoolVar(&forcePull, "force-pull", false, "Force pull the image even if it exists locally (only applies to image analysis)")
 
 	// Mark the flags as mutually exclusive
 	analyzeCmd.MarkFlagsMutuallyExclusive("dockerfile", "image")
@@ -60,7 +62,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 
 	if imageTag != "" {
-		return analyzeImage(imageTag, keepTempFiles)
+		return analyzeImage(imageTag, keepTempFiles, forcePull)
 	}
 
 	return nil
@@ -81,9 +83,9 @@ func analyzeDockerfile(path string, showBuildOutput bool) error {
 }
 
 // analyzeImage analyzes the specified Docker image
-func analyzeImage(image string, keepTempFiles bool) error {
+func analyzeImage(image string, keepTempFiles bool, forcePull bool) error {
 	// Use the analyzer package to perform the image analysis
-	result, err := analyzer.AnalyzeImage(image, keepTempFiles)
+	result, err := analyzer.AnalyzeImage(image, keepTempFiles, forcePull)
 	if err != nil {
 		return err
 	}

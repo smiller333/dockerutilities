@@ -52,7 +52,8 @@ type DockerManifest struct {
 }
 
 // AnalyzeImage pulls and analyzes the specified Docker image
-func AnalyzeImage(imageName string, keepTempFiles bool) (*AnalysisResult, error) {
+// If forcePull is false, it will only pull the image if it doesn't already exist locally
+func AnalyzeImage(imageName string, keepTempFiles bool, forcePull bool) (*AnalysisResult, error) {
 	if imageName == "" {
 		return nil, fmt.Errorf("image name cannot be empty")
 	}
@@ -91,20 +92,35 @@ func AnalyzeImage(imageName string, keepTempFiles bool) (*AnalysisResult, error)
 		return result, fmt.Errorf("cannot connect to Docker daemon")
 	}
 
-	// Pull the image
-	startTime := time.Now()
-	pullReader, err := dockerClient.PullImage(ctx, imageName, nil)
-	if err != nil {
-		result.BuildTime = time.Since(startTime).Seconds()
-		return result, fmt.Errorf("failed to pull image %s: %w", imageName, err)
+	// Check if image exists locally unless force pull is requested
+	var needsPull bool = forcePull
+	if !forcePull {
+		// Try to inspect the image to see if it exists locally
+		_, err := dockerClient.InspectImage(ctx, imageName)
+		if err != nil {
+			// Image doesn't exist locally, need to pull it
+			needsPull = true
+		}
 	}
-	defer pullReader.Close()
 
-	// Read and capture pull output
-	_, err = io.ReadAll(pullReader)
-	if err != nil {
-		result.BuildTime = time.Since(startTime).Seconds()
-		return result, fmt.Errorf("failed to read pull output: %w", err)
+	// Pull the image if needed
+	startTime := time.Now()
+	if needsPull {
+		pullReader, err := dockerClient.PullImage(ctx, imageName, nil)
+		if err != nil {
+			result.BuildTime = time.Since(startTime).Seconds()
+			return result, fmt.Errorf("failed to pull image %s: %w", imageName, err)
+		}
+		defer pullReader.Close()
+
+		// Read and capture pull output
+		_, err = io.ReadAll(pullReader)
+		if err != nil {
+			result.BuildTime = time.Since(startTime).Seconds()
+			return result, fmt.Errorf("failed to read pull output: %w", err)
+		}
+
+		result.Pulled = true
 	}
 
 	result.BuildTime = time.Since(startTime).Seconds()

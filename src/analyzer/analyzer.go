@@ -8,6 +8,7 @@ import (
 // AnalysisResult contains the results of analyzing a Dockerfile or Docker image
 type AnalysisResult struct {
 	ImageID      string // ID of the Docker image
+	Pulled       bool   // Whether the image was pulled
 	Path         string
 	AbsolutePath string
 	DFSize       int   // Dockerfile size in bytes
@@ -46,6 +47,7 @@ func PrintAnalysisResult(result *AnalysisResult, showBuildOutput bool) {
 	if result.IsImageAnalysis {
 		// Print image analysis results
 		fmt.Printf("Successfully analyzed Docker image: %s\n", result.ImageTag)
+		fmt.Printf("Image Pulled: %t\n", result.Pulled)
 
 		if result.BuildSuccess {
 			fmt.Printf("Image size: %d bytes\n", result.ImageSize)
