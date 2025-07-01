@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Details - Docker Image Viewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .loading-spinner {
+      border: 3px solid #f3f4f6;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .directory-item {
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .directory-item:hover {
+      background-color: #f3f4f6;
+    }
+    
+    .directory-item.selected {
+      background-color: #dbeafe;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .file-tree {
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+    }
+    
+    .file-tree ul {
+      list-style: none;
+      padding-left: 1rem;
+    }
+    
+    .file-tree li {
+      margin: 0.25rem 0;
+    }
+    
+    .folder-icon::before {
+      content: "📁 ";
+    }
+    
+    .folder-icon.collapsed::before {
+      content: "📁 ";
+    }
+    
+    .folder-icon.expanded::before {
+      content: "📂 ";
+    }
+    
+    .file-icon::before {
+      content: "📄 ";
+    }
+    
+    .folder-toggle {
+      user-select: none;
+    }
+    
+    .subfolder-hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-100">
+  <!-- Header -->
+  <div class="bg-blue-600 text-white text-center py-4">
+    <h1 class="text-2xl font-bold">Docker Image Viewer</h1>
+  </div>
+
+  <!-- Navigation -->
+  <div class="bg-white shadow-sm border-b">
+    <div class="container mx-auto px-4 py-2">
+      <a href="index.html" class="text-blue-600 hover:text-blue-800 text-sm">← Back to Image List</a>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div id="loadingState" class="container mx-auto p-4 max-w-5xl">
+    <div class="flex items-center justify-center py-8">
+      <div class="loading-spinner"></div>
+      <span class="ml-2 text-gray-600">Loading image details...</span>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="mainContent" class="container mx-auto p-4 max-w-5xl" style="display: none;">
+    <!-- Image Header -->
+    <div class="bg-white shadow rounded-md p-4 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 id="imageTag" class="text-2xl font-bold text-gray-800"></h2>
+          <p id="imageId" class="text-sm text-gray-600 font-mono"></p>
+        </div>
+        <div class="text-right">
+          <p class="text-sm text-gray-600">Analyzed on</p>
+          <p id="analyzedAt" class="text-sm font-medium"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metadata Section -->
+    <div class="bg-white shadow rounded-md p-4 mb-6">
+      <h3 class="text-lg font-medium text-gray-800 mb-4">Image Metadata</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-gray-50 rounded p-3">
+          <p class="text-xs text-gray-500 uppercase tracking-wide">Size</p>
+          <p id="imageSize" class="text-lg font-semibold text-gray-800"></p>
+        </div>
+        <div class="bg-gray-50 rounded p-3">
+          <p class="text-xs text-gray-500 uppercase tracking-wide">Layers</p>
+          <p id="layerCount" class="text-lg font-semibold text-gray-800"></p>
+        </div>
+        <div class="bg-gray-50 rounded p-3">
+          <p class="text-xs text-gray-500 uppercase tracking-wide">Architecture</p>
+          <p id="architecture" class="text-lg font-semibold text-gray-800"></p>
+        </div>
+        <div class="bg-gray-50 rounded p-3">
+          <p class="text-xs text-gray-500 uppercase tracking-wide">OS</p>
+          <p id="osType" class="text-lg font-semibold text-gray-800"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two Panel Layout -->
+    <div class="flex flex-col lg:flex-row gap-4">
+      <!-- Left Panel: Directory Selection -->
+      <div class="bg-white shadow rounded-md p-4 lg:w-1/3">
+        <h3 class="text-lg font-medium text-gray-800 mb-4">Layer and Container Contents</h3>
+        <div class="space-y-2">
+          <div id="containerDirCard" class="directory-item p-3 rounded border cursor-pointer" data-dir="container_directory">
+            <div class="flex justify-between items-center">
+              <div>
+                <h4 class="font-medium text-gray-800">Container Contents</h4>
+                <p class="text-sm text-gray-600">Merged filesystem view</p>
+              </div>
+              <div class="text-right text-xs text-gray-500">
+                <p id="containerFileCount"></p>
+                <p id="containerDirCount"></p>
+              </div>
+            </div>
+          </div>
+          <div id="layerDirsSection" class="space-y-2">
+            <!-- Layer directories will be populated here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: File System Explorer -->
+      <div class="bg-white shadow rounded-md p-4 lg:w-2/3">
+        <div class="flex justify-between items-center mb-4">
+          <h3 id="explorerTitle" class="text-lg font-medium text-gray-800">Container Contents</h3>
+          <div id="explorerStats" class="text-sm text-gray-600"></div>
+        </div>
+        <div id="fileSystemContent" class="file-tree overflow-y-auto border rounded p-3 bg-gray-50" style="height: 70vh;">
+          <!-- File system tree will be rendered here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div id="errorState" class="container mx-auto p-4 max-w-5xl" style="display: none;">
+    <div class="bg-red-50 border border-red-200 rounded-md p-4">
+      <div class="flex">
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">Error Loading Image Details</h3>
+          <div class="mt-2 text-sm text-red-700">
+            <p id="errorMessage"></p>
+          </div>
+          <div class="mt-4">
+            <a href="index.html" class="text-sm bg-red-100 text-red-800 px-3 py-2 rounded hover:bg-red-200">
+              ← Back to Image List
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let imageData = null;
+    let selectedDirectory = 'container_directory';
+
+    // DOM elements
+    const loadingState = document.getElementById('loadingState');
+    const mainContent = document.getElementById('mainContent');
+    const errorState = document.getElementById('errorState');
+
+    // Get image ID from URL parameters
+    function getImageIdFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('id');
+    }
+
+    // Initialize the page
+    async function init() {
+      const imageId = getImageIdFromUrl();
+      if (!imageId) {
+        showError('No image ID provided in URL');
+        return;
+      }
+      
+      await loadImageData(imageId);
+    }
+
+    // Load image data from API
+    async function loadImageData(imageId) {
+      try {
+        const response = await fetch(`/api/summaries/${imageId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        imageData = await response.json();
+        populateImageDetails();
+        setupDirectoryCards();
+        selectDirectory('container_directory');
+        
+        loadingState.style.display = 'none';
+        mainContent.style.display = 'block';
+      } catch (error) {
+        showError(`Failed to load image details: ${error.message}`);
+      }
+    }
+
+    // Populate basic image information
+    function populateImageDetails() {
+      document.getElementById('imageTag').textContent = imageData.image_tag || 'Unknown';
+      document.getElementById('imageId').textContent = (imageData.image_id || 'Unknown').replace('sha256:', '');
+      document.getElementById('analyzedAt').textContent = formatDate(imageData.analyzed_at);
+      document.getElementById('imageSize').textContent = formatSize(imageData.image_size);
+      document.getElementById('layerCount').textContent = imageData.layer_count || 0;
+      document.getElementById('architecture').textContent = imageData.architecture || 'Unknown';
+      document.getElementById('osType').textContent = imageData.os || 'Unknown';
+    }
+
+    // Setup directory selection cards
+    function setupDirectoryCards() {
+      // Setup container directory stats
+      const containerDir = imageData.container_directory;
+      if (containerDir) {
+        document.getElementById('containerFileCount').textContent = `${containerDir.file_count || 0} files`;
+        document.getElementById('containerDirCount').textContent = `${containerDir.dir_count || 0} dirs`;
+      }
+
+      // Setup layer directories in reverse order (most recent first)
+      const layerDirsSection = document.getElementById('layerDirsSection');
+      if (imageData.layers && imageData.layer_directories) {
+        // Reverse the layers array to show most recent layers first
+        const reversedLayers = [...imageData.layers].reverse();
+        reversedLayers.forEach((layerId) => {
+          const layerDir = imageData.layer_directories[layerId];
+          if (layerDir) {
+            const shortLayerId = layerId.substring(0, 12);
+            const layerCard = document.createElement('div');
+            layerCard.className = 'directory-item p-3 rounded border cursor-pointer';
+            layerCard.dataset.dir = layerId;
+            layerCard.innerHTML = `
+              <div class="flex justify-between items-center">
+                <div>
+                  <h4 class="font-medium text-gray-800">Layer ${shortLayerId}</h4>
+                  <p class="text-sm text-gray-600">Individual layer contents</p>
+                </div>
+                <div class="text-right text-xs text-gray-500">
+                  <p>${layerDir.file_count || 0} files</p>
+                  <p>${layerDir.dir_count || 0} dirs</p>
+                </div>
+              </div>
+            `;
+            layerCard.addEventListener('click', () => selectDirectory(layerId));
+            layerDirsSection.appendChild(layerCard);
+          }
+        });
+      }
+
+      // Add click handler for container directory
+      document.getElementById('containerDirCard').addEventListener('click', () => {
+        selectDirectory('container_directory');
+      });
+    }
+
+    // Select and display a directory
+    function selectDirectory(dirKey) {
+      selectedDirectory = dirKey;
+      
+      // Update selection UI
+      document.querySelectorAll('.directory-item').forEach(card => {
+        card.classList.remove('selected');
+      });
+      
+      const selectedCard = document.querySelector(`[data-dir="${dirKey}"]`);
+      if (selectedCard) {
+        selectedCard.classList.add('selected');
+      }
+
+      // Update explorer content
+      updateExplorer(dirKey);
+    }
+
+    // Update the file system explorer
+    function updateExplorer(dirKey) {
+      let directoryData;
+      let title;
+
+      if (dirKey === 'container_directory') {
+        directoryData = imageData.container_directory;
+        title = 'Container Contents';
+      } else {
+        directoryData = imageData.layer_directories[dirKey];
+        title = `Layer ${dirKey.substring(0, 12)}`;
+      }
+
+      if (!directoryData) {
+        document.getElementById('fileSystemContent').innerHTML = '<p class="text-gray-500">No data available</p>';
+        return;
+      }
+
+      document.getElementById('explorerTitle').textContent = title;
+      document.getElementById('explorerStats').textContent = 
+        `${directoryData.file_count || 0} files, ${directoryData.dir_count || 0} directories, ${formatSize(directoryData.size)}`;
+
+      // Render the directory tree
+      const treeHtml = renderDirectoryTree(directoryData.directories || {});
+      document.getElementById('fileSystemContent').innerHTML = treeHtml;
+    }
+
+    // Render directory tree recursively
+    function renderDirectoryTree(directories, depth = 0) {
+      if (!directories || Object.keys(directories).length === 0) {
+        return '<p class="text-gray-500 italic">Empty directory</p>';
+      }
+
+      let html = '<ul>';
+      
+      // Sort directories by name
+      const sortedEntries = Object.entries(directories).sort(([a], [b]) => a.localeCompare(b));
+      
+      for (const [name, dir] of sortedEntries) {
+        const hasSubdirs = dir.directories && Object.keys(dir.directories).length > 0;
+        const size = formatSize(dir.size);
+        const folderId = `folder-${Math.random().toString(36).substr(2, 9)}`;
+        
+        html += '<li>';
+        html += `<div class="flex items-center justify-between py-1 folder-toggle cursor-pointer" onclick="toggleFolder('${folderId}')">`;
+        html += `<span class="folder-icon ${hasSubdirs ? 'collapsed' : ''}" id="icon-${folderId}">${name}/</span>`;
+        html += `<span class="text-xs text-gray-500">${size}</span>`;
+        html += '</div>';
+        
+        if (hasSubdirs) {
+          html += `<div id="${folderId}" class="subfolder-hidden">`;
+          html += renderDirectoryTree(dir.directories, depth + 1);
+          html += '</div>';
+        }
+        
+        html += '</li>';
+      }
+      
+      html += '</ul>';
+      return html;
+    }
+
+    // Format file size
+    function formatSize(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    // Format date
+    function formatDate(dateString) {
+      if (!dateString) return 'Unknown';
+      try {
+        return new Date(dateString).toLocaleDateString() + ' ' + new Date(dateString).toLocaleTimeString();
+      } catch {
+        return 'Unknown';
+      }
+    }
+
+    // Show error state
+    function showError(message) {
+      document.getElementById('errorMessage').textContent = message;
+      loadingState.style.display = 'none';
+      mainContent.style.display = 'none';
+      errorState.style.display = 'block';
+    }
+
+    // Toggle folder visibility
+    function toggleFolder(folderId) {
+      const folder = document.getElementById(folderId);
+      const icon = document.getElementById(`icon-${folderId}`);
+      
+      if (folder.classList.contains('subfolder-hidden')) {
+        folder.classList.remove('subfolder-hidden');
+        icon.classList.remove('collapsed');
+        icon.classList.add('expanded');
+      } else {
+        folder.classList.add('subfolder-hidden');
+        icon.classList.remove('expanded');
+        icon.classList.add('collapsed');
+      }
+    }
+
+    // Start the application
+    init();
+  </script>
+</body>
+</html>
