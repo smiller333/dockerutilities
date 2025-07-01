@@ -65,6 +65,11 @@
       content: "📄 ";
     }
     
+    .file-icon {
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+    
     .folder-toggle {
       user-select: none;
     }
@@ -334,39 +339,58 @@
         `${directoryData.file_count || 0} files, ${directoryData.dir_count || 0} directories, ${formatSize(directoryData.size)}`;
 
       // Render the directory tree
-      const treeHtml = renderDirectoryTree(directoryData.directories || {});
+      const treeHtml = renderDirectoryTree(directoryData.directories || {}, directoryData.files || [], 0);
       document.getElementById('fileSystemContent').innerHTML = treeHtml;
     }
 
     // Render directory tree recursively
-    function renderDirectoryTree(directories, depth = 0) {
-      if (!directories || Object.keys(directories).length === 0) {
+    function renderDirectoryTree(directories, files = [], depth = 0) {
+      const hasDirectories = directories && Object.keys(directories).length > 0;
+      const hasFiles = files && files.length > 0;
+      
+      if (!hasDirectories && !hasFiles) {
         return '<p class="text-gray-500 italic">Empty directory</p>';
       }
 
       let html = '<ul>';
       
-      // Sort directories by name
-      const sortedEntries = Object.entries(directories).sort(([a], [b]) => a.localeCompare(b));
-      
-      for (const [name, dir] of sortedEntries) {
-        const hasSubdirs = dir.directories && Object.keys(dir.directories).length > 0;
-        const size = formatSize(dir.size);
-        const folderId = `folder-${Math.random().toString(36).substr(2, 9)}`;
+      // First, render directories (sorted by name)
+      if (hasDirectories) {
+        const sortedDirEntries = Object.entries(directories).sort(([a], [b]) => a.localeCompare(b));
         
-        html += '<li>';
-        html += `<div class="flex items-center justify-between py-1 folder-toggle cursor-pointer" onclick="toggleFolder('${folderId}')">`;
-        html += `<span class="folder-icon ${hasSubdirs ? 'collapsed' : ''}" id="icon-${folderId}">${name}/</span>`;
-        html += `<span class="text-xs text-gray-500">${size}</span>`;
-        html += '</div>';
-        
-        if (hasSubdirs) {
-          html += `<div id="${folderId}" class="subfolder-hidden">`;
-          html += renderDirectoryTree(dir.directories, depth + 1);
+        for (const [name, dir] of sortedDirEntries) {
+          const hasSubdirs = dir.directories && Object.keys(dir.directories).length > 0;
+          const hasSubfiles = dir.files && dir.files.length > 0;
+          const size = formatSize(dir.size);
+          const folderId = `folder-${Math.random().toString(36).substr(2, 9)}`;
+          
+          html += '<li>';
+          html += `<div class="flex items-center justify-between py-1 folder-toggle cursor-pointer" onclick="toggleFolder('${folderId}')">`;
+          html += `<span class="folder-icon ${(hasSubdirs || hasSubfiles) ? 'collapsed' : ''}" id="icon-${folderId}">${name}/</span>`;
+          html += `<span class="text-xs text-gray-500">${size}</span>`;
           html += '</div>';
+          
+          if (hasSubdirs || hasSubfiles) {
+            html += `<div id="${folderId}" class="subfolder-hidden">`;
+            html += renderDirectoryTree(dir.directories || {}, dir.files || [], depth + 1);
+            html += '</div>';
+          }
+          
+          html += '</li>';
         }
+      }
+      
+      // Then, render files (sorted by name)
+      if (hasFiles) {
+        const sortedFiles = [...files].sort((a, b) => a.localeCompare(b));
         
-        html += '</li>';
+        for (const fileName of sortedFiles) {
+          html += '<li>';
+          html += `<div class="flex items-center py-1">`;
+          html += `<span class="file-icon">${fileName}</span>`;
+          html += '</div>';
+          html += '</li>';
+        }
       }
       
       html += '</ul>';

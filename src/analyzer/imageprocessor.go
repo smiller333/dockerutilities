@@ -40,6 +40,7 @@ type DirectoryInfo struct {
 	Size        int64                     `json:"size"`        // Total size in bytes (including subdirectories)
 	FileCount   int                       `json:"file_count"`  // Number of files in this directory
 	DirCount    int                       `json:"dir_count"`   // Number of subdirectories
+	Files       []string                  `json:"files"`       // List of file names in this directory
 	Directories map[string]*DirectoryInfo `json:"directories"` // Subdirectories mapped by name
 }
 
@@ -644,6 +645,7 @@ func analyzeDirectory(dirPath string, relativePath string) (*DirectoryInfo, erro
 		Size:        0,
 		FileCount:   0,
 		DirCount:    0,
+		Files:       make([]string, 0),
 		Directories: make(map[string]*DirectoryInfo),
 	}
 
@@ -680,9 +682,10 @@ func analyzeDirectory(dirPath string, relativePath string) (*DirectoryInfo, erro
 				continue
 			}
 
-			// Only track file count and add size to directory total
+			// Track file count, add size to directory total, and add filename to files list
 			dirInfo.FileCount++
 			dirInfo.Size += fileInfo.Size()
+			dirInfo.Files = append(dirInfo.Files, entry.Name())
 		}
 	}
 
