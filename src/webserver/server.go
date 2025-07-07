@@ -116,18 +116,19 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.Handle("/", http.FileServer(http.Dir(s.webRoot)))
 
 	// API routes
-	mux.HandleFunc("/api/summaries", s.handleGetSummaries)
-	mux.HandleFunc("/api/summaries/", s.handleGetSummary)
-	mux.HandleFunc("/api/health", s.handleHealth)
-	mux.HandleFunc("/api/analyze", s.handleAnalyzeImage)
+	mux.HandleFunc("GET /api/summaries", s.handleGetSummaries)
+	mux.HandleFunc("GET /api/summaries/", s.handleGetSummary)
+	mux.HandleFunc("DELETE /api/summaries/", s.handleDeleteSummary)
+	mux.HandleFunc("GET /api/health", s.handleHealth)
+	mux.HandleFunc("POST /api/analyze", s.handleAnalyzeImage)
 }
 
 // handleHealth returns server health status
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	// if r.Method != http.MethodGet {
+	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	// 	return
+	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
@@ -141,10 +142,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 // handleGetSummaries returns a list of all available image summaries
 func (s *Server) handleGetSummaries(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	// if r.Method != http.MethodGet {
+	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	// 	return
+	// }
 
 	// Look for summary files in the tmp directory
 	summaries, err := s.findSummaryFiles()
@@ -159,10 +160,10 @@ func (s *Server) handleGetSummaries(w http.ResponseWriter, r *http.Request) {
 
 // handleGetSummary returns a specific image summary by ID
 func (s *Server) handleGetSummary(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+	// if r.Method != http.MethodGet {
+	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	// 	return
+	// }
 
 	// Extract summary ID from URL path
 	path := strings.TrimPrefix(r.URL.Path, "/api/summaries/")
@@ -182,12 +183,41 @@ func (s *Server) handleGetSummary(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(summary)
 }
 
-// handleAnalyzeImage handles POST requests to analyze a Docker image
-func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// handleDeleteSummary handles DELETE requests to remove a specific image summary
+func (s *Server) handleDeleteSummary(w http.ResponseWriter, r *http.Request) {
+	// if r.Method != http.MethodDelete {
+	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	// 	return
+	// }
+
+	// Extract summary ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/summaries/")
+	if path == "" {
+		http.Error(w, "Summary ID required", http.StatusBadRequest)
 		return
 	}
+
+	// Delete the summary file
+	err := s.deleteSummaryByID(path)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to delete summary: %v", err), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Summary %s deleted successfully", path),
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleAnalyzeImage handles POST requests to analyze a Docker image
+func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
+	// if r.Method != http.MethodPost {
+	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	// 	return
+	// }
 
 	// Parse request body
 	var req AnalyzeRequest
@@ -378,6 +408,72 @@ func (s *Server) getSummaryByID(id string) (analyzer.ImageSummary, error) {
 	}
 
 	return summary, nil
+}
+
+// deleteSummaryByID removes a specific summary file by its ID
+func (s *Server) deleteSummaryByID(id string) error {
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	tmpDir := filepath.Join(cwd, "tmp")
+
+	// Look for the specific summary file
+	var summaryPath string
+	var imageFolder string
+
+	err = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		fileName := info.Name()
+		if !info.IsDir() && strings.HasPrefix(fileName, "summary.") && strings.HasSuffix(fileName, ".json") {
+			// Extract ID from filename
+			fileID := strings.TrimSuffix(strings.TrimPrefix(fileName, "summary."), ".json")
+			if fileID == id {
+				summaryPath = path
+				imageFolder = filepath.Dir(path)
+				return filepath.SkipDir // Stop walking
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to search for summary file: %w", err)
+	}
+
+	if summaryPath == "" {
+		return fmt.Errorf("summary with ID %s not found", id)
+	}
+
+	// Remove the summary file
+	if err := os.Remove(summaryPath); err != nil {
+		return fmt.Errorf("failed to delete summary file: %w", err)
+	}
+
+	// Check if the image folder is empty after removing the summary file
+	// If so, remove the entire folder
+	entries, err := os.ReadDir(imageFolder)
+	if err != nil {
+		// Log warning but don't fail the operation
+		fmt.Printf("Warning: failed to read directory %s: %v\n", imageFolder, err)
+		return nil
+	}
+
+	// If the folder is empty, remove it
+	if len(entries) == 0 {
+		if err := os.Remove(imageFolder); err != nil {
+			// Log warning but don't fail the operation
+			fmt.Printf("Warning: failed to remove empty directory %s: %v\n", imageFolder, err)
+		}
+	}
+
+	return nil
 }
 
 // getDefaultWebRoot returns the default web root directory

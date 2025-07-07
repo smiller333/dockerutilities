@@ -123,6 +123,48 @@
         </div>
     </div>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h2 id="confirmTitle" class="text-xl font-semibold">Confirm Action</h2>
+                <button id="closeConfirmModal" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-4">
+                <p id="confirmMessage" class="text-gray-600 mb-6"></p>
+                <div class="flex justify-end gap-3">
+                    <button id="confirmCancel" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-md transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <button id="confirmDelete" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors duration-200">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h2 id="resultTitle" class="text-xl font-semibold">Result</h2>
+                <button id="closeResultModal" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-4">
+                <div id="resultContent" class="flex items-center mb-4">
+                    <div id="resultIcon" class="mr-3"></div>
+                    <p id="resultMessage" class="text-gray-600"></p>
+                </div>
+                <div class="flex justify-end">
+                    <button id="resultOk" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors duration-200">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let summaries = [];
         let currentSortField = 'analyzed_at';
@@ -140,6 +182,25 @@
         const analyzeBtn = document.getElementById('analyzeBtn');
         const loadingModal = document.getElementById('loadingModal');
         const loadingMessage = document.getElementById('loadingMessage');
+        
+        // Confirmation modal elements
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmTitle = document.getElementById('confirmTitle');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const closeConfirmModal = document.getElementById('closeConfirmModal');
+        const confirmCancel = document.getElementById('confirmCancel');
+        const confirmDelete = document.getElementById('confirmDelete');
+        
+        // Result modal elements
+        const resultModal = document.getElementById('resultModal');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultMessage = document.getElementById('resultMessage');
+        const resultIcon = document.getElementById('resultIcon');
+        const closeResultModal = document.getElementById('closeResultModal');
+        const resultOk = document.getElementById('resultOk');
+        
+        // Store pending delete action
+        let pendingDeleteAction = null;
 
         // Initialize the application
         async function init() {
@@ -184,6 +245,47 @@
                     modal.classList.remove('show');
                 }
             });
+
+            // Confirmation modal event listeners
+            closeConfirmModal.addEventListener('click', () => {
+                confirmModal.classList.remove('show');
+                pendingDeleteAction = null;
+            });
+
+            confirmCancel.addEventListener('click', () => {
+                confirmModal.classList.remove('show');
+                pendingDeleteAction = null;
+            });
+
+            confirmDelete.addEventListener('click', () => {
+                confirmModal.classList.remove('show');
+                if (pendingDeleteAction) {
+                    executeDelete(pendingDeleteAction.imageId, pendingDeleteAction.imageTag);
+                    pendingDeleteAction = null;
+                }
+            });
+
+            confirmModal.addEventListener('click', (e) => {
+                if (e.target === confirmModal) {
+                    confirmModal.classList.remove('show');
+                    pendingDeleteAction = null;
+                }
+            });
+
+            // Result modal event listeners
+            closeResultModal.addEventListener('click', () => {
+                resultModal.classList.remove('show');
+            });
+
+            resultOk.addEventListener('click', () => {
+                resultModal.classList.remove('show');
+            });
+
+            resultModal.addEventListener('click', (e) => {
+                if (e.target === resultModal) {
+                    resultModal.classList.remove('show');
+                }
+            });
         }
 
         // Handle analyze image functionality
@@ -193,7 +295,7 @@
 
             // Check if already exists
             if (summaries.some(summary => summary.image_tag.toLowerCase() === imageTag.toLowerCase())) {
-                alert('This image tag has already been analyzed.');
+                showResultModal('Already Analyzed', 'This image tag has already been analyzed.', 'error');
                 return;
             }
 
@@ -231,18 +333,70 @@
                     if (result.image_id) {
                         showDetails(result.image_id);
                     } else {
-                        alert('Image analysis completed successfully!');
+                        showResultModal('Success', 'Image analysis completed successfully!', 'success');
                     }
                 } else {
                     // Hide loading modal before showing error
                     loadingModal.classList.remove('show');
-                    alert(`Analysis failed: ${result.error || 'Unknown error'}`);
+                    showResultModal('Analysis Failed', result.error || 'Unknown error', 'error');
                 }
             } catch (error) {
                 // Hide loading modal before showing error
                 loadingModal.classList.remove('show');
-                alert(`Analysis failed: ${error.message}`);
+                showResultModal('Analysis Failed', error.message, 'error');
             }
+        }
+
+        // Handle delete summary functionality
+        async function deleteSummary(imageId, imageTag) {
+            // Show confirmation modal instead of browser confirm
+            confirmTitle.textContent = 'Delete Analysis';
+            confirmMessage.textContent = `Are you sure you want to delete the analysis for "${imageTag}" (${imageId})?`;
+            pendingDeleteAction = { imageId, imageTag };
+            confirmModal.classList.add('show');
+        }
+
+        // Execute the actual delete operation
+        async function executeDelete(imageId, imageTag) {
+            try {
+                const response = await fetch(`/api/summaries/${imageId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reload summaries to reflect the deletion
+                    await loadSummaries();
+                    renderSummaries();
+                    
+                    // Show success result modal
+                    showResultModal('Success', `Successfully deleted analysis for "${imageTag}"`, 'success');
+                } else {
+                    showResultModal('Error', `Failed to delete analysis: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                showResultModal('Error', `Failed to delete analysis: ${error.message}`, 'error');
+            }
+        }
+
+        // Show result modal with success or error message
+        function showResultModal(title, message, type) {
+            resultTitle.textContent = title;
+            resultMessage.textContent = message;
+            
+            // Set icon based on type
+            if (type === 'success') {
+                resultIcon.innerHTML = '<div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center"><svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>';
+            } else {
+                resultIcon.innerHTML = '<div class="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center"><svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></div>';
+            }
+            
+            resultModal.classList.add('show');
         }
 
         // Sort by field (called by clicking table headers)
@@ -316,6 +470,9 @@
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 cursor-pointer hover:text-gray-700" onclick="sortBy('analyzed_at')">
                                     Last Analyzed <span class="inline-block ml-1">↑↓</span>
                                 </th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                                    Actions
+                                </th>
                             </tr>
                         </thead>
                         ${tableRows}
@@ -364,20 +521,31 @@
             const shortImageId = (summary.image_id || '').replace('sha256:', '').substring(0, 12);
 
             let rowHtml = `
-                <tbody class="hover:bg-gray-50 transition-colors cursor-pointer" onclick="showDetails('${shortImageId}')" title="Click to view detailed analysis">
-                    <tr>
+                <tbody class="hover:bg-gray-50 transition-colors">
+                    <tr class="cursor-pointer" onclick="showDetails('${shortImageId}')" title="Click to view detailed analysis">
                         <td class="px-4 py-2 text-sm text-gray-900">${summary.image_tag || 'Unknown'}</td>
                         <td class="px-4 py-2 text-sm text-gray-500">${shortImageId}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${imageSize}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${summary.architecture || 'Unknown'}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${analyzedAt}</td>
+                        <td class="px-4 py-2 text-sm text-gray-900">
+                            <button 
+                                onclick="event.stopPropagation(); deleteSummary('${shortImageId}', '${summary.image_tag || 'Unknown'}')" 
+                                class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors duration-200"
+                                title="Delete this analysis"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </td>
                     </tr>`;
 
             // Add source row if image_source is available
             if (summary.image_source) {
                 rowHtml += `
                     <tr>
-                        <td colspan="5" class="px-4 py-1 text-xs text-gray-400 italic border-t-0">Source: ${summary.image_source}</td>
+                        <td colspan="6" class="px-4 py-1 text-xs text-gray-400 italic border-t-0">Source: ${summary.image_source}</td>
                     </tr>`;
             }
 
