@@ -3,8 +3,10 @@ package webserver
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -15,11 +17,15 @@ import (
 	"github.com/smiller333/dockerutils/src/analyzer"
 )
 
+//go:embed webpages/*
+var staticFS embed.FS
+
 // Config holds configuration options for the web server
 type Config struct {
-	Host    string // Host/IP address to bind to
-	Port    string // Port number to listen on
-	WebRoot string // Custom web root directory (optional)
+	Host        string // Host/IP address to bind to
+	Port        string // Port number to listen on
+	UseEmbedded bool   // Use embedded web files instead of a directory
+	WebRoot     string // Custom web root directory (optional)
 }
 
 // Server represents the web server instance
@@ -114,16 +120,19 @@ func New(config *Config) (*Server, error) {
 		config.Port = "8080"
 	}
 
-	// Determine web root directory
-	webRoot := config.WebRoot
-	if webRoot == "" {
-		// Use embedded/default web root
-		webRoot = getDefaultWebRoot()
-	}
+	webRoot := ""
+	if !config.UseEmbedded {
+		// Determine web root directory
+		webRoot = config.WebRoot
+		if webRoot == "" {
+			// Use embedded/default web root
+			webRoot = getDefaultWebRoot()
+		}
 
-	// Validate web root exists
-	if _, err := os.Stat(webRoot); os.IsNotExist(err) {
-		return nil, fmt.Errorf("web root directory does not exist: %s", webRoot)
+		// Validate web root exists
+		if _, err := os.Stat(webRoot); os.IsNotExist(err) {
+			return nil, fmt.Errorf("web root directory does not exist: %s", webRoot)
+		}
 	}
 
 	server := &Server{
@@ -150,6 +159,11 @@ func (s *Server) Start() error {
 		IdleTimeout:  60 * time.Second,
 	}
 
+	// If we are not using embedded files, write a log message
+	if !s.config.UseEmbedded {
+		fmt.Printf("Development - Serving pages from web root: %s\n", s.webRoot)
+	}
+
 	fmt.Printf("Web server starting on http://%s:%s\n", s.config.Host, s.config.Port)
 	return s.httpServer.ListenAndServe()
 }
@@ -169,8 +183,19 @@ func (s *Server) Shutdown() error {
 
 // registerRoutes sets up all HTTP routes for the server
 func (s *Server) registerRoutes(mux *http.ServeMux) {
-	// Static file serving for the web UI
-	mux.Handle("/", loggingMiddleware(http.FileServer(http.Dir(s.webRoot))))
+	// Server static files for the server UI.  When using the embedded
+	// web files, they are compiled into the binary.  Otherwise, they
+	// are served from the web root directory.
+	if s.config.UseEmbedded {
+		var staticFS = fs.FS(staticFS)
+		pages, err := fs.Sub(staticFS, "webpages")
+		if err != nil {
+			log.Fatalf("Failed to create subdirectory for static files: %v", err)
+		}
+		mux.Handle("/", loggingMiddleware(http.FileServer(http.FS(pages))))
+	} else {
+		mux.Handle("/", loggingMiddleware(http.FileServer(http.Dir(s.webRoot))))
+	}
 
 	// API routes - wrap each handler with logging middleware
 	mux.Handle("GET /api/summaries", loggingMiddleware(http.HandlerFunc(s.handleGetSummaries)))

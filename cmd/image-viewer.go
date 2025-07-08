@@ -55,9 +55,15 @@ func runImageViewer(cmd *cobra.Command, args []string) error {
 
 	// Create server configuration
 	config := &webserver.Config{
-		Host:    host,
-		Port:    serverPort,
-		WebRoot: webRoot,
+		Host:        host,
+		Port:        serverPort,
+		UseEmbedded: true,
+		WebRoot:     webRoot,
+	}
+
+	// If a custom web root is specified, disable embedded files
+	if webRoot != "" {
+		config.UseEmbedded = false // Use custom web root if specified
 	}
 
 	// Create and start the web server
