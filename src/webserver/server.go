@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -41,6 +42,51 @@ type AnalyzeResponse struct {
 	ImageID string `json:"image_id,omitempty"`
 	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
+}
+
+// responseWriter wraps http.ResponseWriter to capture the status code
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+	written    bool
+}
+
+// WriteHeader captures the status code before writing it
+func (rw *responseWriter) WriteHeader(statusCode int) {
+	if !rw.written {
+		rw.statusCode = statusCode
+		rw.written = true
+		rw.ResponseWriter.WriteHeader(statusCode)
+	}
+}
+
+// Write ensures WriteHeader is called with 200 if not already called
+func (rw *responseWriter) Write(data []byte) (int, error) {
+	if !rw.written {
+		rw.WriteHeader(http.StatusOK)
+	}
+	return rw.ResponseWriter.Write(data)
+}
+
+// loggingMiddleware logs all HTTP requests with method, path, response code, and duration
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		// Wrap the response writer to capture status code
+		wrapped := &responseWriter{
+			ResponseWriter: w,
+			statusCode:     http.StatusOK, // Default to 200 if WriteHeader is never called
+			written:        false,
+		}
+
+		// Call the next handler
+		next.ServeHTTP(wrapped, r)
+
+		// Calculate duration and log the request
+		duration := time.Since(start)
+		log.Printf("%s %s %d %v", r.Method, r.URL.Path, wrapped.statusCode, duration)
+	})
 }
 
 // New creates a new web server instance with the given configuration
@@ -113,23 +159,23 @@ func (s *Server) Shutdown() error {
 // registerRoutes sets up all HTTP routes for the server
 func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Static file serving for the web UI
-	mux.Handle("/", http.FileServer(http.Dir(s.webRoot)))
+	mux.Handle("/", loggingMiddleware(http.FileServer(http.Dir(s.webRoot))))
 
-	// API routes
-	mux.HandleFunc("GET /api/summaries", s.handleGetSummaries)
-	mux.HandleFunc("GET /api/summaries/", s.handleGetSummary)
-	mux.HandleFunc("DELETE /api/summaries/", s.handleDeleteSummary)
-	mux.HandleFunc("GET /api/health", s.handleHealth)
-	mux.HandleFunc("POST /api/analyze", s.handleAnalyzeImage)
+	// Add ability to serve the Chrome DevTools JSON file locally
+	mux.Handle("GET /.well-known/appspecific/com.chrome.devtools.json", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./web/.well-known/appspecific/com.chrome.devtools.json")
+	}))
+
+	// API routes - wrap each handler with logging middleware
+	mux.Handle("GET /api/summaries", loggingMiddleware(http.HandlerFunc(s.handleGetSummaries)))
+	mux.Handle("GET /api/summaries/", loggingMiddleware(http.HandlerFunc(s.handleGetSummary)))
+	mux.Handle("DELETE /api/summaries/", loggingMiddleware(http.HandlerFunc(s.handleDeleteSummary)))
+	mux.Handle("GET /api/health", loggingMiddleware(http.HandlerFunc(s.handleHealth)))
+	mux.Handle("POST /api/analyze", loggingMiddleware(http.HandlerFunc(s.handleAnalyzeImage)))
 }
 
 // handleHealth returns server health status
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	// if r.Method != http.MethodGet {
-	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	// 	return
-	// }
-
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
 		"status":    "healthy",
@@ -142,11 +188,6 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 // handleGetSummaries returns a list of all available image summaries
 func (s *Server) handleGetSummaries(w http.ResponseWriter, r *http.Request) {
-	// if r.Method != http.MethodGet {
-	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	// 	return
-	// }
-
 	// Look for summary files in the tmp directory
 	summaries, err := s.findSummaryFiles()
 	if err != nil {
@@ -160,11 +201,6 @@ func (s *Server) handleGetSummaries(w http.ResponseWriter, r *http.Request) {
 
 // handleGetSummary returns a specific image summary by ID
 func (s *Server) handleGetSummary(w http.ResponseWriter, r *http.Request) {
-	// if r.Method != http.MethodGet {
-	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	// 	return
-	// }
-
 	// Extract summary ID from URL path
 	path := strings.TrimPrefix(r.URL.Path, "/api/summaries/")
 	if path == "" {
@@ -185,11 +221,6 @@ func (s *Server) handleGetSummary(w http.ResponseWriter, r *http.Request) {
 
 // handleDeleteSummary handles DELETE requests to remove a specific image summary
 func (s *Server) handleDeleteSummary(w http.ResponseWriter, r *http.Request) {
-	// if r.Method != http.MethodDelete {
-	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	// 	return
-	// }
-
 	// Extract summary ID from URL path
 	path := strings.TrimPrefix(r.URL.Path, "/api/summaries/")
 	if path == "" {
@@ -214,11 +245,6 @@ func (s *Server) handleDeleteSummary(w http.ResponseWriter, r *http.Request) {
 
 // handleAnalyzeImage handles POST requests to analyze a Docker image
 func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
-	// if r.Method != http.MethodPost {
-	// 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	// 	return
-	// }
-
 	// Parse request body
 	var req AnalyzeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
