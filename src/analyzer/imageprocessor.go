@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -165,7 +166,12 @@ func AnalyzeImage(imageName string, keepTempFiles bool, forcePull bool) (*Analys
 		pullReader, err := dockerClient.PullImage(ctx, imageName, nil)
 		if err != nil {
 			result.BuildTime = time.Since(startTime).Seconds()
+			if errors.Is(err, dockerclient.ErrImageNotFound) {
+				return result, err
+			}
+
 			return result, fmt.Errorf("failed to pull image %s: %w", imageName, err)
+
 		}
 		defer pullReader.Close()
 

@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/smiller333/dockerutils/src/analyzer"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 //go:embed webpages/*
@@ -322,7 +324,8 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		response := AnalyzeResponse{
 			Success: false,
-			Error:   fmt.Sprintf("Analysis failed: %v", err),
+			// Error:   fmt.Sprintf("Analysis failed: %v", err),
+			Error: cases.Title(language.English).String(err.Error()), // Title case error message
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)

@@ -8,10 +8,12 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -23,6 +25,12 @@ import (
 	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/client"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+)
+
+// Standard errors returned by the Docker client wrapper
+var (
+	// ErrImageNotFound is returned when an image is not found in the registry
+	ErrImageNotFound = errors.New("image not found")
 )
 
 // Config holds configuration options for the Docker client wrapper
@@ -197,6 +205,10 @@ func (dc *DockerClient) PullImage(ctx context.Context, imageName string, authCon
 	// Pull the image
 	reader, err := dc.client.ImagePull(ctx, imageName, options)
 	if err != nil {
+		// Check if the error is due to image not found (manifest not found)
+		if strings.Contains(err.Error(), "manifest for") && strings.Contains(err.Error(), "not found") {
+			return nil, ErrImageNotFound
+		}
 		return nil, fmt.Errorf("failed to pull image %s: %w", imageName, err)
 	}
 
