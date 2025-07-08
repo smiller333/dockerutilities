@@ -537,10 +537,10 @@ func getDefaultWebRoot() string {
 		return "."
 	}
 
-	// Check if web directory exists in the project
-	webDir := filepath.Join(cwd, "web")
-	if _, err := os.Stat(webDir); err == nil {
-		return webDir
+	// Check if webpages directory exists in the project
+	webpagesDir := filepath.Join(cwd, "webpages")
+	if _, err := os.Stat(webpagesDir); err == nil {
+		return webpagesDir
 	}
 
 	// Fallback to current directory
