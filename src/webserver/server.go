@@ -29,6 +29,17 @@ type Server struct {
 	webRoot    string
 }
 
+// ImageSummary represents the minimum fields needed for image list
+// This is done to reduce the size of the JSON data when listing images
+type ImageSummary struct {
+	ImageID      string `json:"image_id"` // ID of the Docker image
+	ImageTag     string `json:"image_tag"`
+	ImageSource  string `json:"image_source,omitempty"` // Source registry for non-DockerHub images
+	ImageSize    int64  `json:"image_size"`             // Size in bytes
+	Architecture string `json:"architecture"`
+	AnalyzedAt   string `json:"analyzed_at"` // Timestamp when analysis was performed
+}
+
 // AnalyzeRequest represents the request body for analyzing an image
 type AnalyzeRequest struct {
 	ImageName     string `json:"image_name"`
@@ -185,7 +196,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 // TODO: Rework this...
 func (s *Server) handleGetSummaries(w http.ResponseWriter, r *http.Request) {
 	// Look for summary files in the tmp directory
-	summaries, err := s.findInfoFiles()
+	summaries, err := s.findSummaries()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to find summary files: %v", err), http.StatusInternalServerError)
 		return
@@ -267,7 +278,7 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if image has already been analyzed
-	existingInfos, err := s.findInfoFiles()
+	existingInfos, err := s.findSummaries()
 	if err == nil {
 		for _, info := range existingInfos {
 			if strings.EqualFold(info.ImageTag, req.ImageName) {
@@ -319,9 +330,9 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// findInfoFiles searches for info JSON files in the tmp directory
-func (s *Server) findInfoFiles() ([]analyzer.ImageInfo, error) {
-	infos := []analyzer.ImageInfo{}
+// findSummaries searches for info JSON files in the tmp directory
+func (s *Server) findSummaries() ([]ImageSummary, error) {
+	summaries := []ImageSummary{}
 
 	// Get current working directory
 	cwd, err := os.Getwd()
@@ -333,7 +344,7 @@ func (s *Server) findInfoFiles() ([]analyzer.ImageInfo, error) {
 
 	// Check if tmp directory exists
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
-		return infos, nil // Return empty list if no tmp directory
+		return summaries, nil // Return empty list if no tmp directory
 	}
 
 	// Walk through tmp directory to find info files
@@ -344,14 +355,14 @@ func (s *Server) findInfoFiles() ([]analyzer.ImageInfo, error) {
 
 		// Look for files matching the pattern info.*.json
 		if !info.IsDir() && strings.HasPrefix(info.Name(), "info.") && strings.HasSuffix(info.Name(), ".json") {
-			summary, err := s.parseInfoFile(path)
+			summary, err := s.parseSummaryFile(path)
 			if err != nil {
 				// Log error but continue processing other files
 				fmt.Printf("Warning: failed to parse summary file %s: %v\n", path, err)
 				return nil
 			}
 
-			infos = append(infos, summary)
+			summaries = append(summaries, summary)
 		}
 
 		return nil
@@ -361,7 +372,26 @@ func (s *Server) findInfoFiles() ([]analyzer.ImageInfo, error) {
 		return nil, fmt.Errorf("failed to walk tmp directory: %w", err)
 	}
 
-	return infos, nil
+	return summaries, nil
+}
+
+// parseSummaryFile reads and parses a summary JSON file
+func (s *Server) parseSummaryFile(filePath string) (ImageSummary, error) {
+	var summary ImageSummary
+
+	// Read the file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return summary, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Parse JSON directly into ImageSummary struct
+	err = json.Unmarshal(data, &summary)
+	if err != nil {
+		return summary, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	return summary, nil
 }
 
 // parseInfoFile reads and parses an info JSON file
