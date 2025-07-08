@@ -161,11 +161,6 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	// Static file serving for the web UI
 	mux.Handle("/", loggingMiddleware(http.FileServer(http.Dir(s.webRoot))))
 
-	// Add ability to serve the Chrome DevTools JSON file locally
-	mux.Handle("GET /.well-known/appspecific/com.chrome.devtools.json", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./web/.well-known/appspecific/com.chrome.devtools.json")
-	}))
-
 	// API routes - wrap each handler with logging middleware
 	mux.Handle("GET /api/summaries", loggingMiddleware(http.HandlerFunc(s.handleGetSummaries)))
 	mux.Handle("GET /api/summaries/", loggingMiddleware(http.HandlerFunc(s.handleGetSummary)))
