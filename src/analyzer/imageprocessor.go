@@ -18,8 +18,8 @@ import (
 	"github.com/smiller333/dockerutils/src/dockerclient"
 )
 
-// ImageSummary represents the JSON summary of an analyzed Docker image
-type ImageSummary struct {
+// ImageInfo represents the JSON info of an analyzed Docker image
+type ImageInfo struct {
 	ImageID            string                    `json:"image_id"` // ID of the Docker image
 	ImageTag           string                    `json:"image_tag"`
 	ImageSource        string                    `json:"image_source,omitempty"` // Source registry for non-DockerHub images
@@ -237,7 +237,7 @@ func AnalyzeImage(imageName string, keepTempFiles bool, forcePull bool) (*Analys
 	}
 
 	// Create image summary JSON file after filesystem operations are complete
-	err = createImageSummary(result)
+	err = createImageInfo(result)
 	if err != nil {
 		fmt.Printf("Failed to create image summary: %v", err)
 		// Continue even if summary creation fails - analysis is still successful
@@ -654,8 +654,8 @@ func cleanupExtractedDirectory(extractedPath string) error {
 		entryName := entry.Name()
 		entryPath := filepath.Join(extractedPath, entryName)
 
-		// Keep JSON files that match the summary pattern: "summary.{12 hex chars}.json"
-		if !entry.IsDir() && strings.HasPrefix(entryName, "summary.") && strings.HasSuffix(entryName, ".json") {
+		// Keep JSON files that match the summary pattern: "info.{12 hex chars}.json"
+		if !entry.IsDir() && strings.HasPrefix(entryName, "info.") && strings.HasSuffix(entryName, ".json") {
 			continue // Keep summary JSON files
 		}
 
@@ -797,8 +797,8 @@ func analyzeContainerContents(extractedPath string) (*DirectoryInfo, error) {
 	return containerInfo, nil
 }
 
-// createImageSummary creates a JSON summary file with key information about the analyzed image
-func createImageSummary(result *AnalysisResult) error {
+// createImageInfo creates a JSON info file with key information about the analyzed image
+func createImageInfo(result *AnalysisResult) error {
 	if result.ExtractedPath == "" {
 		return fmt.Errorf("extracted path not available in analysis result")
 	}
@@ -828,8 +828,8 @@ func createImageSummary(result *AnalysisResult) error {
 		}
 	}
 
-	// Create the image summary
-	summary := ImageSummary{
+	// Create the image info
+	info := ImageInfo{
 		ImageID:            result.ImageID,
 		ImageTag:           result.ImageTag,
 		ImageSource:        result.ImageSource,
@@ -850,11 +850,11 @@ func createImageSummary(result *AnalysisResult) error {
 	if len(imageIDShort) > 12 {
 		imageIDShort = imageIDShort[:12]
 	}
-	summaryFileName := fmt.Sprintf("summary.%s.json", imageIDShort)
+	infoFileName := fmt.Sprintf("info.%s.json", imageIDShort)
 
 	// Write the summary to a JSON file
-	summaryPath := filepath.Join(result.ExtractedPath, summaryFileName)
-	err = writeSummaryToFile(summary, summaryPath)
+	infoPath := filepath.Join(result.ExtractedPath, infoFileName)
+	err = writeImageIntoToFile(info, infoPath)
 	if err != nil {
 		return fmt.Errorf("failed to write summary to file: %w", err)
 	}
@@ -900,12 +900,12 @@ func extractLayersFromManifest(manifestPath string) ([]string, error) {
 	return cleanLayers, nil
 }
 
-// writeSummaryToFile marshals the ImageSummary to JSON and writes it to the specified file
-func writeSummaryToFile(summary ImageSummary, filePath string) error {
+// writeImageIntoToFile marshals the ImageInfo to JSON and writes it to the specified file
+func writeImageIntoToFile(info ImageInfo, filePath string) error {
 	// Marshal the summary to JSON with proper indentation
-	jsonData, err := json.MarshalIndent(summary, "", "  ")
+	jsonData, err := json.MarshalIndent(info, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal summary to JSON: %w", err)
+		return fmt.Errorf("failed to marshal info to JSON: %w", err)
 	}
 
 	// Write the JSON data to the file

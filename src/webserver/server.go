@@ -163,8 +163,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 
 	// API routes - wrap each handler with logging middleware
 	mux.Handle("GET /api/summaries", loggingMiddleware(http.HandlerFunc(s.handleGetSummaries)))
-	mux.Handle("GET /api/summaries/", loggingMiddleware(http.HandlerFunc(s.handleGetSummary)))
-	mux.Handle("DELETE /api/summaries/", loggingMiddleware(http.HandlerFunc(s.handleDeleteSummary)))
+	mux.Handle("GET /api/info/", loggingMiddleware(http.HandlerFunc(s.handleGetInfo)))
+	mux.Handle("DELETE /api/info/", loggingMiddleware(http.HandlerFunc(s.handleDeleteInfo)))
 	mux.Handle("GET /api/health", loggingMiddleware(http.HandlerFunc(s.handleHealth)))
 	mux.Handle("POST /api/analyze", loggingMiddleware(http.HandlerFunc(s.handleAnalyzeImage)))
 }
@@ -182,9 +182,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGetSummaries returns a list of all available image summaries
+// TODO: Rework this...
 func (s *Server) handleGetSummaries(w http.ResponseWriter, r *http.Request) {
 	// Look for summary files in the tmp directory
-	summaries, err := s.findSummaryFiles()
+	summaries, err := s.findInfoFiles()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to find summary files: %v", err), http.StatusInternalServerError)
 		return
@@ -194,46 +195,46 @@ func (s *Server) handleGetSummaries(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(summaries)
 }
 
-// handleGetSummary returns a specific image summary by ID
-func (s *Server) handleGetSummary(w http.ResponseWriter, r *http.Request) {
-	// Extract summary ID from URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/summaries/")
+// handleGetInfo returns a specific image info by ID
+func (s *Server) handleGetInfo(w http.ResponseWriter, r *http.Request) {
+	// Extract info ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/info/")
 	if path == "" {
-		http.Error(w, "Summary ID required", http.StatusBadRequest)
+		http.Error(w, "Info ID required", http.StatusBadRequest)
 		return
 	}
 
-	// Find and return the specific summary
-	summary, err := s.getSummaryByID(path)
+	// Find and return the specific info
+	info, err := s.getInfoByID(path)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get summary: %v", err), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Failed to get info: %v", err), http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(summary)
+	json.NewEncoder(w).Encode(info)
 }
 
-// handleDeleteSummary handles DELETE requests to remove a specific image summary
-func (s *Server) handleDeleteSummary(w http.ResponseWriter, r *http.Request) {
-	// Extract summary ID from URL path
-	path := strings.TrimPrefix(r.URL.Path, "/api/summaries/")
+// handleDeleteInfo handles DELETE requests to remove a specific image info
+func (s *Server) handleDeleteInfo(w http.ResponseWriter, r *http.Request) {
+	// Extract info ID from URL path
+	path := strings.TrimPrefix(r.URL.Path, "/api/info/")
 	if path == "" {
-		http.Error(w, "Summary ID required", http.StatusBadRequest)
+		http.Error(w, "Info ID required", http.StatusBadRequest)
 		return
 	}
 
-	// Delete the summary file
-	err := s.deleteSummaryByID(path)
+	// Delete the info file
+	err := s.deleteInfoByID(path)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to delete summary: %v", err), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Failed to delete info: %v", err), http.StatusNotFound)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
 		"success": true,
-		"message": fmt.Sprintf("Summary %s deleted successfully", path),
+		"message": fmt.Sprintf("Info %s deleted successfully", path),
 	}
 	json.NewEncoder(w).Encode(response)
 }
@@ -266,12 +267,12 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if image has already been analyzed
-	existingSummaries, err := s.findSummaryFiles()
+	existingInfos, err := s.findInfoFiles()
 	if err == nil {
-		for _, summary := range existingSummaries {
-			if strings.EqualFold(summary.ImageTag, req.ImageName) {
+		for _, info := range existingInfos {
+			if strings.EqualFold(info.ImageTag, req.ImageName) {
 				// Extract short image ID for response
-				shortImageID := strings.Replace(summary.ImageID, "sha256:", "", 1)
+				shortImageID := strings.Replace(info.ImageID, "sha256:", "", 1)
 				if len(shortImageID) > 12 {
 					shortImageID = shortImageID[:12]
 				}
@@ -318,9 +319,9 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// findSummaryFiles searches for summary JSON files in the tmp directory
-func (s *Server) findSummaryFiles() ([]analyzer.ImageSummary, error) {
-	summaries := []analyzer.ImageSummary{}
+// findInfoFiles searches for info JSON files in the tmp directory
+func (s *Server) findInfoFiles() ([]analyzer.ImageInfo, error) {
+	infos := []analyzer.ImageInfo{}
 
 	// Get current working directory
 	cwd, err := os.Getwd()
@@ -332,25 +333,25 @@ func (s *Server) findSummaryFiles() ([]analyzer.ImageSummary, error) {
 
 	// Check if tmp directory exists
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
-		return summaries, nil // Return empty list if no tmp directory
+		return infos, nil // Return empty list if no tmp directory
 	}
 
-	// Walk through tmp directory to find summary files
+	// Walk through tmp directory to find info files
 	err = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Look for files matching the pattern summary.*.json
-		if !info.IsDir() && strings.HasPrefix(info.Name(), "summary.") && strings.HasSuffix(info.Name(), ".json") {
-			summary, err := s.parseSummaryFile(path)
+		// Look for files matching the pattern info.*.json
+		if !info.IsDir() && strings.HasPrefix(info.Name(), "info.") && strings.HasSuffix(info.Name(), ".json") {
+			summary, err := s.parseInfoFile(path)
 			if err != nil {
 				// Log error but continue processing other files
 				fmt.Printf("Warning: failed to parse summary file %s: %v\n", path, err)
 				return nil
 			}
 
-			summaries = append(summaries, summary)
+			infos = append(infos, summary)
 		}
 
 		return nil
@@ -360,53 +361,53 @@ func (s *Server) findSummaryFiles() ([]analyzer.ImageSummary, error) {
 		return nil, fmt.Errorf("failed to walk tmp directory: %w", err)
 	}
 
-	return summaries, nil
+	return infos, nil
 }
 
-// parseSummaryFile reads and parses a summary JSON file
-func (s *Server) parseSummaryFile(filePath string) (analyzer.ImageSummary, error) {
-	var summary analyzer.ImageSummary
+// parseInfoFile reads and parses an info JSON file
+func (s *Server) parseInfoFile(filePath string) (analyzer.ImageInfo, error) {
+	var info analyzer.ImageInfo
 
 	// Read the file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return summary, fmt.Errorf("failed to read file: %w", err)
+		return info, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// Parse JSON directly into ImageSummary struct
-	err = json.Unmarshal(data, &summary)
+	// Parse JSON directly into ImageInfo struct
+	err = json.Unmarshal(data, &info)
 	if err != nil {
-		return summary, fmt.Errorf("failed to parse JSON: %w", err)
+		return info, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	return summary, nil
+	return info, nil
 }
 
-// getSummaryByID retrieves a specific summary by its ID
-func (s *Server) getSummaryByID(id string) (analyzer.ImageSummary, error) {
-	var summary analyzer.ImageSummary
+// getInfoByID retrieves a specific info by its ID
+func (s *Server) getInfoByID(id string) (analyzer.ImageInfo, error) {
+	var info analyzer.ImageInfo
 
 	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
-		return summary, fmt.Errorf("failed to get current working directory: %w", err)
+		return info, fmt.Errorf("failed to get current working directory: %w", err)
 	}
 
 	tmpDir := filepath.Join(cwd, "tmp")
 
-	// Look for the specific summary file
-	var summaryPath string
+	// Look for the specific info file
+	var infoPath string
 	err = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		fileName := info.Name()
-		if !info.IsDir() && strings.HasPrefix(fileName, "summary.") && strings.HasSuffix(fileName, ".json") {
+		if !info.IsDir() && strings.HasPrefix(fileName, "info.") && strings.HasSuffix(fileName, ".json") {
 			// Extract ID from filename
-			fileID := strings.TrimSuffix(strings.TrimPrefix(fileName, "summary."), ".json")
+			fileID := strings.TrimSuffix(strings.TrimPrefix(fileName, "info."), ".json")
 			if fileID == id {
-				summaryPath = path
+				infoPath = path
 				return filepath.SkipDir // Stop walking
 			}
 		}
@@ -415,24 +416,24 @@ func (s *Server) getSummaryByID(id string) (analyzer.ImageSummary, error) {
 	})
 
 	if err != nil {
-		return summary, fmt.Errorf("failed to search for summary file: %w", err)
+		return info, fmt.Errorf("failed to search for info file: %w", err)
 	}
 
-	if summaryPath == "" {
-		return summary, fmt.Errorf("summary with ID %s not found", id)
+	if infoPath == "" {
+		return info, fmt.Errorf("info with ID %s not found", id)
 	}
 
-	// Use the parseSummaryFile method to read and parse the summary
-	summary, err = s.parseSummaryFile(summaryPath)
+	// Use the parseInfoFile method to read and parse the info
+	info, err = s.parseInfoFile(infoPath)
 	if err != nil {
-		return summary, fmt.Errorf("failed to parse summary file: %w", err)
+		return info, fmt.Errorf("failed to parse info file: %w", err)
 	}
 
-	return summary, nil
+	return info, nil
 }
 
-// deleteSummaryByID removes a specific summary file by its ID
-func (s *Server) deleteSummaryByID(id string) error {
+// deleteInfoByID removes a specific info file by its ID
+func (s *Server) deleteInfoByID(id string) error {
 	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -441,8 +442,8 @@ func (s *Server) deleteSummaryByID(id string) error {
 
 	tmpDir := filepath.Join(cwd, "tmp")
 
-	// Look for the specific summary file
-	var summaryPath string
+	// Look for the specific info file
+	var infoPath string
 	var imageFolder string
 
 	err = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
@@ -451,11 +452,11 @@ func (s *Server) deleteSummaryByID(id string) error {
 		}
 
 		fileName := info.Name()
-		if !info.IsDir() && strings.HasPrefix(fileName, "summary.") && strings.HasSuffix(fileName, ".json") {
+		if !info.IsDir() && strings.HasPrefix(fileName, "info.") && strings.HasSuffix(fileName, ".json") {
 			// Extract ID from filename
-			fileID := strings.TrimSuffix(strings.TrimPrefix(fileName, "summary."), ".json")
+			fileID := strings.TrimSuffix(strings.TrimPrefix(fileName, "info."), ".json")
 			if fileID == id {
-				summaryPath = path
+				infoPath = path
 				imageFolder = filepath.Dir(path)
 				return filepath.SkipDir // Stop walking
 			}
@@ -465,19 +466,19 @@ func (s *Server) deleteSummaryByID(id string) error {
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to search for summary file: %w", err)
+		return fmt.Errorf("failed to search for info file: %w", err)
 	}
 
-	if summaryPath == "" {
-		return fmt.Errorf("summary with ID %s not found", id)
+	if infoPath == "" {
+		return fmt.Errorf("info with ID %s not found", id)
 	}
 
-	// Remove the summary file
-	if err := os.Remove(summaryPath); err != nil {
-		return fmt.Errorf("failed to delete summary file: %w", err)
+	// Remove the info file
+	if err := os.Remove(infoPath); err != nil {
+		return fmt.Errorf("failed to delete info file: %w", err)
 	}
 
-	// Check if the image folder is empty after removing the summary file
+	// Check if the image folder is empty after removing the info file
 	// If so, remove the entire folder
 	entries, err := os.ReadDir(imageFolder)
 	if err != nil {

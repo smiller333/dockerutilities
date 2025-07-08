@@ -156,15 +156,15 @@ func TestSummariesEndpoint(t *testing.T) {
 	}
 
 	// Parse response - should be an array (empty if no summaries exist)
-	var summaries []analyzer.ImageSummary
-	err = json.NewDecoder(resp.Body).Decode(&summaries)
+	var infos []analyzer.ImageInfo
+	err = json.NewDecoder(resp.Body).Decode(&infos)
 	if err != nil {
 		t.Fatalf("json.Decode() unexpected error: %v", err)
 	}
 
 	// Should be a valid array (summaries can be empty if no files exist)
 	// In Go, an empty slice is not nil, so this check verifies proper initialization
-	if summaries == nil {
+	if infos == nil {
 		t.Errorf("Expected initialized summaries slice, got nil")
 	}
 }
@@ -202,7 +202,7 @@ func TestMethodNotAllowed(t *testing.T) {
 
 func TestSummaryInfo(t *testing.T) {
 	// Test SummaryInfo struct
-	summary := analyzer.ImageSummary{
+	info := analyzer.ImageInfo{
 		ImageTag:     "nginx:latest",
 		ImageID:      "sha256:abc123",
 		AnalyzedAt:   "2025-06-30T12:00:00Z",
@@ -213,37 +213,37 @@ func TestSummaryInfo(t *testing.T) {
 	}
 
 	// Marshal to JSON and back
-	data, err := json.Marshal(summary)
+	data, err := json.Marshal(info)
 	if err != nil {
 		t.Fatalf("json.Marshal() unexpected error: %v", err)
 	}
 
-	var parsed analyzer.ImageSummary
+	var parsed analyzer.ImageInfo
 	err = json.Unmarshal(data, &parsed)
 	if err != nil {
 		t.Fatalf("json.Unmarshal() unexpected error: %v", err)
 	}
 
 	// Compare fields individually for better error messages
-	if parsed.ImageTag != summary.ImageTag {
-		t.Errorf("ImageTag mismatch: expected %s, got %s", summary.ImageTag, parsed.ImageTag)
+	if parsed.ImageTag != info.ImageTag {
+		t.Errorf("ImageTag mismatch: expected %s, got %s", info.ImageTag, parsed.ImageTag)
 	}
-	if parsed.ImageID != summary.ImageID {
-		t.Errorf("ImageID mismatch: expected %s, got %s", summary.ImageID, parsed.ImageID)
+	if parsed.ImageID != info.ImageID {
+		t.Errorf("ImageID mismatch: expected %s, got %s", info.ImageID, parsed.ImageID)
 	}
-	if parsed.AnalyzedAt != summary.AnalyzedAt {
-		t.Errorf("AnalyzedAt mismatch: expected %s, got %s", summary.AnalyzedAt, parsed.AnalyzedAt)
+	if parsed.AnalyzedAt != info.AnalyzedAt {
+		t.Errorf("AnalyzedAt mismatch: expected %s, got %s", info.AnalyzedAt, parsed.AnalyzedAt)
 	}
-	if parsed.Architecture != summary.Architecture {
-		t.Errorf("Architecture mismatch: expected %s, got %s", summary.Architecture, parsed.Architecture)
+	if parsed.Architecture != info.Architecture {
+		t.Errorf("Architecture mismatch: expected %s, got %s", info.Architecture, parsed.Architecture)
 	}
-	if parsed.OS != summary.OS {
-		t.Errorf("OS mismatch: expected %s, got %s", summary.OS, parsed.OS)
+	if parsed.OS != info.OS {
+		t.Errorf("OS mismatch: expected %s, got %s", info.OS, parsed.OS)
 	}
-	if parsed.LayerCount != summary.LayerCount {
-		t.Errorf("LayerCount mismatch: expected %d, got %d", summary.LayerCount, parsed.LayerCount)
+	if parsed.LayerCount != info.LayerCount {
+		t.Errorf("LayerCount mismatch: expected %d, got %d", info.LayerCount, parsed.LayerCount)
 	}
-	if parsed.ImageSize != summary.ImageSize {
-		t.Errorf("ImageSize mismatch: expected %d, got %d", summary.ImageSize, parsed.ImageSize)
+	if parsed.ImageSize != info.ImageSize {
+		t.Errorf("ImageSize mismatch: expected %d, got %d", info.ImageSize, parsed.ImageSize)
 	}
 }
