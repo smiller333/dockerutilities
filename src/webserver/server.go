@@ -544,22 +544,3 @@ func (s *Server) deleteInfoByID(id string) error {
 
 	return nil
 }
-
-// getDefaultWebRoot returns the default web root directory
-func getDefaultWebRoot() string {
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		// Fallback to current directory
-		return "."
-	}
-
-	// Check if webpages directory exists in the project
-	webpagesDir := filepath.Join(cwd, "webpages")
-	if _, err := os.Stat(webpagesDir); err == nil {
-		return webpagesDir
-	}
-
-	// Fallback to current directory
-	return "."
-}

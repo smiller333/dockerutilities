@@ -77,6 +77,17 @@
     .subfolder-hidden {
       display: none;
     }
+    
+    .file-tree-item {
+      transition: background-color 0.15s ease;
+      border-radius: 0.25rem;
+      padding: 0.125rem 0.25rem;
+      margin: 0.125rem 0;
+    }
+    
+    .file-tree-item:hover {
+      background-color: #e5e7eb;
+    }
   </style>
 </head>
 <body class="min-h-screen bg-gray-100">
@@ -376,7 +387,7 @@
           const folderId = `folder-${Math.random().toString(36).substr(2, 9)}`;
           
           html += '<li>';
-          html += `<div class="flex items-center justify-between py-1 folder-toggle cursor-pointer" onclick="toggleFolder('${folderId}')">`;
+          html += `<div class="file-tree-item flex items-center justify-between py-1 folder-toggle cursor-pointer" onclick="toggleFolder('${folderId}')">`;
           html += `<span class="folder-icon ${(hasSubdirs || hasSubfiles) ? 'collapsed' : ''}" id="icon-${folderId}">${name}/</span>`;
           html += `<span class="text-xs text-gray-500">${size}</span>`;
           html += '</div>';
@@ -393,12 +404,14 @@
       
       // Then, render files (sorted by name)
       if (hasFiles) {
-        const sortedFiles = [...files].sort((a, b) => a.localeCompare(b));
+        const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name));
         
-        for (const fileName of sortedFiles) {
+        for (const f of sortedFiles) {
+          const size = formatSize(f.size);
           html += '<li>';
-          html += `<div class="flex items-center py-1">`;
-          html += `<span class="file-icon">${fileName}</span>`;
+          html += `<div class="file-tree-item flex items-center justify-between py-1">`;
+          html += `<span class="file-icon">${f.name}</span>`;
+          html += `<span class="text-xs text-gray-500">${size}</span>`;
           html += '</div>';
           html += '</li>';
         }

@@ -35,13 +35,19 @@ type ImageInfo struct {
 	LayerDirectories   map[string]*DirectoryInfo `json:"layer_directories,omitempty"`   // Layer filesystem analysis by layer hash
 }
 
+// FileInfo represents information about a file
+type FileInfo struct {
+	Name string `json:"name"` // File name
+	Size int64  `json:"size"` // File size in bytes
+}
+
 // DirectoryInfo represents information about a directory and its contents
 type DirectoryInfo struct {
 	Path        string                    `json:"path"`        // Relative path from analysis root
 	Size        int64                     `json:"size"`        // Total size in bytes (including subdirectories)
 	FileCount   int                       `json:"file_count"`  // Number of files in this directory
 	DirCount    int                       `json:"dir_count"`   // Number of subdirectories
-	Files       []string                  `json:"files"`       // List of file names in this directory
+	Files       []FileInfo                `json:"files"`       // List of files with names and sizes in this directory
 	Directories map[string]*DirectoryInfo `json:"directories"` // Subdirectories mapped by name
 }
 
@@ -694,7 +700,7 @@ func analyzeDirectory(dirPath string, relativePath string) (*DirectoryInfo, erro
 		Size:        0,
 		FileCount:   0,
 		DirCount:    0,
-		Files:       make([]string, 0),
+		Files:       make([]FileInfo, 0),
 		Directories: make(map[string]*DirectoryInfo),
 	}
 
@@ -723,7 +729,7 @@ func analyzeDirectory(dirPath string, relativePath string) (*DirectoryInfo, erro
 			dirInfo.DirCount++
 			dirInfo.Size += subDirInfo.Size
 		} else {
-			// Process file - only collect size and count, not individual file details
+			// Process file - collect size and name information
 			fileInfo, err := entry.Info()
 			if err != nil {
 				// Log error but continue with other files
@@ -731,10 +737,16 @@ func analyzeDirectory(dirPath string, relativePath string) (*DirectoryInfo, erro
 				continue
 			}
 
-			// Track file count, add size to directory total, and add filename to files list
+			// Create FileInfo struct with name and size
+			fileData := FileInfo{
+				Name: entry.Name(),
+				Size: fileInfo.Size(),
+			}
+
+			// Track file count, add size to directory total, and add file info to files list
 			dirInfo.FileCount++
 			dirInfo.Size += fileInfo.Size()
-			dirInfo.Files = append(dirInfo.Files, entry.Name())
+			dirInfo.Files = append(dirInfo.Files, fileData)
 		}
 	}
 
