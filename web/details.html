@@ -225,7 +225,7 @@
     // Load image data from API
     async function loadImageData(imageId) {
       try {
-        const response = await fetch(`/api/summaries/${imageId}`);
+        const response = await fetch(`/api/info/${imageId}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

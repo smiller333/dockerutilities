@@ -347,8 +347,8 @@
             }
         }
 
-        // Handle delete summary functionality
-        async function deleteSummary(imageId, imageTag) {
+        // Handle delete info functionality
+        async function deleteInfo(imageId, imageTag) {
             // Show confirmation modal instead of browser confirm
             confirmTitle.textContent = 'Delete Analysis';
             confirmMessage.textContent = `Are you sure you want to delete the analysis for "${imageTag}" (${imageId})?`;
@@ -359,7 +359,7 @@
         // Execute the actual delete operation
         async function executeDelete(imageId, imageTag) {
             try {
-                const response = await fetch(`/api/summaries/${imageId}`, {
+                const response = await fetch(`/api/info/${imageId}`, {
                     method: 'DELETE'
                 });
 
@@ -530,7 +530,7 @@
                         <td class="px-4 py-2 text-sm text-gray-900">${analyzedAt}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">
                             <button 
-                                onclick="event.stopPropagation(); deleteSummary('${shortImageId}', '${summary.image_tag || 'Unknown'}')" 
+                                onclick="event.stopPropagation(); deleteInfo('${shortImageId}', '${summary.image_tag || 'Unknown'}')" 
                                 class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors duration-200"
                                 title="Delete this analysis"
                             >
