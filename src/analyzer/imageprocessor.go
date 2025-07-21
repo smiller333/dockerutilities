@@ -107,19 +107,32 @@ func parseImageNameAndSource(fullImageName string) (imageTag, imageSource string
 // AnalyzeImage pulls and analyzes the specified Docker image
 // If forcePull is false, it will only pull the image if it doesn't already exist locally
 func AnalyzeImage(imageName string, keepTempFiles bool, forcePull bool) (*AnalysisResult, error) {
+	return AnalyzeImageWithTmpDir(imageName, keepTempFiles, forcePull, "")
+}
+
+// AnalyzeImageWithTmpDir pulls and analyzes the specified Docker image with a custom tmp directory
+// If tmpDir is empty, it defaults to "./tmp" in the current working directory
+// If forcePull is false, it will only pull the image if it doesn't already exist locally
+func AnalyzeImageWithTmpDir(imageName string, keepTempFiles bool, forcePull bool, tmpDir string) (*AnalysisResult, error) {
 	if imageName == "" {
 		return nil, fmt.Errorf("image name cannot be empty")
 	}
 
-	// Create a tmp directory at the current working location
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get current working directory: %w", err)
+	// Set default tmp directory if not provided
+	var tmpBaseDir string
+	if tmpDir == "" {
+		// Create a tmp directory at the current working location
+		// Get current working directory
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current working directory: %w", err)
+		}
+		tmpBaseDir = filepath.Join(cwd, "tmp")
+	} else {
+		tmpBaseDir = tmpDir
 	}
 
 	// Create tmp directory if it doesn't exist
-	tmpBaseDir := filepath.Join(cwd, "tmp")
 	if err := os.MkdirAll(tmpBaseDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create tmp directory: %w", err)
 	}

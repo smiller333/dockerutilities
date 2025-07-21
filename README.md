@@ -20,22 +20,34 @@ A collection of Docker utilities providing a command-line interface for Docker a
 - Docker Engine running locally
 - Access to Docker socket (typically `/var/run/docker.sock` on Unix systems)
 - On Unix systems, ensure your user is in the `docker` group or has appropriate Docker permissions
+- **Rancher Desktop users**: Enable "Administrative access" in Preferences → General to ensure proper Docker socket access
 
 ## Quick Start
+
+### Using Docker (Recommended)
+
+The easiest way to run dockerutils is using Docker:
 
 ```bash
 # Clone the repository
 git clone https://github.com/smiller333/dockerutils.git
 cd dockerutils
 
-# Quick build
-./build.sh dev
+# Build and run with our convenience script
+./docker-run.sh run-persistent
 
-# Start web interface for viewing and analyzing Docker images
-./bin/dockerutils image-viewer --port 8080
+# Or build and run manually
+docker build -t dockerutils-viewer .
+docker run -d --name dockerutils-viewer \
+  -p 8080:8080 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v $(pwd)/data:/app/data \
+  dockerutils-viewer
+
+# Access the web interface at http://localhost:8080
 ```
 
-## Installation
+For more Docker deployment options, see [DOCKER.md](DOCKER.md).
 
 ### Building from Source
 
@@ -178,7 +190,8 @@ The `image-viewer` command starts a local web server that provides comprehensive
 **Options:**
 - `--port <port>` - Port to run the web server on (default: 8080)
 - `--host <host>` - Host to bind the server to (default: localhost)
-- `--web-root <path>` - Root directory for serving web files
+- `--web-root <path>` - Root directory for serving web files (optional)
+- `--tmp-dir <path>` - Directory for storing analysis data (default: ./tmp)
 
 **Web Interface Usage:**
 1. Start the web server with `dockerutils image-viewer --port 8080`

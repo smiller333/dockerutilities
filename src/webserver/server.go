@@ -34,6 +34,7 @@ type Config struct {
 	Host    string // Host/IP address to bind to
 	Port    string // Port number to listen on
 	WebRoot string // Custom web root directory (optional)
+	TmpDir  string // Custom tmp directory for storing analysis data (optional)
 }
 
 // Server represents the web server instance
@@ -41,6 +42,7 @@ type Server struct {
 	config       *Config
 	httpServer   *http.Server
 	webRoot      string
+	tmpDir       string // Directory for storing analysis data
 	dockerClient *dockerclient.DockerClient
 }
 
@@ -160,9 +162,26 @@ func New(config *Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to initialize Docker client: %w", err)
 	}
 
+	// Set default tmp directory if not specified
+	tmpDir := config.TmpDir
+	if tmpDir == "" {
+		// Default to ./tmp directory
+		cwd, err := os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current working directory: %w", err)
+		}
+		tmpDir = filepath.Join(cwd, "tmp")
+	}
+
+	// Ensure tmp directory exists
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create tmp directory: %w", err)
+	}
+
 	server := &Server{
 		config:       config,
 		webRoot:      config.WebRoot,
+		tmpDir:       tmpDir,
 		dockerClient: dockerClient,
 	}
 
@@ -446,7 +465,7 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Perform the analysis using the existing AnalyzeImage function
-	result, err := analyzer.AnalyzeImage(req.ImageName, req.KeepTempFiles, req.ForcePull)
+	result, err := analyzer.AnalyzeImageWithTmpDir(req.ImageName, req.KeepTempFiles, req.ForcePull, s.tmpDir)
 	if err != nil {
 		response := AnalyzeResponse{
 			Success: false,
@@ -581,7 +600,7 @@ func (s *Server) handleAnalyzeImageAsync(w http.ResponseWriter, r *http.Request)
 	go func() {
 		log.Printf("Starting async analysis for image: %s (Request ID: %s)", req.ImageName, requestID)
 
-		result, err := analyzer.AnalyzeImage(req.ImageName, req.KeepTempFiles, req.ForcePull)
+		result, err := analyzer.AnalyzeImageWithTmpDir(req.ImageName, req.KeepTempFiles, req.ForcePull, s.tmpDir)
 		if err != nil {
 			log.Printf("Async analysis failed for image %s (Request ID: %s): %v", req.ImageName, requestID, err)
 
@@ -644,17 +663,10 @@ func (s *Server) handleAnalyzeImageAsync(w http.ResponseWriter, r *http.Request)
 
 // findSummaries reads the summaries from the summary file or rebuilds it if missing/corrupt
 func (s *Server) findSummaries() ([]ImageSummary, error) {
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get current working directory: %w", err)
-	}
-
-	tmpDir := filepath.Join(cwd, "tmp")
-	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
+	summaryFilePath := filepath.Join(s.tmpDir, summaryFileName)
 
 	// Check if tmp directory exists
-	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
+	if _, err := os.Stat(s.tmpDir); os.IsNotExist(err) {
 		return []ImageSummary{}, nil // Return empty list if no tmp directory
 	}
 
@@ -666,7 +678,7 @@ func (s *Server) findSummaries() ([]ImageSummary, error) {
 
 	// If summary file doesn't exist or is corrupt, rebuild it
 	fmt.Printf("Summary file not found or corrupt, rebuilding: %v\n", err)
-	return s.rebuildSummaryFile(tmpDir, summaryFilePath)
+	return s.rebuildSummaryFile(s.tmpDir, summaryFilePath)
 }
 
 // readSummaryFile reads and parses the summary file containing all ImageSummary objects
@@ -760,14 +772,7 @@ func (s *Server) rebuildSummaryFile(tmpDir, summaryFilePath string) ([]ImageSumm
 
 // addSummaryToFile adds a new ImageSummary to the summary file
 func (s *Server) addSummaryToFile(summary ImageSummary) error {
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %w", err)
-	}
-
-	tmpDir := filepath.Join(cwd, "tmp")
-	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
+	summaryFilePath := filepath.Join(s.tmpDir, summaryFileName)
 
 	// Read existing summaries
 	summaries, err := s.readSummaryFile(summaryFilePath)
@@ -797,14 +802,7 @@ func (s *Server) addSummaryToFile(summary ImageSummary) error {
 
 // removeSummaryFromFile removes an ImageSummary from the summary file by ID
 func (s *Server) removeSummaryFromFile(imageID string) error {
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %w", err)
-	}
-
-	tmpDir := filepath.Join(cwd, "tmp")
-	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
+	summaryFilePath := filepath.Join(s.tmpDir, summaryFileName)
 
 	// Read existing summaries
 	summaries, err := s.readSummaryFile(summaryFilePath)
@@ -840,14 +838,7 @@ func (s *Server) removeSummaryFromFile(imageID string) error {
 
 // removeSummaryByRequestID removes an ImageSummary from the summary file by request ID
 func (s *Server) removeSummaryByRequestID(requestID string) error {
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %w", err)
-	}
-
-	tmpDir := filepath.Join(cwd, "tmp")
-	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
+	summaryFilePath := filepath.Join(s.tmpDir, summaryFileName)
 
 	// Read existing summaries
 	summaries, err := s.readSummaryFile(summaryFilePath)
@@ -923,17 +914,9 @@ func (s *Server) parseInfoFile(filePath string) (analyzer.ImageInfo, error) {
 func (s *Server) getInfoByID(id string) (analyzer.ImageInfo, error) {
 	var info analyzer.ImageInfo
 
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return info, fmt.Errorf("failed to get current working directory: %w", err)
-	}
-
-	tmpDir := filepath.Join(cwd, "tmp")
-
 	// Look for the specific info file
 	var infoPath string
-	err = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(s.tmpDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -970,14 +953,6 @@ func (s *Server) getInfoByID(id string) (analyzer.ImageInfo, error) {
 
 // deleteInfoByID removes a specific info file by its ID
 func (s *Server) deleteInfoByID(id string) error {
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %w", err)
-	}
-
-	tmpDir := filepath.Join(cwd, "tmp")
-
 	// First, try to find and remove from summary file - this handles both
 	// completed analyses (with info files) and failed analyses (summaries only)
 	var summaryFound bool
@@ -1027,7 +1002,7 @@ func (s *Server) deleteInfoByID(id string) error {
 	var infoPath string
 	var imageFolder string
 
-	err = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(s.tmpDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -1091,14 +1066,7 @@ func (s *Server) deleteInfoByID(id string) error {
 
 // updateSummaryByRequestID updates an existing ImageSummary in the summary file by request ID
 func (s *Server) updateSummaryByRequestID(requestID string, updatedSummary ImageSummary) error {
-	// Get current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get current working directory: %w", err)
-	}
-
-	tmpDir := filepath.Join(cwd, "tmp")
-	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
+	summaryFilePath := filepath.Join(s.tmpDir, summaryFileName)
 
 	// Read existing summaries
 	summaries, err := s.readSummaryFile(summaryFilePath)

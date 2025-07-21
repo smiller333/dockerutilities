@@ -16,6 +16,7 @@ var (
 	serverPort string
 	webRoot    string
 	host       string
+	tmpDir     string
 )
 
 // imageViewerCmd represents the image-viewer command
@@ -30,10 +31,11 @@ The server provides:
 - Interactive visualization of Docker image layers and contents
 
 Examples:
-  dockerutils image-viewer                           # Start server on default port 8080
-  dockerutils image-viewer --port 3000              # Start server on port 3000
-  dockerutils image-viewer --port 8080 --host 0.0.0.0 # Bind to all interfaces
-  dockerutils image-viewer --web-root ./custom-ui   # Use custom web root directory`,
+  dockerutils image-viewer                                        # Start server on default port 8080
+  dockerutils image-viewer --port 3000                           # Start server on port 3000
+  dockerutils image-viewer --port 8080 --host 0.0.0.0            # Bind to all interfaces
+  dockerutils image-viewer --web-root ./custom-ui                # Use custom web root directory
+  dockerutils image-viewer --tmp-dir /app/data                   # Use custom tmp directory for analysis data`,
 	Args: cobra.NoArgs,
 	RunE: runImageViewer,
 }
@@ -46,6 +48,7 @@ func init() {
 	imageViewerCmd.Flags().StringVar(&serverPort, "port", "8080", "Port number for the web server")
 	imageViewerCmd.Flags().StringVar(&host, "host", "localhost", "Host/IP address to bind the server to")
 	imageViewerCmd.Flags().StringVar(&webRoot, "web-root", "", "Custom path to web root directory (optional)")
+	imageViewerCmd.Flags().StringVar(&tmpDir, "tmp-dir", "", "Custom path to tmp directory for analysis data (optional)")
 }
 
 // runImageViewer starts the web server for viewing Docker image analysis results
@@ -58,6 +61,7 @@ func runImageViewer(cmd *cobra.Command, args []string) error {
 		Host:    host,
 		Port:    serverPort,
 		WebRoot: webRoot,
+		TmpDir:  tmpDir,
 	}
 
 	// Create and start the web server
