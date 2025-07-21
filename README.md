@@ -4,14 +4,13 @@ A collection of Docker utilities providing a command-line interface for Docker a
 
 ## Overview
 
-`dockerutils` is a CLI tool built in Go that provides comprehensive analysis capabilities for Docker containers and images. The tool uses the official Docker SDK to interact with Docker Engine and offers detailed insights into Dockerfile builds and existing Docker images.
+`dockerutils` is a CLI tool built in Go that provides comprehensive Docker image analysis capabilities through an interactive web interface. The tool uses the official Docker SDK to interact with Docker Engine and offers detailed insights into Docker images through a modern web-based interface.
 
 ### Key Features
 
-- **Dockerfile Analysis**: Parse, build, and analyze Dockerfiles with detailed metrics
-- **Image Analysis**: Inspect existing Docker images and extract their contents
-- **Web Interface**: Interactive web server for viewing analysis results
+- **Web Interface**: Interactive web server for viewing Docker image analysis results
 - **Docker SDK Integration**: Built on the official Docker client library (v28.3.0+incompatible)
+- **Image Analysis**: Inspect Docker images and extract their contents through the web interface
 - **Comprehensive Reporting**: Generate detailed analysis reports with build metrics and image metadata
 
 ## Prerequisites
@@ -32,13 +31,7 @@ cd dockerutils
 # Quick build
 ./build.sh dev
 
-# Analyze a Dockerfile
-./bin/dockerutils analyze --dockerfile ./Dockerfile
-
-# Analyze a Docker image
-./bin/dockerutils analyze --image nginx:latest
-
-# Start web interface for viewing results
+# Start web interface for viewing and analyzing Docker images
 ./bin/dockerutils image-viewer --port 8080
 ```
 
@@ -137,14 +130,14 @@ dockerutils version
 
 ### Temporary Files
 
-The `analyze` command generates temporary files and directories during analysis:
+The web server can generate temporary files and directories during image analysis:
 - **Image analysis**: Creates temporary directories under `tmp/` with extracted image contents
 - **Analysis reports**: Generates JSON summary files with detailed analysis results
-- **Cleanup**: Temporary files are automatically cleaned up unless `--keep-temp` flag is used
+- **Cleanup**: Temporary files can be managed through the web interface
 
 ### Docker Permissions
 
-The tool requires access to the Docker daemon to perform analysis operations. Ensure that:
+The tool requires access to the Docker daemon to perform analysis operations through the web interface. Ensure that:
 - Docker daemon is running
 - Your user has permission to access the Docker socket
 - On Unix systems, you may need to add your user to the `docker` group or run with appropriate permissions
@@ -154,7 +147,6 @@ The tool requires access to the Docker daemon to perform analysis operations. En
 ### Available Commands
 
 - `version` - Print the version number of dockerutils
-- `analyze` - Analyze a Dockerfile or Docker image to understand its structure and contents
 - `image-viewer` - Start a web server for viewing Docker image analysis results
 - `completion` - Generate autocompletion scripts for various shells
 
@@ -167,55 +159,21 @@ dockerutils --help
 # Show version
 dockerutils version
 
-# Analyze a Dockerfile
-dockerutils analyze --dockerfile ./Dockerfile
-
-# Analyze a Docker image
-dockerutils analyze --image nginx:latest
-
-# Analyze with build output (for Dockerfiles)
-dockerutils analyze --dockerfile ./Dockerfile --build-output
-
-# Analyze and keep temporary files (for images)
-dockerutils analyze --image alpine:3.20 --keep-temp
-
 # Start web server for viewing analysis results
 dockerutils image-viewer --port 8080
 ```
 
-### Analyze Command
-
-The `analyze` command provides comprehensive analysis of Dockerfiles and Docker images:
-
-**Dockerfile Analysis:**
-- Parses and validates Dockerfile syntax
-- Builds the Docker image from the Dockerfile
-- Reports image size, layer count, and build time
-- Optionally displays build output for debugging
-
-**Image Analysis:**
-- Inspects existing Docker images
-- Extracts image metadata (architecture, OS, creation date)
-- Saves and extracts image contents for examination
-- Creates temporary containers for filesystem analysis
-- Generates detailed analysis reports
-
-**Options:**
-- `--dockerfile <path>` - Analyze a Dockerfile at the specified path
-- `--image <name:tag>` - Analyze an existing Docker image
-- `--build-output` - Show Docker build output (Dockerfile analysis only)
-- `--keep-temp` - Keep temporary files after analysis (useful for debugging)
-- `--force-pull` - Force pull the latest version of the image before analysis
-
 ### Image Viewer Command
 
-The `image-viewer` command starts a local web server for viewing analysis results:
+The `image-viewer` command starts a local web server that provides comprehensive Docker image analysis capabilities through an interactive web interface:
 
 **Features:**
-- Interactive web interface for browsing Docker image analysis data
+- Interactive web interface for analyzing Docker images in real-time
+- Live Docker image analysis with detailed metadata extraction
 - Static file serving for analysis reports and extracted contents
 - REST API endpoints for accessing image summaries and filesystem data
 - Real-time visualization of Docker image layers and contents
+- Capability to analyze both local and remote Docker images
 
 **Options:**
 - `--port <port>` - Port to run the web server on (default: 8080)
@@ -223,9 +181,10 @@ The `image-viewer` command starts a local web server for viewing analysis result
 - `--web-root <path>` - Root directory for serving web files
 
 **Web Interface Usage:**
-1. Run analysis with `--keep-temp` to preserve extracted data
-2. Start the web server with `dockerutils image-viewer --port 8080`
-3. Open your browser to `http://localhost:8080` to explore results
+1. Start the web server with `dockerutils image-viewer --port 8080`
+2. Open your browser to `http://localhost:8080`
+3. Use the web interface to analyze Docker images interactively
+4. Browse existing analysis results if any are available in the temp directory
 
 ## Development
 
@@ -250,7 +209,7 @@ dockerutils/
 │   └── copilot-instructions.md  # GitHub Copilot configuration
 ├── cmd/                 # Command definitions
 │   ├── root.go         # Root command and CLI setup
-│   ├── analyze.go      # Analyze command for Dockerfiles and images
+│   ├── completion.go   # Shell completion command
 │   └── image-viewer.go # Web server command for viewing results
 ├── src/                 # Implementation logic (separated by concern)
 │   ├── analyzer/       # Dockerfile and image analysis logic
