@@ -22,6 +22,11 @@ import (
 //go:embed webpages/*
 var staticFS embed.FS
 
+const (
+	// summaryFileName is the name of the file that stores all image summaries
+	summaryFileName = "summaries.json"
+)
+
 // Config holds configuration options for the web server
 type Config struct {
 	Host    string // Host/IP address to bind to
@@ -44,7 +49,9 @@ type ImageSummary struct {
 	ImageSource  string `json:"image_source,omitempty"` // Source registry for non-DockerHub images
 	ImageSize    int64  `json:"image_size"`             // Size in bytes
 	Architecture string `json:"architecture"`
-	AnalyzedAt   string `json:"analyzed_at"` // Timestamp when analysis was performed
+	AnalyzedAt   string `json:"analyzed_at"`          // Timestamp when analysis was performed
+	Status       string `json:"status"`               // Status: "completed", "analyzing", "failed"
+	RequestID    string `json:"request_id,omitempty"` // Request ID for tracking async operations
 }
 
 // AnalyzeRequest represents the request body for analyzing an image
@@ -60,6 +67,21 @@ type AnalyzeResponse struct {
 	ImageID string `json:"image_id,omitempty"`
 	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
+}
+
+// AsyncAnalyzeRequest represents the request body for analyzing an image asynchronously
+type AsyncAnalyzeRequest struct {
+	ImageName     string `json:"image_name"`
+	KeepTempFiles bool   `json:"keep_temp_files,omitempty"`
+	ForcePull     bool   `json:"force_pull,omitempty"`
+}
+
+// AsyncAnalyzeResponse represents the response for an async image analysis request
+type AsyncAnalyzeResponse struct {
+	Success   bool   `json:"success"`
+	RequestID string `json:"request_id,omitempty"`
+	Message   string `json:"message,omitempty"`
+	Error     string `json:"error,omitempty"`
 }
 
 // responseWriter wraps http.ResponseWriter to capture the status code
@@ -197,6 +219,7 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.Handle("DELETE /api/info/", loggingMiddleware(http.HandlerFunc(s.handleDeleteInfo)))
 	mux.Handle("GET /api/health", loggingMiddleware(http.HandlerFunc(s.handleHealth)))
 	mux.Handle("POST /api/analyze", loggingMiddleware(http.HandlerFunc(s.handleAnalyzeImage)))
+	mux.Handle("POST /api/analyze-async", loggingMiddleware(http.HandlerFunc(s.handleAnalyzeImageAsync)))
 }
 
 // handleHealth returns server health status
@@ -339,6 +362,23 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 		imageID = imageID[:12]
 	}
 
+	// Try to read the generated info file and add it to the summary file
+	infoPath := filepath.Join(result.ExtractedPath, fmt.Sprintf("info.%s.json", imageID))
+	if _, err := os.Stat(infoPath); err == nil {
+		// Read the info file
+		data, err := os.ReadFile(infoPath)
+		if err == nil {
+			var info analyzer.ImageInfo
+			if json.Unmarshal(data, &info) == nil {
+				// Convert to summary and add to summary file
+				summary := s.imageInfoToSummary(info)
+				if err := s.addSummaryToFile(summary); err != nil {
+					fmt.Printf("Warning: failed to add summary to file: %v\n", err)
+				}
+			}
+		}
+	}
+
 	// Return success response with image ID
 	response := AnalyzeResponse{
 		Success: true,
@@ -350,10 +390,157 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// findSummaries searches for info JSON files in the tmp directory
-func (s *Server) findSummaries() ([]ImageSummary, error) {
-	summaries := []ImageSummary{}
+// handleAnalyzeImageAsync handles POST requests to analyze a Docker image asynchronously
+func (s *Server) handleAnalyzeImageAsync(w http.ResponseWriter, r *http.Request) {
+	// Parse request body
+	var req AsyncAnalyzeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response := AsyncAnalyzeResponse{
+			Success: false,
+			Error:   "Invalid request body",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
 
+	// Validate image name
+	if req.ImageName == "" {
+		response := AsyncAnalyzeResponse{
+			Success: false,
+			Error:   "Image name is required",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Check if image has already been analyzed or is currently being analyzed
+	existingInfos, err := s.findSummaries()
+	if err == nil {
+		for _, info := range existingInfos {
+			if strings.EqualFold(info.ImageTag, req.ImageName) {
+				// If analysis is completed, return the existing result
+				if info.Status == "completed" {
+					shortImageID := strings.Replace(info.ImageID, "sha256:", "", 1)
+					if len(shortImageID) > 12 {
+						shortImageID = shortImageID[:12]
+					}
+
+					response := AsyncAnalyzeResponse{
+						Success:   true,
+						RequestID: shortImageID,
+						Message:   "Image has already been analyzed",
+					}
+					w.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(w).Encode(response)
+					return
+				}
+
+				// If analysis is currently in progress, return the existing request ID
+				if info.Status == "analyzing" {
+					response := AsyncAnalyzeResponse{
+						Success:   true,
+						RequestID: info.RequestID,
+						Message:   "Image analysis is already in progress",
+					}
+					w.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(w).Encode(response)
+					return
+				}
+			}
+		}
+	}
+
+	// Generate a unique request ID for tracking
+	requestID := fmt.Sprintf("req_%d", time.Now().Unix())
+
+	// Add a pending entry to the summaries file
+	pendingSummary := ImageSummary{
+		ImageID:      "", // Will be filled once analysis completes
+		ImageTag:     req.ImageName,
+		ImageSource:  "", // Will be filled once analysis completes
+		ImageSize:    0,  // Will be filled once analysis completes
+		Architecture: "", // Will be filled once analysis completes
+		AnalyzedAt:   time.Now().UTC().Format(time.RFC3339),
+		Status:       "analyzing",
+		RequestID:    requestID,
+	}
+
+	if err := s.addSummaryToFile(pendingSummary); err != nil {
+		log.Printf("Warning: failed to add pending summary to file: %v", err)
+		// Continue with the analysis even if we can't track it in the summary file
+	}
+
+	// Start analysis in a goroutine
+	go func() {
+		log.Printf("Starting async analysis for image: %s (Request ID: %s)", req.ImageName, requestID)
+
+		result, err := analyzer.AnalyzeImage(req.ImageName, req.KeepTempFiles, req.ForcePull)
+		if err != nil {
+			log.Printf("Async analysis failed for image %s (Request ID: %s): %v", req.ImageName, requestID, err)
+
+			// Update the summary to show failed status
+			failedSummary := ImageSummary{
+				ImageID:      "",
+				ImageTag:     req.ImageName,
+				ImageSource:  "",
+				ImageSize:    0,
+				Architecture: "",
+				AnalyzedAt:   time.Now().UTC().Format(time.RFC3339),
+				Status:       "failed",
+				RequestID:    requestID,
+			}
+			if updateErr := s.updateSummaryByRequestID(requestID, failedSummary); updateErr != nil {
+				log.Printf("Warning: failed to update failed summary for request %s: %v", requestID, updateErr)
+			}
+			return
+		}
+
+		// Extract short image ID
+		imageID := strings.TrimPrefix(result.ImageID, "sha256:")
+		if len(imageID) > 12 {
+			imageID = imageID[:12]
+		}
+
+		// Try to read the generated info file and update the summary
+		infoPath := filepath.Join(result.ExtractedPath, fmt.Sprintf("info.%s.json", imageID))
+		if _, err := os.Stat(infoPath); err == nil {
+			// Read the info file
+			data, err := os.ReadFile(infoPath)
+			if err == nil {
+				var info analyzer.ImageInfo
+				if json.Unmarshal(data, &info) == nil {
+					// Convert to summary and update the entry
+					completedSummary := s.imageInfoToSummary(info)
+					completedSummary.Status = "completed"
+					completedSummary.RequestID = requestID
+
+					if err := s.updateSummaryByRequestID(requestID, completedSummary); err != nil {
+						log.Printf("Warning: failed to update completed summary for request %s: %v", requestID, err)
+					}
+				}
+			}
+		}
+
+		log.Printf("Async analysis completed for image %s (Request ID: %s, Image ID: %s)", req.ImageName, requestID, imageID)
+	}()
+
+	// Return immediate response with request ID
+	response := AsyncAnalyzeResponse{
+		Success:   true,
+		RequestID: requestID,
+		Message:   "Image analysis started successfully",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// findSummaries reads the summaries from the summary file or rebuilds it if missing/corrupt
+func (s *Server) findSummaries() ([]ImageSummary, error) {
 	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -361,16 +548,83 @@ func (s *Server) findSummaries() ([]ImageSummary, error) {
 	}
 
 	tmpDir := filepath.Join(cwd, "tmp")
+	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
 
 	// Check if tmp directory exists
 	if _, err := os.Stat(tmpDir); os.IsNotExist(err) {
-		return summaries, nil // Return empty list if no tmp directory
+		return []ImageSummary{}, nil // Return empty list if no tmp directory
 	}
 
+	// Try to read existing summary file
+	summaries, err := s.readSummaryFile(summaryFilePath)
+	if err == nil {
+		return summaries, nil
+	}
+
+	// If summary file doesn't exist or is corrupt, rebuild it
+	fmt.Printf("Summary file not found or corrupt, rebuilding: %v\n", err)
+	return s.rebuildSummaryFile(tmpDir, summaryFilePath)
+}
+
+// readSummaryFile reads and parses the summary file containing all ImageSummary objects
+func (s *Server) readSummaryFile(filePath string) ([]ImageSummary, error) {
+	// Check if file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("summary file does not exist")
+	}
+
+	// Read the file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read summary file: %w", err)
+	}
+
+	// Parse JSON into slice of ImageSummary
+	var summaries []ImageSummary
+	err = json.Unmarshal(data, &summaries)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse summary file JSON: %w", err)
+	}
+
+	return summaries, nil
+}
+
+// writeSummaryFile writes the slice of ImageSummary objects to the summary file
+func (s *Server) writeSummaryFile(filePath string, summaries []ImageSummary) error {
+	// Ensure the directory exists
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	// Marshal summaries to JSON with pretty formatting
+	data, err := json.MarshalIndent(summaries, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal summaries to JSON: %w", err)
+	}
+
+	// Write to file
+	err = os.WriteFile(filePath, data, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write summary file: %w", err)
+	}
+
+	return nil
+}
+
+// rebuildSummaryFile scans the tmp directory and rebuilds the summary file
+func (s *Server) rebuildSummaryFile(tmpDir, summaryFilePath string) ([]ImageSummary, error) {
+	summaries := []ImageSummary{}
+
 	// Walk through tmp directory to find info files
-	err = filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
+		}
+
+		// Skip the summary file itself
+		if info.Name() == summaryFileName {
+			return nil
 		}
 
 		// Look for files matching the pattern info.*.json
@@ -389,10 +643,82 @@ func (s *Server) findSummaries() ([]ImageSummary, error) {
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to walk tmp directory: %w", err)
+		return nil, fmt.Errorf("failed to walk tmp directory during rebuild: %w", err)
+	}
+
+	// Write the rebuilt summaries to the summary file
+	if err := s.writeSummaryFile(summaryFilePath, summaries); err != nil {
+		fmt.Printf("Warning: failed to write summary file after rebuild: %v\n", err)
+		// Still return the summaries even if we couldn't write the file
 	}
 
 	return summaries, nil
+}
+
+// addSummaryToFile adds a new ImageSummary to the summary file
+func (s *Server) addSummaryToFile(summary ImageSummary) error {
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	tmpDir := filepath.Join(cwd, "tmp")
+	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
+
+	// Read existing summaries
+	summaries, err := s.readSummaryFile(summaryFilePath)
+	if err != nil {
+		// If file doesn't exist, start with empty slice
+		summaries = []ImageSummary{}
+	}
+
+	// Check if summary already exists (by ImageID for completed analyses, or by ImageTag for pending)
+	for i, existing := range summaries {
+		// For completed analyses, match by ImageID
+		if summary.ImageID != "" && existing.ImageID == summary.ImageID {
+			summaries[i] = summary
+			return s.writeSummaryFile(summaryFilePath, summaries)
+		}
+		// For pending analyses or when matching by image tag and status
+		if summary.Status == "analyzing" && existing.ImageTag == summary.ImageTag && existing.Status == "analyzing" {
+			summaries[i] = summary
+			return s.writeSummaryFile(summaryFilePath, summaries)
+		}
+	}
+
+	// Add new summary
+	summaries = append(summaries, summary)
+	return s.writeSummaryFile(summaryFilePath, summaries)
+}
+
+// removeSummaryFromFile removes an ImageSummary from the summary file by ID
+func (s *Server) removeSummaryFromFile(imageID string) error {
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	tmpDir := filepath.Join(cwd, "tmp")
+	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
+
+	// Read existing summaries
+	summaries, err := s.readSummaryFile(summaryFilePath)
+	if err != nil {
+		return err // File must exist to remove from it
+	}
+
+	// Find and remove the summary
+	updatedSummaries := make([]ImageSummary, 0)
+	for _, summary := range summaries {
+		if summary.ImageID != imageID {
+			updatedSummaries = append(updatedSummaries, summary)
+		}
+	}
+
+	// Write updated summaries back to file
+	return s.writeSummaryFile(summaryFilePath, updatedSummaries)
 }
 
 // parseSummaryFile reads and parses a summary JSON file
@@ -409,6 +735,11 @@ func (s *Server) parseSummaryFile(filePath string) (ImageSummary, error) {
 	err = json.Unmarshal(data, &summary)
 	if err != nil {
 		return summary, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	// Set default status if not present (for backward compatibility with existing files)
+	if summary.Status == "" {
+		summary.Status = "completed"
 	}
 
 	return summary, nil
@@ -528,6 +859,30 @@ func (s *Server) deleteInfoByID(id string) error {
 		return fmt.Errorf("failed to delete info file: %w", err)
 	}
 
+	// Extract imageID for summary removal
+	imageID := id
+	// If it's a short ID, we need to find the full ID from the summary file
+	// since the summary file stores full image IDs
+	summaries, err := s.findSummaries()
+	if err == nil {
+		for _, summary := range summaries {
+			shortImageID := strings.TrimPrefix(summary.ImageID, "sha256:")
+			if len(shortImageID) > 12 {
+				shortImageID = shortImageID[:12]
+			}
+			if shortImageID == id {
+				imageID = summary.ImageID
+				break
+			}
+		}
+	}
+
+	// Remove from summary file
+	if err := s.removeSummaryFromFile(imageID); err != nil {
+		fmt.Printf("Warning: failed to remove summary from file: %v\n", err)
+		// Don't fail the operation if summary removal fails
+	}
+
 	// Check if the image folder is empty after removing the info file
 	// If so, remove the entire folder
 	entries, err := os.ReadDir(imageFolder)
@@ -546,4 +901,53 @@ func (s *Server) deleteInfoByID(id string) error {
 	}
 
 	return nil
+}
+
+// updateSummaryByRequestID updates an existing ImageSummary in the summary file by request ID
+func (s *Server) updateSummaryByRequestID(requestID string, updatedSummary ImageSummary) error {
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	tmpDir := filepath.Join(cwd, "tmp")
+	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
+
+	// Read existing summaries
+	summaries, err := s.readSummaryFile(summaryFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to read summary file: %w", err)
+	}
+
+	// Find and update the summary with matching request ID
+	found := false
+	for i, summary := range summaries {
+		if summary.RequestID == requestID {
+			summaries[i] = updatedSummary
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("summary with request ID %s not found", requestID)
+	}
+
+	// Write updated summaries back to file
+	return s.writeSummaryFile(summaryFilePath, summaries)
+}
+
+// imageInfoToSummary converts an ImageInfo to an ImageSummary
+func (s *Server) imageInfoToSummary(info analyzer.ImageInfo) ImageSummary {
+	return ImageSummary{
+		ImageID:      info.ImageID,
+		ImageTag:     info.ImageTag,
+		ImageSource:  info.ImageSource,
+		ImageSize:    info.ImageSize,
+		Architecture: info.Architecture,
+		AnalyzedAt:   info.AnalyzedAt,
+		Status:       "completed", // Default status for completed analysis
+		RequestID:    "",          // Will be set by caller if needed
+	}
 }

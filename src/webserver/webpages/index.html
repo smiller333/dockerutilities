@@ -80,6 +80,18 @@
             </div>
         </div>
 
+        <!-- Analyzing Images Section -->
+        <div id="analyzingSection" class="mb-6" style="display: none;">
+            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <h3 class="text-lg font-medium mb-3 text-yellow-800">
+                    Images Being Analyzed
+                </h3>
+                <div id="analyzingList" class="space-y-2">
+                    <!-- Analyzing images will be populated here -->
+                </div>
+            </div>
+        </div>
+
         <h2 class="text-xl font-semibold mb-4 text-gray-800">Analyzed Images</h2>
 
         <!-- Filter Controls -->
@@ -170,6 +182,7 @@
         let currentSortField = 'analyzed_at';
         let currentSortOrder = 'desc';
         let currentFilter = '';
+        let refreshInterval = null;
 
         // DOM elements
         const content = document.getElementById('content');
@@ -182,6 +195,8 @@
         const analyzeBtn = document.getElementById('analyzeBtn');
         const loadingModal = document.getElementById('loadingModal');
         const loadingMessage = document.getElementById('loadingMessage');
+        const analyzingSection = document.getElementById('analyzingSection');
+        const analyzingList = document.getElementById('analyzingList');
         
         // Confirmation modal elements
         const confirmModal = document.getElementById('confirmModal');
@@ -207,6 +222,45 @@
             await loadSummaries();
             renderSummaries();
             setupEventListeners();
+            startAutoRefresh();
+        }
+
+        // Start auto-refresh for pending analyses
+        function startAutoRefresh() {
+            // Clear any existing interval
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            
+            // Check if there are any analyzing images
+            function hasAnalyzingImages() {
+                return summaries.some(summary => summary.status === 'analyzing');
+            }
+            
+            // Set up interval to refresh if there are analyzing images
+            function checkAndRefresh() {
+                if (hasAnalyzingImages()) {
+                    loadSummaries().then(() => {
+                        renderSummaries();
+                        // Continue checking if there are still analyzing images
+                        if (!hasAnalyzingImages()) {
+                            clearInterval(refreshInterval);
+                            refreshInterval = null;
+                        }
+                    }).catch(err => {
+                        console.error('Auto-refresh failed:', err);
+                    });
+                } else {
+                    // No analyzing images, stop auto-refresh
+                    clearInterval(refreshInterval);
+                    refreshInterval = null;
+                }
+            }
+            
+            // Start auto-refresh if needed
+            if (hasAnalyzingImages()) {
+                refreshInterval = setInterval(checkAndRefresh, 5000); // Check every 5 seconds
+            }
         }
 
         // Setup event listeners
@@ -293,18 +347,23 @@
             const imageTag = analyzeInput.value.trim();
             if (!imageTag) return;
 
-            // Check if already exists
+            // Check if already exists or is being analyzed
             if (summaries.some(summary => summary.image_tag.toLowerCase() === imageTag.toLowerCase())) {
-                showResultModal('Already Analyzed', 'This image tag has already been analyzed.', 'error');
+                const existingSummary = summaries.find(summary => summary.image_tag.toLowerCase() === imageTag.toLowerCase());
+                if (existingSummary.status === 'analyzing') {
+                    showResultModal('Analysis In Progress', 'This image is currently being analyzed. Please wait for it to complete.', 'error');
+                } else {
+                    showResultModal('Already Analyzed', 'This image tag has already been analyzed.', 'error');
+                }
                 return;
             }
 
-            // Show loading modal
-            loadingMessage.textContent = `Analyzing ${imageTag}...`;
+            // Show loading modal briefly to indicate request is being sent
+            loadingMessage.textContent = `Starting analysis for ${imageTag}...`;
             loadingModal.classList.add('show');
 
             try {
-                const response = await fetch('/api/analyze', {
+                const response = await fetch('/api/analyze-async', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -318,26 +377,27 @@
 
                 const result = await response.json();
 
+                // Hide loading modal
+                loadingModal.classList.remove('show');
+
                 if (result.success) {
                     // Clear the input
                     analyzeInput.value = '';
                     
-                    // Reload summaries to show the new analysis
+                    // Reload summaries to show the new pending analysis
                     await loadSummaries();
                     renderSummaries();
                     
-                    // Hide loading modal
-                    loadingModal.classList.remove('show');
+                    // Start auto-refresh to monitor the analysis progress
+                    startAutoRefresh();
                     
-                    // Navigate to details page for the analyzed image
-                    if (result.image_id) {
-                        showDetails(result.image_id);
-                    } else {
-                        showResultModal('Success', 'Image analysis completed successfully!', 'success');
-                    }
+                    // Show success message indicating analysis has started
+                    showResultModal(
+                        'Analysis Started', 
+                        `Analysis has been started for "${imageTag}".`,
+                        'success'
+                    );
                 } else {
-                    // Hide loading modal before showing error
-                    loadingModal.classList.remove('show');
                     showResultModal('Analysis Failed', result.error || 'Unknown error', 'error');
                 }
             } catch (error) {
@@ -373,6 +433,9 @@
                     // Reload summaries to reflect the deletion
                     await loadSummaries();
                     renderSummaries();
+                    
+                    // Restart auto-refresh if needed (in case there are still analyzing images)
+                    startAutoRefresh();
                     
                     // Show success result modal
                     showResultModal('Success', `Successfully deleted analysis for "${imageTag}"`, 'success');
@@ -425,24 +488,58 @@
 
         // Render summaries in the UI
         function renderSummaries() {
-            if (summaries.length === 0) {
+            // Separate analyzing and completed images
+            const analyzingImages = summaries.filter(summary => summary.status === 'analyzing');
+            const completedImages = summaries.filter(summary => summary.status !== 'analyzing');
+            
+            // Render analyzing images section
+            renderAnalyzingImages(analyzingImages);
+            
+            // Render completed images section
+            renderCompletedImages(completedImages);
+        }
+
+        // Render analyzing images in their own section
+        function renderAnalyzingImages(analyzingImages) {
+            if (analyzingImages.length === 0) {
+                analyzingSection.style.display = 'none';
+                return;
+            }
+
+            analyzingSection.style.display = 'block';
+            
+            const analyzingItems = analyzingImages.map(summary => `
+                <div class="bg-white rounded-md p-3 border border-yellow-200">
+                    <div class="w-full">
+                        <div class="font-medium text-gray-900">${summary.image_tag || 'Unknown'}</div>
+                        <div class="text-sm text-gray-500 mt-1">Started: ${new Date(summary.analyzed_at).toLocaleString()}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            analyzingList.innerHTML = analyzingItems;
+        }
+
+        // Render completed images in the main section
+        function renderCompletedImages(completedImages) {
+            if (completedImages.length === 0) {
                 content.innerHTML = `
                     <div class="text-center py-12">
-                        <h2 class="text-xl font-semibold mb-4 text-gray-700">No Image Summaries Found</h2>
-                        <p class="text-gray-600 mb-4">No Docker image analysis results were found in the tmp directory.</p>
-                        <p class="text-gray-600 mb-6">Run <code class="bg-gray-200 px-2 py-1 rounded">dockerutils analyze --image &lt;image-name&gt;</code> to create analysis results.</p>
+                        <h2 class="text-xl font-semibold mb-4 text-gray-700">No Completed Image Analyses</h2>
+                        <p class="text-gray-600 mb-4">No completed Docker image analysis results were found.</p>
+                        <p class="text-gray-600 mb-6">Use the "Analyze Image" section above to analyze a Docker image and create analysis results.</p>
                     </div>
                 `;
                 return;
             }
 
-            const filteredAndSortedSummaries = getFilteredAndSortedSummaries();
+            const filteredAndSortedSummaries = getFilteredAndSortedCompletedSummaries(completedImages);
 
             if (filteredAndSortedSummaries.length === 0) {
                 content.innerHTML = `
                     <div class="text-center py-12">
                         <h2 class="text-xl font-semibold mb-4 text-gray-700">No Matching Images</h2>
-                        <p class="text-gray-600">No images match your current filter criteria.</p>
+                        <p class="text-gray-600">No completed images match your current filter criteria.</p>
                     </div>
                 `;
                 return;
@@ -481,9 +578,9 @@
             `;
         }
 
-        // Get filtered and sorted summaries
-        function getFilteredAndSortedSummaries() {
-            return summaries
+        // Get filtered and sorted summaries (only for completed images)
+        function getFilteredAndSortedCompletedSummaries(completedImages) {
+            return completedImages
                 .filter(summary => 
                     summary.image_tag && summary.image_tag.toLowerCase().includes(currentFilter.toLowerCase())
                 )
@@ -505,6 +602,12 @@
                 });
         }
 
+        // Legacy function - kept for compatibility but now delegates to the new function
+        function getFilteredAndSortedSummaries() {
+            const completedImages = summaries.filter(summary => summary.status !== 'analyzing');
+            return getFilteredAndSortedCompletedSummaries(completedImages);
+        }
+
         // Format file size
         function formatSize(bytes) {
             if (!bytes || bytes === 0) return '0 B';
@@ -514,30 +617,59 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
         }
 
-        // Create a table row HTML
+        // Create a table row HTML (for completed images only)
         function createTableRow(summary) {
             const imageSize = formatSize(summary.image_size);
             const analyzedAt = new Date(summary.analyzed_at).toLocaleString();
             const shortImageId = (summary.image_id || '').replace('sha256:', '').substring(0, 12);
+            const status = summary.status || 'completed';
+
+            // Determine row styling and click behavior based on status
+            let rowClass = 'cursor-pointer';
+            let clickHandler = `onclick="showDetails('${shortImageId}')"`;
+            let titleText = 'Click to view detailed analysis';
+            let deleteButton = '';
+
+            if (status === 'failed') {
+                rowClass = 'cursor-default opacity-75';
+                clickHandler = '';
+                titleText = 'Analysis failed';
+                deleteButton = `
+                    <button 
+                        onclick="event.stopPropagation(); deleteInfo('${shortImageId}', '${summary.image_tag || 'Unknown'}')" 
+                        class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors duration-200"
+                        title="Delete this failed analysis"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                `;
+            } else {
+                // Completed status
+                deleteButton = `
+                    <button 
+                        onclick="event.stopPropagation(); deleteInfo('${shortImageId}', '${summary.image_tag || 'Unknown'}')" 
+                        class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors duration-200"
+                        title="Delete this analysis"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                `;
+            }
 
             let rowHtml = `
                 <tbody class="hover:bg-gray-50 transition-colors">
-                    <tr class="cursor-pointer" onclick="showDetails('${shortImageId}')" title="Click to view detailed analysis">
+                    <tr class="${rowClass}" ${clickHandler} title="${titleText}">
                         <td class="px-4 py-2 text-sm text-gray-900">${summary.image_tag || 'Unknown'}</td>
-                        <td class="px-4 py-2 text-sm text-gray-500">${shortImageId}</td>
+                        <td class="px-4 py-2 text-sm text-gray-500">${shortImageId || 'Pending...'}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${imageSize}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${summary.architecture || 'Unknown'}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${analyzedAt}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">
-                            <button 
-                                onclick="event.stopPropagation(); deleteInfo('${shortImageId}', '${summary.image_tag || 'Unknown'}')" 
-                                class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors duration-200"
-                                title="Delete this analysis"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
+                            ${deleteButton}
                         </td>
                     </tr>`;
 
