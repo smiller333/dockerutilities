@@ -15,16 +15,16 @@ var rootCmd = &cobra.Command{
 	Long: `dockerutils is a CLI tool that provides various utilities for working with Docker containers, images, and other Docker-related tasks.
 
 This tool aims to simplify common Docker operations and provide additional functionality for Docker workflows.`,
-	Version: version.GetVersion(),
+	Version: version.GetVersionString(),
 }
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the version number of dockerutils",
-	Long:  `Print the version number of dockerutils and exit.`,
+	Short: "Print the version information of dockerutils",
+	Long:  `Print detailed version information of dockerutils including build time, git commit, and Go version.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(version.GetVersion())
+		fmt.Print(version.GetFullVersionString())
 	},
 }
 

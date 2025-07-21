@@ -54,7 +54,7 @@
 <body class="min-h-screen bg-gray-100">
     <!-- Header -->
     <div class="bg-blue-600 text-white text-center py-4">
-        <h1 class="text-2xl font-bold">Docker Image Viewer</h1>
+        <h1 id="pageTitle" class="text-2xl font-bold cursor-pointer hover:text-blue-200 transition-colors duration-200">Docker Image Viewer</h1>
     </div>
 
     <!-- Main Container -->
@@ -88,6 +88,18 @@
                 </h3>
                 <div id="analyzingList" class="space-y-2">
                     <!-- Analyzing images will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Failed Images Section -->
+        <div id="failedSection" class="mb-6" style="display: none;">
+            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                <h3 class="text-lg font-medium mb-3 text-red-800">
+                    Failed Analyses
+                </h3>
+                <div id="failedList" class="space-y-2">
+                    <!-- Failed images will be populated here -->
                 </div>
             </div>
         </div>
@@ -177,6 +189,24 @@
         </div>
     </div>
 
+    <!-- Health Modal -->
+    <div id="healthModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-90vh overflow-hidden">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h2 class="text-xl font-semibold">System Health</h2>
+                <button id="closeHealthModal" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-4 max-h-96 overflow-y-auto">
+                <div id="healthContent" class="space-y-4">
+                    <div class="flex items-center justify-center py-8">
+                        <div class="loading-spinner"></div>
+                        <span class="ml-2 text-gray-600">Loading health information...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let summaries = [];
         let currentSortField = 'analyzed_at';
@@ -197,6 +227,8 @@
         const loadingMessage = document.getElementById('loadingMessage');
         const analyzingSection = document.getElementById('analyzingSection');
         const analyzingList = document.getElementById('analyzingList');
+        const failedSection = document.getElementById('failedSection');
+        const failedList = document.getElementById('failedList');
         
         // Confirmation modal elements
         const confirmModal = document.getElementById('confirmModal');
@@ -213,6 +245,12 @@
         const resultIcon = document.getElementById('resultIcon');
         const closeResultModal = document.getElementById('closeResultModal');
         const resultOk = document.getElementById('resultOk');
+        
+        // Health modal elements
+        const healthModal = document.getElementById('healthModal');
+        const healthContent = document.getElementById('healthContent');
+        const closeHealthModal = document.getElementById('closeHealthModal');
+        const pageTitle = document.getElementById('pageTitle');
         
         // Store pending delete action
         let pendingDeleteAction = null;
@@ -340,6 +378,19 @@
                     resultModal.classList.remove('show');
                 }
             });
+
+            // Health modal event listeners
+            pageTitle.addEventListener('click', showHealthModal);
+            
+            closeHealthModal.addEventListener('click', () => {
+                healthModal.classList.remove('show');
+            });
+
+            healthModal.addEventListener('click', (e) => {
+                if (e.target === healthModal) {
+                    healthModal.classList.remove('show');
+                }
+            });
         }
 
         // Handle analyze image functionality
@@ -462,6 +513,159 @@
             resultModal.classList.add('show');
         }
 
+        // Show health modal with system information
+        async function showHealthModal() {
+            // Show the modal first with loading content
+            healthModal.classList.add('show');
+            
+            // Reset content to loading state
+            healthContent.innerHTML = `
+                <div class="flex items-center justify-center py-8">
+                    <div class="loading-spinner"></div>
+                    <span class="ml-2 text-gray-600">Loading health information...</span>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/health');
+                const healthData = await response.json();
+                
+                // Display the health information
+                displayHealthData(healthData);
+            } catch (error) {
+                healthContent.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <div class="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-red-800 font-medium">Failed to load health information</h3>
+                                <p class="text-red-600 text-sm">${error.message}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Display health data in a structured format
+        function displayHealthData(data) {
+            const statusIcon = data.status === 'healthy' 
+                ? '<div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center"><svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>'
+                : '<div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center"><svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg></div>';
+
+            const dockerStatusIcon = data.docker?.status === 'connected'
+                ? '<div class="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center"><svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>'
+                : '<div class="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center"><svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></div>';
+
+            let dockerInfoHtml = '';
+            if (data.docker?.info) {
+                const info = data.docker.info;
+                dockerInfoHtml = `
+                    <div class="mt-3 grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="font-medium text-gray-700">Containers Running:</span>
+                            <span class="text-gray-600">${info.containers_running || 0}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">Images:</span>
+                            <span class="text-gray-600">${info.images || 0}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">Server Version:</span>
+                            <span class="text-gray-600">${info.server_version || 'Unknown'}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">Architecture:</span>
+                            <span class="text-gray-600">${info.architecture || 'Unknown'}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">OS Type:</span>
+                            <span class="text-gray-600">${info.os_type || 'Unknown'}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">CPUs:</span>
+                            <span class="text-gray-600">${info.cpu_count || 'Unknown'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let dockerVersionHtml = '';
+            if (data.docker?.version) {
+                const version = data.docker.version;
+                dockerVersionHtml = `
+                    <div class="mt-3 text-sm">
+                        <div class="font-medium text-gray-700 mb-2">Docker Version Details:</div>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div><span class="font-medium">Version:</span> ${version.version || 'Unknown'}</div>
+                            <div><span class="font-medium">API Version:</span> ${version.api_version || 'Unknown'}</div>
+                            <div><span class="font-medium">Go Version:</span> ${version.go_version || 'Unknown'}</div>
+                            <div><span class="font-medium">Git Commit:</span> ${version.git_commit || 'Unknown'}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            healthContent.innerHTML = `
+                <div class="space-y-4">
+                    <!-- Overall Status -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center mb-2">
+                            ${statusIcon}
+                            <h3 class="ml-3 text-lg font-medium text-gray-800">System Status: ${data.status.charAt(0).toUpperCase() + data.status.slice(1)}</h3>
+                        </div>
+                    </div>
+
+                    <!-- Docker Status -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-center mb-2">
+                            ${dockerStatusIcon}
+                            <h3 class="ml-3 text-lg font-medium text-gray-800">Docker Daemon: ${data.docker?.status === 'connected' ? 'Connected' : 'Disconnected'}</h3>
+                        </div>
+                        ${data.docker?.docker_host ? `<div class="text-sm text-gray-600 mb-2"><span class="font-medium">Docker Host:</span> ${data.docker.docker_host}</div>` : ''}
+                        ${data.docker?.error ? `<div class="text-sm text-red-600 mb-2">${data.docker.error}</div>` : ''}
+                        ${dockerInfoHtml}
+                        ${dockerVersionHtml}
+                    </div>
+                </div>
+
+                    <!-- Build Information -->
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 class="text-lg font-medium text-gray-800 mb-3">Build Information</h3>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="font-medium text-gray-700">Version:</span>
+                                <span class="text-gray-600">${data.build?.version || 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Git Commit:</span>
+                                <span class="text-gray-600 font-mono">${data.build?.git_commit || 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Build Time:</span>
+                                <span class="text-gray-600">${data.build?.build_time && data.build.build_time !== 'unknown' ? new Date(data.build.build_time).toLocaleString() : 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Go Version:</span>
+                                <span class="text-gray-600">${data.build?.go_version || 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Target OS:</span>
+                                <span class="text-gray-600">${data.build?.goos || 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Architecture:</span>
+                                <span class="text-gray-600">${data.build?.goarch || 'Unknown'}</span>
+                            </div>
+                        </div>
+                    </div>
+            `;
+        }
+
         // Sort by field (called by clicking table headers)
         function sortBy(field) {
             if (currentSortField === field) {
@@ -488,12 +692,16 @@
 
         // Render summaries in the UI
         function renderSummaries() {
-            // Separate analyzing and completed images
+            // Separate analyzing, failed, and completed images
             const analyzingImages = summaries.filter(summary => summary.status === 'analyzing');
-            const completedImages = summaries.filter(summary => summary.status !== 'analyzing');
+            const failedImages = summaries.filter(summary => summary.status === 'failed');
+            const completedImages = summaries.filter(summary => summary.status !== 'analyzing' && summary.status !== 'failed');
             
             // Render analyzing images section
             renderAnalyzingImages(analyzingImages);
+            
+            // Render failed images section
+            renderFailedImages(failedImages);
             
             // Render completed images section
             renderCompletedImages(completedImages);
@@ -518,6 +726,43 @@
             `).join('');
             
             analyzingList.innerHTML = analyzingItems;
+        }
+
+        // Render failed images in their own section
+        function renderFailedImages(failedImages) {
+            if (failedImages.length === 0) {
+                failedSection.style.display = 'none';
+                return;
+            }
+
+            failedSection.style.display = 'block';
+            
+            const failedItems = failedImages.map(summary => {
+                // For deletion, use the full identifier (request_id for failed images, or short image_id for completed ones)
+                const deleteId = summary.image_id ? (summary.image_id.replace('sha256:', '').substring(0, 12)) : (summary.request_id || 'unknown');
+                
+                return `
+                    <div class="bg-white rounded-md p-3 border border-red-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="font-medium text-gray-900">${summary.image_tag || 'Unknown'}</div>
+                                <div class="text-sm text-gray-500 mt-1">Failed: ${new Date(summary.analyzed_at).toLocaleString()}</div>
+                            </div>
+                            <button 
+                                onclick="deleteInfo('${deleteId}', '${summary.image_tag || 'Unknown'}')" 
+                                class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors duration-200 ml-3"
+                                title="Delete this failed analysis"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            failedList.innerHTML = failedItems;
         }
 
         // Render completed images in the main section
@@ -604,7 +849,7 @@
 
         // Legacy function - kept for compatibility but now delegates to the new function
         function getFilteredAndSortedSummaries() {
-            const completedImages = summaries.filter(summary => summary.status !== 'analyzing');
+            const completedImages = summaries.filter(summary => summary.status !== 'analyzing' && summary.status !== 'failed');
             return getFilteredAndSortedCompletedSummaries(completedImages);
         }
 
@@ -622,49 +867,25 @@
             const imageSize = formatSize(summary.image_size);
             const analyzedAt = new Date(summary.analyzed_at).toLocaleString();
             const shortImageId = (summary.image_id || '').replace('sha256:', '').substring(0, 12);
-            const status = summary.status || 'completed';
 
-            // Determine row styling and click behavior based on status
-            let rowClass = 'cursor-pointer';
-            let clickHandler = `onclick="showDetails('${shortImageId}')"`;
-            let titleText = 'Click to view detailed analysis';
-            let deleteButton = '';
-
-            if (status === 'failed') {
-                rowClass = 'cursor-default opacity-75';
-                clickHandler = '';
-                titleText = 'Analysis failed';
-                deleteButton = `
-                    <button 
-                        onclick="event.stopPropagation(); deleteInfo('${shortImageId}', '${summary.image_tag || 'Unknown'}')" 
-                        class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors duration-200"
-                        title="Delete this failed analysis"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </button>
-                `;
-            } else {
-                // Completed status
-                deleteButton = `
-                    <button 
-                        onclick="event.stopPropagation(); deleteInfo('${shortImageId}', '${summary.image_tag || 'Unknown'}')" 
-                        class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors duration-200"
-                        title="Delete this analysis"
-                    >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </button>
-                `;
-            }
+            // All entries in this table are completed, so we can simplify
+            const deleteButton = `
+                <button 
+                    onclick="event.stopPropagation(); deleteInfo('${shortImageId}', '${summary.image_tag || 'Unknown'}')" 
+                    class="bg-red-500 hover:bg-red-600 text-white p-2 rounded transition-colors duration-200"
+                    title="Delete this analysis"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+            `;
 
             let rowHtml = `
                 <tbody class="hover:bg-gray-50 transition-colors">
-                    <tr class="${rowClass}" ${clickHandler} title="${titleText}">
+                    <tr class="cursor-pointer" onclick="showDetails('${shortImageId}')" title="Click to view detailed analysis">
                         <td class="px-4 py-2 text-sm text-gray-900">${summary.image_tag || 'Unknown'}</td>
-                        <td class="px-4 py-2 text-sm text-gray-500">${shortImageId || 'Pending...'}</td>
+                        <td class="px-4 py-2 text-sm text-gray-500">${shortImageId}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${imageSize}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${summary.architecture || 'Unknown'}</td>
                         <td class="px-4 py-2 text-sm text-gray-900">${analyzedAt}</td>

@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/smiller333/dockerutils/src/analyzer"
+	"github.com/smiller333/dockerutils/src/dockerclient"
+	"github.com/smiller333/dockerutils/src/version"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -36,9 +38,10 @@ type Config struct {
 
 // Server represents the web server instance
 type Server struct {
-	config     *Config
-	httpServer *http.Server
-	webRoot    string
+	config       *Config
+	httpServer   *http.Server
+	webRoot      string
+	dockerClient *dockerclient.DockerClient
 }
 
 // ImageSummary represents the minimum fields needed for image list
@@ -151,9 +154,16 @@ func New(config *Config) (*Server, error) {
 		}
 	}
 
+	// Initialize Docker client
+	dockerClient, err := dockerclient.NewDefaultClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Docker client: %w", err)
+	}
+
 	server := &Server{
-		config:  config,
-		webRoot: config.WebRoot,
+		config:       config,
+		webRoot:      config.WebRoot,
+		dockerClient: dockerClient,
 	}
 
 	return server, nil
@@ -194,6 +204,14 @@ func (s *Server) Shutdown() error {
 	defer cancel()
 
 	fmt.Println("Shutting down web server...")
+
+	// Close the Docker client connection
+	if s.dockerClient != nil {
+		if err := s.dockerClient.Close(); err != nil {
+			fmt.Printf("Warning: failed to close Docker client: %v\n", err)
+		}
+	}
+
 	return s.httpServer.Shutdown(ctx)
 }
 
@@ -225,13 +243,98 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 // handleHealth returns server health status
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+
+	// Get build information
+	buildInfo := version.GetBuildInfo()
+
+	// Base response structure
 	response := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"version":   "1.0.0",
+		"version":   buildInfo.Version,
 	}
 
+	// Add Docker daemon status information
+	dockerStatus := s.getDockerStatus()
+	response["docker"] = dockerStatus
+
+	// Update overall status based on Docker connectivity
+	if dockerStatus["status"] != "connected" {
+		response["status"] = "degraded"
+	}
+
+	// Add build information
+	response["build"] = version.GetBuildInfo()
+
 	json.NewEncoder(w).Encode(response)
+}
+
+// getDockerStatus returns Docker daemon status information
+func (s *Server) getDockerStatus() map[string]interface{} {
+	dockerStatus := map[string]interface{}{
+		"status": "disconnected",
+	}
+
+	// Check DOCKER_HOST environment variable
+	if dockerHost := os.Getenv("DOCKER_HOST"); dockerHost != "" {
+		dockerStatus["docker_host"] = dockerHost
+	} else {
+		dockerStatus["docker_host"] = "default (unix:///var/run/docker.sock)"
+	}
+
+	if s.dockerClient == nil {
+		dockerStatus["error"] = "Docker client not initialized"
+		return dockerStatus
+	}
+
+	// Create a context with timeout for Docker operations
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Test Docker daemon connectivity
+	if err := s.dockerClient.Ping(ctx); err != nil {
+		dockerStatus["error"] = fmt.Sprintf("Failed to ping Docker daemon: %v", err)
+		return dockerStatus
+	}
+
+	dockerStatus["status"] = "connected"
+
+	// Get Docker daemon information
+	info, err := s.dockerClient.GetInfo(ctx)
+	if err != nil {
+		dockerStatus["warning"] = fmt.Sprintf("Failed to get Docker daemon info: %v", err)
+	} else {
+		dockerStatus["info"] = map[string]interface{}{
+			"containers_running": info.ContainersRunning,
+			"containers_paused":  info.ContainersPaused,
+			"containers_stopped": info.ContainersStopped,
+			"images":             info.Images,
+			"server_version":     info.ServerVersion,
+			"architecture":       info.Architecture,
+			"os_type":            info.OSType,
+			"kernel_version":     info.KernelVersion,
+			"total_memory":       info.MemTotal,
+			"cpu_count":          info.NCPU,
+		}
+	}
+
+	// Get Docker version information
+	version, err := s.dockerClient.GetVersion(ctx)
+	if err != nil {
+		dockerStatus["version_warning"] = fmt.Sprintf("Failed to get Docker version: %v", err)
+	} else {
+		dockerStatus["version"] = map[string]interface{}{
+			"version":     version.Version,
+			"api_version": version.APIVersion,
+			"go_version":  version.GoVersion,
+			"git_commit":  version.GitCommit,
+			"built":       version.BuildTime,
+			"os":          version.Os,
+			"arch":        version.Arch,
+		}
+	}
+
+	return dockerStatus
 }
 
 // handleGetSummaries returns a list of all available image summaries
@@ -710,11 +813,63 @@ func (s *Server) removeSummaryFromFile(imageID string) error {
 	}
 
 	// Find and remove the summary
+	// For failed analyses, imageID might be empty, so we need to handle this carefully
 	updatedSummaries := make([]ImageSummary, 0)
+	removed := false
 	for _, summary := range summaries {
-		if summary.ImageID != imageID {
-			updatedSummaries = append(updatedSummaries, summary)
+		// Don't remove if imageID matches and is not empty
+		if imageID != "" && summary.ImageID == imageID {
+			removed = true
+			continue // Skip this summary (remove it)
 		}
+
+		// Keep this summary
+		updatedSummaries = append(updatedSummaries, summary)
+	}
+
+	// If no summary was removed and imageID was provided, that might be ok
+	// (the summary might have already been removed or never existed)
+	if !removed && imageID != "" {
+		// Log a warning but don't fail - this is not necessarily an error
+		fmt.Printf("Warning: no summary found with imageID %s to remove\n", imageID)
+	}
+
+	// Write updated summaries back to file
+	return s.writeSummaryFile(summaryFilePath, updatedSummaries)
+}
+
+// removeSummaryByRequestID removes an ImageSummary from the summary file by request ID
+func (s *Server) removeSummaryByRequestID(requestID string) error {
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	tmpDir := filepath.Join(cwd, "tmp")
+	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
+
+	// Read existing summaries
+	summaries, err := s.readSummaryFile(summaryFilePath)
+	if err != nil {
+		return err // File must exist to remove from it
+	}
+
+	// Find and remove the summary with matching request ID
+	updatedSummaries := make([]ImageSummary, 0)
+	removed := false
+	for _, summary := range summaries {
+		if summary.RequestID == requestID {
+			removed = true
+			continue // Skip this summary (remove it)
+		}
+
+		// Keep this summary
+		updatedSummaries = append(updatedSummaries, summary)
+	}
+
+	if !removed {
+		return fmt.Errorf("no summary found with request ID %s", requestID)
 	}
 
 	// Write updated summaries back to file
@@ -823,7 +978,52 @@ func (s *Server) deleteInfoByID(id string) error {
 
 	tmpDir := filepath.Join(cwd, "tmp")
 
-	// Look for the specific info file
+	// First, try to find and remove from summary file - this handles both
+	// completed analyses (with info files) and failed analyses (summaries only)
+	var summaryFound bool
+	var imageIDToRemove string
+	var requestIDToRemove string
+
+	// Find the summary entry to determine the correct removal method
+	summaries, err := s.findSummaries()
+	if err == nil {
+		for _, summary := range summaries {
+			// Check if it matches the provided ID directly (for request IDs)
+			if summary.RequestID == id {
+				summaryFound = true
+				imageIDToRemove = summary.ImageID
+				requestIDToRemove = summary.RequestID
+				break
+			}
+
+			// Check if it matches by image ID (full or short)
+			if summary.ImageID == id {
+				summaryFound = true
+				imageIDToRemove = summary.ImageID
+				requestIDToRemove = summary.RequestID
+				break
+			}
+
+			// Check if it matches by short image ID
+			shortImageID := strings.TrimPrefix(summary.ImageID, "sha256:")
+			if len(shortImageID) > 12 {
+				shortImageID = shortImageID[:12]
+			}
+			if shortImageID == id {
+				summaryFound = true
+				imageIDToRemove = summary.ImageID
+				requestIDToRemove = summary.RequestID
+				break
+			}
+		}
+	}
+
+	// If no summary was found, return an error
+	if !summaryFound {
+		return fmt.Errorf("no entry found with ID %s", id)
+	}
+
+	// Look for the specific info file (this may not exist for failed analyses)
 	var infoPath string
 	var imageFolder string
 
@@ -850,54 +1050,40 @@ func (s *Server) deleteInfoByID(id string) error {
 		return fmt.Errorf("failed to search for info file: %w", err)
 	}
 
-	if infoPath == "" {
-		return fmt.Errorf("info with ID %s not found", id)
-	}
+	// Remove the info file if it exists (it may not exist for failed analyses)
+	if infoPath != "" {
+		if err := os.Remove(infoPath); err != nil {
+			return fmt.Errorf("failed to delete info file: %w", err)
+		}
 
-	// Remove the info file
-	if err := os.Remove(infoPath); err != nil {
-		return fmt.Errorf("failed to delete info file: %w", err)
-	}
-
-	// Extract imageID for summary removal
-	imageID := id
-	// If it's a short ID, we need to find the full ID from the summary file
-	// since the summary file stores full image IDs
-	summaries, err := s.findSummaries()
-	if err == nil {
-		for _, summary := range summaries {
-			shortImageID := strings.TrimPrefix(summary.ImageID, "sha256:")
-			if len(shortImageID) > 12 {
-				shortImageID = shortImageID[:12]
-			}
-			if shortImageID == id {
-				imageID = summary.ImageID
-				break
+		// Check if the image folder is empty after removing the info file
+		// If so, remove the entire folder
+		entries, err := os.ReadDir(imageFolder)
+		if err != nil {
+			// Log warning but don't fail the operation
+			fmt.Printf("Warning: failed to read directory %s: %v\n", imageFolder, err)
+		} else if len(entries) == 0 {
+			if err := os.Remove(imageFolder); err != nil {
+				// Log warning but don't fail the operation
+				fmt.Printf("Warning: failed to remove empty directory %s: %v\n", imageFolder, err)
 			}
 		}
 	}
 
 	// Remove from summary file
-	if err := s.removeSummaryFromFile(imageID); err != nil {
-		fmt.Printf("Warning: failed to remove summary from file: %v\n", err)
-		// Don't fail the operation if summary removal fails
-	}
-
-	// Check if the image folder is empty after removing the info file
-	// If so, remove the entire folder
-	entries, err := os.ReadDir(imageFolder)
-	if err != nil {
-		// Log warning but don't fail the operation
-		fmt.Printf("Warning: failed to read directory %s: %v\n", imageFolder, err)
-		return nil
-	}
-
-	// If the folder is empty, remove it
-	if len(entries) == 0 {
-		if err := os.Remove(imageFolder); err != nil {
-			// Log warning but don't fail the operation
-			fmt.Printf("Warning: failed to remove empty directory %s: %v\n", imageFolder, err)
+	// Use the appropriate removal method based on what we have
+	if imageIDToRemove != "" {
+		// For completed analyses with image IDs
+		if err := s.removeSummaryFromFile(imageIDToRemove); err != nil {
+			return fmt.Errorf("failed to remove summary from file: %w", err)
 		}
+	} else if requestIDToRemove != "" {
+		// For failed analyses that only have request IDs
+		if err := s.removeSummaryByRequestID(requestIDToRemove); err != nil {
+			return fmt.Errorf("failed to remove summary from file: %w", err)
+		}
+	} else {
+		return fmt.Errorf("unable to determine how to remove summary for ID %s", id)
 	}
 
 	return nil

@@ -16,21 +16,92 @@ Key features:
 
 ### Building from Source
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/smiller333/dockerutils.git
-   cd dockerutils
-   ```
+This project uses a sophisticated build system that embeds version information at compile time.
 
-2. Build the binary:
-   ```bash
-   go build -o dockerutils
-   ```
+#### Quick Build (Using Build Script)
 
-3. (Optional) Move to your PATH:
-   ```bash
-   mv dockerutils /usr/local/bin/
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/smiller333/dockerutils.git
+cd dockerutils
+
+# Build development version
+./build.sh dev
+
+# Build optimized release version  
+./build.sh release
+
+# Build with specific version
+./build.sh -v v1.0.0 release
+
+# Show version information
+./build.sh version
+```
+
+#### Using Makefile
+
+```bash
+# Development build (with debug info)
+make build-dev
+
+# Optimized release build
+make build-release
+
+# Build for all platforms
+make build-all
+
+# Run tests
+make test
+
+# Display version information
+make version
+
+# Clean build artifacts
+make clean
+```
+
+#### Manual Build
+
+```bash
+# Basic build (no version embedding)
+go build -o dockerutils
+
+# Build with version information
+VERSION=$(git describe --tags --always --dirty)
+GIT_COMMIT=$(git rev-parse --short HEAD)
+BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+go build -ldflags "-X github.com/smiller333/dockerutils/src/version.Version=$VERSION -X github.com/smiller333/dockerutils/src/version.GitCommit=$GIT_COMMIT -X github.com/smiller333/dockerutils/src/version.BuildTime=$BUILD_TIME" -o dockerutils
+```
+
+#### Installation
+
+```bash
+# Install to GOPATH/bin or GOBIN
+make install
+
+# Or manually copy to PATH
+cp bin/dockerutils /usr/local/bin/
+```
+
+### Version Information
+
+The built binary includes comprehensive build information:
+
+```bash
+# Short version
+dockerutils -v
+# Output: dockerutils v1.0.0 (built 2025-07-21 14:47:10 UTC)
+
+# Detailed version information
+dockerutils version
+# Output:
+# dockerutils v1.0.0
+# Git Commit: a1b2c3d
+# Build Time: 2025-07-21 14:47:10 UTC
+# Go Version: go1.24.2
+# OS/Arch: darwin/arm64
+```
 
 ## Usage
 
