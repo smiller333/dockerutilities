@@ -1,0 +1,51 @@
+---
+description: Package architecture and organization patterns for src/ directory
+globs: ["src/**/*.go"]
+alwaysApply: true
+---
+
+# Package Architecture
+
+Packages in the `src/` directory follow specific architectural patterns:
+
+## Package Organization
+- Each package should have a single, well-defined responsibility
+- Keep packages focused and cohesive
+- Use descriptive package names that reflect their purpose
+- Organize related functionality together
+
+## Package Structure
+- Place all implementation logic in `src/` directory
+- Each package should be in its own subdirectory
+- Use clear, descriptive package names
+- Keep packages small and focused
+
+## Code Organization Within Packages
+- Group related types, functions, and constants together
+- Place exported items at the top of the file
+- Use clear, descriptive names for all identifiers
+- Include comprehensive godoc comments
+
+## Dependencies
+- Minimize dependencies between packages
+- Use interfaces to decouple packages
+- Avoid circular dependencies
+- Prefer composition over inheritance
+
+## Error Handling
+- Return errors rather than panicking
+- Use meaningful error types and messages
+- Consider creating custom error types for package-specific errors
+- Document error conditions in godoc comments
+
+## Testing
+- Each package should have comprehensive tests
+- Test both exported and internal functionality
+- Use table-driven tests for multiple scenarios
+- Mock external dependencies
+
+## Documentation
+- Include package-level documentation explaining purpose and usage
+- Document all exported types, functions, and constants
+- Provide usage examples where helpful
+- Keep documentation up to date with code changes

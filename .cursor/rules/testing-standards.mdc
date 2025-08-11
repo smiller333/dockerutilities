@@ -1,0 +1,57 @@
+---
+description: Testing standards and patterns for Go code
+globs: ["**/*_test.go"]
+alwaysApply: true
+---
+
+# Testing Standards
+
+This project follows comprehensive testing standards:
+
+## Test Structure
+- Use Go's testing package (no external assert libraries)
+- Write tests in `_test.go` files alongside the code they test
+- Follow Go naming conventions (e.g., TestFunctionName)
+- Use descriptive test function names
+
+## Test Coverage
+- Cover all exported functions in the package
+- Test both success and error cases
+- Include edge cases and boundary conditions
+- Test error handling paths
+
+## Table-Driven Tests
+- Use table-driven tests for multiple scenarios
+- Define test cases with clear, descriptive names
+- Include both positive and negative test cases
+- Test various input combinations
+
+## Mocking and Dependencies
+- Mock external dependencies using interfaces
+- Create test doubles for external services
+- Use dependency injection to facilitate testing
+- Test in isolation without external dependencies
+
+## Test Organization
+- Group related tests together
+- Use subtests for complex test scenarios
+- Keep tests focused and readable
+- Use helper functions for common test setup
+
+## Assertions and Validation
+- Use standard Go testing assertions
+- Validate both return values and side effects
+- Check error conditions explicitly
+- Use `t.Helper()` for test helper functions
+
+## Integration Tests
+- Write integration tests for end-to-end scenarios
+- Test real Docker API interactions when appropriate
+- Use test containers or mock Docker daemon
+- Clean up resources after tests
+
+## Performance Testing
+- Use benchmarks for performance-critical code
+- Profile code to identify bottlenecks
+- Test with realistic data sizes
+- Monitor memory usage and garbage collection

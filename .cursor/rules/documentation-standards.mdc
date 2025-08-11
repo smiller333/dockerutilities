@@ -1,0 +1,61 @@
+---
+description: Documentation standards for code comments and project documentation
+globs: ["**/*.go", "**/*.md"]
+alwaysApply: false
+---
+
+# Documentation Standards
+
+This project maintains high documentation standards:
+
+## Code Documentation (godoc)
+- Write package-level overview describing purpose and usage
+- Include detailed comments for all exported types, functions, and constants
+- Provide example usage code where applicable
+- Clear parameter and return value descriptions
+- Place comments above declarations per Go conventions
+
+## Comment Format
+- Use complete sentences in comments
+- Start with the name of the thing being documented
+- Be concise but comprehensive
+- Include examples for complex functions
+- Document error conditions and edge cases
+
+## Package Documentation
+- Start each package with a package comment
+- Explain the package's purpose and usage
+- Include usage examples for the package
+- Document any important design decisions
+
+## Function Documentation
+- Document all exported functions
+- Explain parameters, return values, and side effects
+- Include usage examples for complex functions
+- Document error conditions and their meanings
+
+## Type Documentation
+- Document all exported types
+- Explain the purpose and usage of each type
+- Include examples of how to create and use types
+- Document any constraints or invariants
+
+## Markdown Documentation
+- Use clear, descriptive headings
+- Include code examples with syntax highlighting
+- Keep documentation up to date with code changes
+- Use consistent formatting and style
+- Include links to related documentation
+
+## API Documentation
+- Document all public APIs
+- Include request/response examples
+- Explain error codes and their meanings
+- Provide usage patterns and best practices
+
+## README Files
+- Include project overview and purpose
+- Provide installation and usage instructions
+- Include examples and code snippets
+- Document configuration options
+- Include troubleshooting information

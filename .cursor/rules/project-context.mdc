@@ -1,0 +1,47 @@
+---
+description: Project context and file organization patterns
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Project Context
+
+This is a Go-based command-line utilities project that interacts with the Docker Engine API.
+
+## Project Structure
+- `cmd/`: CLI command definitions using Cobra library
+- `src/`: Implementation logic organized into unique packages
+- `docs/apis/dockersdk/`: Docker API documentation files
+- `examples/`: Example Dockerfiles and usage examples
+- `bin/`: Built executables
+- `tmp/`: Temporary files
+
+## Key Technologies
+- **Language**: Go (with strict adherence to best practices)
+- **CLI Framework**: Cobra library
+- **Docker API**: github.com/docker/docker/client (v28.3.0+incompatible)
+- **Documentation**: Markdown and godoc comments
+
+## File Organization
+- All Go code follows standard Go project layout
+- Docker API documentation is in `docs/apis/dockersdk/`
+- Examples and documentation in respective directories
+- Build artifacts in `bin/` and `tmp/`
+
+## Development Focus
+- Separation of concerns with clear package boundaries
+- Comprehensive testing and documentation
+- Docker API integration with proper error handling
+- CLI utilities for Docker operations
+
+## Important Files
+- `go.mod`: Go module definition
+- `main.go`: Application entry point
+- `Makefile`: Build and development tasks
+- `README.md`: Project overview and usage
+- `DOCKER.md`: Docker-specific documentation
+
+## Context Directories for AI
+- `src/**`: Implementation logic
+- `cmd/**`: CLI command definitions  
+- `docs/apis/dockersdk`: Docker API documentation files

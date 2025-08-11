@@ -1,0 +1,42 @@
+---
+description: CLI command implementation patterns using Cobra library
+globs: ["cmd/**/*.go"]
+alwaysApply: true
+---
+
+# CLI Command Patterns
+
+CLI commands in this project use the Cobra library and follow specific patterns:
+
+## Command Structure
+- Define commands in packages under `cmd/` directory
+- Use Cobra library for command-line interface
+- Include clear command description and usage
+- Delegate business logic to packages in `src/`
+- Use dependency injection for modularity
+
+## Command Implementation
+- Follow Go best practices (error handling, idiomatic naming)
+- Include comprehensive help text and examples
+- Use proper flag definitions with validation
+- Implement proper error handling and user feedback
+- Use consistent command naming conventions
+
+## Code Organization
+- Keep command logic minimal - delegate to `src/` packages
+- Use interfaces for dependency injection
+- Separate concerns: CLI handling vs business logic
+- Use consistent error message formatting
+
+## Best Practices
+- Validate input parameters early
+- Provide meaningful error messages
+- Use subcommands for complex functionality
+- Include usage examples in help text
+- Follow the principle of least surprise
+
+## Testing Commands
+- Test command execution with various inputs
+- Mock dependencies for isolated testing
+- Test both success and error scenarios
+- Verify help text and usage information

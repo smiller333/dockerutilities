@@ -1,0 +1,33 @@
+---
+description: Docker Engine API integration patterns and type references
+globs: ["**/*.go"]
+alwaysApply: false
+---
+
+# Docker API Integration
+
+This project interacts with the Docker Engine API using `github.com/docker/docker/client` package (v28.3.0+incompatible).
+
+## API References
+- Use `docs/apis/dockersdk/github-com_docker_docker_v28-3-0+incompatible_client.md` as the primary reference for client methods and types
+- Related type definitions (e.g., `container.Config`, `swarm.ServiceSpec`, `network.CreateOptions`) are in separate markdown files within the same directory
+- Infer type details from import paths (e.g., `github.com/docker/docker/container` for `container.Config`)
+- Infer documentation file name from import paths (e.g., `github.com/docker/docker/api/types` → `github-com_docker_docker_v28-3-0+incompatible_api_types.md`)
+
+## Type Usage
+- If type details are unavailable, make reasonable assumptions based on Go conventions
+- Note assumptions in comments (e.g., `// Assuming container.Config requires Image and Cmd fields`)
+- Ensure code uses correct package imports
+- Follow Go best practices for Docker API interactions
+
+## Client Usage
+- Use the official Docker client package for all API interactions
+- Handle API errors appropriately
+- Use context for timeouts and cancellation
+- Implement proper resource cleanup
+
+## Common Patterns
+- Create client instances with proper error handling
+- Use typed structs for API requests and responses
+- Implement retry logic for transient failures
+- Log API interactions for debugging
