@@ -8,7 +8,7 @@ This example demonstrates how to run the dockerutils image-viewer server in a Do
 
 ```bash
 # Build the Docker image and run with ephemeral storage
-./docker-run.sh run
+./scripts/docker-run.sh run
 
 # The server will be available at http://localhost:8080
 # Analysis data will be lost when the container stops
@@ -18,7 +18,7 @@ This example demonstrates how to run the dockerutils image-viewer server in a Do
 
 ```bash
 # Build the Docker image and run with persistent storage
-./docker-run.sh run-persistent
+./scripts/docker-run.sh run-persistent
 
 # The server will be available at http://localhost:8080
 # Analysis data will be preserved in ./data directory
@@ -65,14 +65,14 @@ docker run -d \
 
 2. **Check container logs**:
    ```bash
-   ./docker-run.sh logs
+   ./scripts/docker-run.sh logs
    # or
    docker logs dockerutils-viewer
    ```
 
 3. **Open shell in container** (for debugging):
    ```bash
-   ./docker-run.sh shell
+   ./scripts/docker-run.sh shell
    # or
    docker exec -it dockerutils-viewer /bin/sh
    ```
@@ -82,22 +82,22 @@ docker run -d \
 ### Ephemeral Storage
 - **Use case**: Testing, development, temporary analysis
 - **Data persistence**: Data is lost when container stops/restarts
-- **Command**: `./docker-run.sh run`
+- **Command**: `./scripts/docker-run.sh run`
 
 ### Persistent Storage
 - **Use case**: Production, long-term analysis storage
 - **Data persistence**: Data persists across container restarts
-- **Command**: `./docker-run.sh run-persistent`
+- **Command**: `./scripts/docker-run.sh run-persistent`
 - **Data location**: `./data` directory on host
 
 ## Stopping and Cleanup
 
 ```bash
 # Stop the container
-./docker-run.sh stop
+./scripts/docker-run.sh stop
 
 # Remove container and image
-./docker-run.sh clean
+./scripts/docker-run.sh clean
 
 # Stop docker-compose
 docker-compose down

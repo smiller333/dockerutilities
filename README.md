@@ -34,7 +34,7 @@ git clone https://github.com/smiller333/dockerutils.git
 cd dockerutils
 
 # Build and run with our convenience script
-./docker-run.sh run-persistent
+./scripts/docker-run.sh run-persistent
 
 # Or build and run manually
 docker build -t dockerutils-viewer .
@@ -61,16 +61,16 @@ git clone https://github.com/smiller333/dockerutils.git
 cd dockerutils
 
 # Build development version
-./build.sh dev
+./scripts/build.sh dev
 
 # Build optimized release version  
-./build.sh release
+./scripts/build.sh release
 
 # Build with specific version
-./build.sh -v v1.0.0 release
+./scripts/build.sh -v v1.0.0 release
 
 # Show version information
-./build.sh version
+./scripts/build.sh version
 ```
 
 #### Using Makefile
@@ -250,7 +250,9 @@ dockerutils/
 ├── tmp/                # Temporary analysis outputs
 ├── bin/                # Built binaries
 ├── .gitignore          # Git ignore patterns
-├── build.sh            # Build script with version injection
+├── scripts/            # Build and utility scripts
+│   ├── build.sh       # Build script with version injection
+│   └── docker-run.sh  # Docker container management script
 ├── Makefile            # Build automation
 ├── main.go             # Application entry point
 ├── go.mod              # Go module definition

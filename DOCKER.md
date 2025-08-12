@@ -8,38 +8,38 @@ This directory contains Docker configuration files and scripts for running the D
 
 ```bash
 # Build and run with ephemeral storage
-./docker-run.sh run
+./scripts/docker-run.sh run
 
 # Build and run with persistent data storage
-./docker-run.sh run --persistent
+./scripts/docker-run.sh run --persistent
 
 # Use a custom Docker socket location (e.g., Docker Desktop on macOS)
-./docker-run.sh run --socket ~/.docker/desktop/docker.sock
+./scripts/docker-run.sh run --socket ~/.docker/desktop/docker.sock
 
 # Combine options for persistent storage with custom socket
-./docker-run.sh run --persistent --socket ~/.docker/desktop/docker.sock
+./scripts/docker-run.sh run --persistent --socket ~/.docker/desktop/docker.sock
 
 # Use custom port and data directory
-./docker-run.sh run --persistent --port 3000 --data-dir ./my-data
+./scripts/docker-run.sh run --persistent --port 3000 --data-dir ./my-data
 
 # View help for all options
-./docker-run.sh help
+./scripts/docker-run.sh help
 
 # View logs
-./docker-run.sh logs
+./scripts/docker-run.sh logs
 
 # Stop the container
-./docker-run.sh stop
+./scripts/docker-run.sh stop
 
 # Clean up everything
-./docker-run.sh clean
+./scripts/docker-run.sh clean
 ```
 
 **Environment Variables:**
 ```bash
 # Set custom Docker socket via environment variable
 export DOCKER_SOCKET=~/.docker/desktop/docker.sock
-./docker-run.sh run
+./scripts/docker-run.sh run
 
 # Common Docker socket locations:
 # Linux (default):           /var/run/docker.sock
@@ -97,7 +97,7 @@ docker run -d \
 | `DOCKER_HOST` | `unix:///var/run/docker.sock` | Docker daemon endpoint |
 | `DOCKER_SOCKET` | `/var/run/docker.sock` | Docker socket path for container mount |
 
-**Note:** `DOCKER_SOCKET` is used by the `docker-run.sh` script to determine which socket to mount into the container, while `DOCKER_HOST` is used by the Docker client itself.
+**Note:** `DOCKER_SOCKET` is used by the `scripts/docker-run.sh` script to determine which socket to mount into the container, while `DOCKER_HOST` is used by the Docker client itself.
 
 ### Volume Mounts
 
@@ -128,7 +128,7 @@ To enable persistent storage:
 
 1. **Using the build script:**
    ```bash
-   ./docker-run.sh run-persistent
+   ./scripts/docker-run.sh run-persistent
    ```
 
 2. **Using Docker Compose:**
@@ -173,7 +173,7 @@ Once the container is running, you can access:
 
 3. **View container logs:**
    ```bash
-   ./docker-run.sh logs
+   ./scripts/docker-run.sh logs
    # or
    docker logs dockerutils-viewer
    ```
@@ -200,7 +200,7 @@ Once the container is running, you can access:
    ls -la /run/user/$(id -u)/podman/podman.sock
    
    # Use the --socket option to specify the correct path:
-   ./docker-run.sh run --socket ~/.docker/desktop/docker.sock
+   ./scripts/docker-run.sh run --socket ~/.docker/desktop/docker.sock
    ```
 
 4. **Test Docker connectivity:**
@@ -250,7 +250,7 @@ Once the container is running, you can access:
 
 ```bash
 # Build image
-./docker-run.sh build
+./scripts/docker-run.sh build
 
 # Run with auto-rebuild on changes (requires file watching)
 # This is better done with local development instead of Docker
@@ -261,7 +261,7 @@ go run main.go image-viewer --tmp-dir ./data
 
 ```bash
 # Open shell in running container
-./docker-run.sh shell
+./scripts/docker-run.sh shell
 
 # Run container with shell access
 docker run -it --rm \
@@ -289,5 +289,5 @@ For production deployment, consider:
 - `Dockerfile` - Multi-stage Docker build configuration
 - `docker-compose.yml` - Basic Docker Compose configuration
 - `docker-compose.prod.yml` - Production Docker Compose configuration
-- `docker-run.sh` - Convenience script for building and running
+- `scripts/docker-run.sh` - Convenience script for building and running
 - `.dockerignore` - Files to exclude from Docker build context
