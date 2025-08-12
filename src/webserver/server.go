@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/smiller333/dockerutils/src/analyzer"
+	"github.com/smiller333/dockerutils/src/buildcontext"
 	"github.com/smiller333/dockerutils/src/dockerclient"
 	"github.com/smiller333/dockerutils/src/version"
 	"golang.org/x/text/cases"
@@ -87,6 +88,32 @@ type AsyncAnalyzeResponse struct {
 	RequestID string `json:"request_id,omitempty"`
 	Message   string `json:"message,omitempty"`
 	Error     string `json:"error,omitempty"`
+}
+
+// BuildContextPreviewRequest represents the request body for build context preview
+type BuildContextPreviewRequest struct {
+	ContextDir          string `json:"context_dir"`
+	DockerignoreContent string `json:"dockerignore_content"`
+}
+
+// BuildContextPreviewResponse represents the response for build context preview
+type BuildContextPreviewResponse struct {
+	Success  bool                             `json:"success"`
+	Included *buildcontext.BuildDirectoryInfo `json:"included,omitempty"`
+	Excluded []string                         `json:"excluded,omitempty"`
+	Error    string                           `json:"error,omitempty"`
+}
+
+// BuildContextReadRequest represents the request body for reading .dockerignore
+type BuildContextReadRequest struct {
+	ContextDir string `json:"context_dir"`
+}
+
+// BuildContextReadResponse represents the response for reading .dockerignore
+type BuildContextReadResponse struct {
+	Success bool   `json:"success"`
+	Content string `json:"content,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
 // responseWriter wraps http.ResponseWriter to capture the status code
@@ -257,6 +284,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /api/health", loggingMiddleware(http.HandlerFunc(s.handleHealth)))
 	mux.Handle("POST /api/analyze", loggingMiddleware(http.HandlerFunc(s.handleAnalyzeImage)))
 	mux.Handle("POST /api/analyze-async", loggingMiddleware(http.HandlerFunc(s.handleAnalyzeImageAsync)))
+	mux.Handle("POST /api/buildcontext/preview", loggingMiddleware(http.HandlerFunc(s.handleBuildContextPreview)))
+	mux.Handle("POST /api/buildcontext/read", loggingMiddleware(http.HandlerFunc(s.handleBuildContextRead)))
 }
 
 // handleHealth returns server health status
@@ -1104,4 +1133,142 @@ func (s *Server) imageInfoToSummary(info analyzer.ImageInfo) ImageSummary {
 		Status:       "completed", // Default status for completed analysis
 		RequestID:    "",          // Will be set by caller if needed
 	}
+}
+
+// validateContextDir validates and resolves the context directory path to prevent directory traversal attacks
+func (s *Server) validateContextDir(contextDir string) (string, error) {
+	if contextDir == "" {
+		return "", fmt.Errorf("context directory cannot be empty")
+	}
+
+	// Clean the path to resolve any .. or other path components
+	cleanPath := filepath.Clean(contextDir)
+
+	// Convert to absolute path
+	absPath, err := filepath.Abs(cleanPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve absolute path: %w", err)
+	}
+
+	// Check if the path exists and is a directory
+	info, err := os.Stat(absPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("directory does not exist: %s", absPath)
+		}
+		return "", fmt.Errorf("failed to access directory: %w", err)
+	}
+
+	if !info.IsDir() {
+		return "", fmt.Errorf("path is not a directory: %s", absPath)
+	}
+
+	// For additional security, you could add workspace root validation here
+	// For example, ensure the path is within the current working directory or a specific allowed directory
+	// This is optional based on your security requirements
+
+	return absPath, nil
+}
+
+// handleBuildContextPreview handles POST requests to preview build context with .dockerignore
+func (s *Server) handleBuildContextPreview(w http.ResponseWriter, r *http.Request) {
+	// Parse request body
+	var req BuildContextPreviewRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response := BuildContextPreviewResponse{
+			Success: false,
+			Error:   "Invalid request body",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Validate and resolve context directory
+	contextDir, err := s.validateContextDir(req.ContextDir)
+	if err != nil {
+		response := BuildContextPreviewResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Invalid context directory: %v", err),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Compute build context using the buildcontext package
+	included, excluded, err := buildcontext.ComputeBuildContext(contextDir, req.DockerignoreContent)
+	if err != nil {
+		response := BuildContextPreviewResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to compute build context: %v", err),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Return success response
+	response := BuildContextPreviewResponse{
+		Success:  true,
+		Included: included,
+		Excluded: excluded,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleBuildContextRead handles POST requests to read .dockerignore file content
+func (s *Server) handleBuildContextRead(w http.ResponseWriter, r *http.Request) {
+	// Parse request body
+	var req BuildContextReadRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response := BuildContextReadResponse{
+			Success: false,
+			Error:   "Invalid request body",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Validate and resolve context directory
+	contextDir, err := s.validateContextDir(req.ContextDir)
+	if err != nil {
+		response := BuildContextReadResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Invalid context directory: %v", err),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Read .dockerignore content using the buildcontext package
+	content, err := buildcontext.ReadDockerignore(contextDir)
+	if err != nil {
+		response := BuildContextReadResponse{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to read .dockerignore: %v", err),
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Return success response with content (empty string if file doesn't exist)
+	response := BuildContextReadResponse{
+		Success: true,
+		Content: content,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
