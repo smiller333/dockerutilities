@@ -191,48 +191,9 @@
                 <p class="text-sm text-gray-500 mt-2">Enter the absolute path to your build context directory</p>
             </div>
 
-            <!-- Dockerignore Editor -->
-            <div class="mb-4">
-                <div class="flex items-center justify-between mb-2">
-                    <label for="dockerignoreContent" class="block text-sm font-medium text-gray-700">.dockerignore Content</label>
-                    <button
-                        id="clearBtn"
-                        class="text-sm text-red-600 hover:text-red-800"
-                    >
-                        Clear
-                    </button>
-                </div>
-                <div class="textarea-container">
-                    <div class="line-numbers">
-                        <div id="lineNumbersContent" class="line-numbers-content">1</div>
-                    </div>
-                    <textarea
-                        id="dockerignoreContent"
-                        rows="10"
-                        placeholder="# Add your .dockerignore patterns here
-# Example:
-node_modules
-*.log
-temp/
-.git"
-                        class="textarea-with-numbers min-h-[250px]"
-                    ></textarea>
-                </div>
-                <p class="text-sm text-gray-500 mt-2">Edit your .dockerignore patterns. Changes are previewed in real-time.</p>
-            </div>
 
-            <!-- Auto-preview toggle -->
-            <div class="flex items-center">
-                <input
-                    id="autoPreview"
-                    type="checkbox"
-                    checked
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label for="autoPreview" class="ml-2 block text-sm text-gray-700">
-                    Auto-preview changes (updates as you type)
-                </label>
-            </div>
+
+
         </div>
 
         <!-- Results Section -->
@@ -261,7 +222,54 @@ temp/
 
             <!-- Two Panel Layout -->
             <div class="flex flex-col xl:flex-row gap-6">
-                <!-- Left Panel: Included Files Tree -->
+                <!-- Left Panel: Dockerignore Editor -->
+                <div class="bg-white shadow rounded-md p-4 xl:w-1/2">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-medium text-gray-800 flex items-center">
+                            <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                            .dockerignore Content
+                        </h3>
+                        <button
+                            id="clearBtn"
+                            class="text-sm text-red-600 hover:text-red-800 px-2 py-1 rounded border border-red-200 hover:bg-red-50"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                    <div class="textarea-container">
+                        <div class="line-numbers">
+                            <div id="lineNumbersContent" class="line-numbers-content">1</div>
+                        </div>
+                        <textarea
+                            id="dockerignoreContent"
+                            rows="10"
+                            placeholder="# Add your .dockerignore patterns here
+# Example:
+node_modules
+*.log
+temp/
+.git"
+                            class="textarea-with-numbers"
+                            style="height: 60vh; min-height: 400px;"
+                        ></textarea>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">Edit your .dockerignore patterns. Changes are previewed in real-time.</p>
+                    
+                    <!-- Auto-preview toggle moved here -->
+                    <div class="flex items-center mt-3 pt-3 border-t border-gray-200">
+                        <input
+                            id="autoPreviewPanel"
+                            type="checkbox"
+                            checked
+                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label for="autoPreviewPanel" class="ml-2 block text-sm text-gray-700">
+                            Auto-preview changes (updates as you type)
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Included Files Tree -->
                 <div class="bg-white shadow rounded-md p-4 xl:w-1/2">
                     <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
                         <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
@@ -270,16 +278,26 @@ temp/
                     <div id="includedTree" class="file-tree overflow-y-auto border rounded p-3 bg-gray-50" style="height: 70vh;">
                         <!-- Included files tree will be rendered here -->
                     </div>
-                </div>
-
-                <!-- Right Panel: Excluded Files List -->
-                <div class="bg-white shadow rounded-md p-4 xl:w-1/2">
-                    <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                        <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
-                        Excluded Files & Directories
-                    </h3>
-                    <div id="excludedList" class="overflow-y-auto border rounded p-3 bg-gray-50" style="height: 70vh;">
-                        <!-- Excluded files list will be rendered here -->
+                    
+                    <!-- Excluded Files Collapsible Section -->
+                    <div class="mt-4">
+                        <button 
+                            id="toggleExcluded" 
+                            class="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 bg-gray-50 p-2 rounded border border-gray-200 hover:bg-gray-100"
+                        >
+                            <span class="flex items-center">
+                                <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                                Excluded Files & Directories (<span id="excludedCountInline">0</span>)
+                            </span>
+                            <svg id="excludedToggleIcon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="excludedSection" class="hidden mt-2">
+                            <div id="excludedList" class="overflow-y-auto border rounded p-3 bg-gray-50 max-h-64">
+                                <!-- Excluded files list will be rendered here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -346,7 +364,7 @@ temp/
         const loadDockerignoreBtn = document.getElementById('loadDockerignoreBtn');
         const previewBtn = document.getElementById('previewBtn');
         const clearBtn = document.getElementById('clearBtn');
-        const autoPreviewCheckbox = document.getElementById('autoPreview');
+        const autoPreviewCheckbox = document.getElementById('autoPreviewPanel');
         const resultsSection = document.getElementById('resultsSection');
         const loadingState = document.getElementById('loadingState');
         const errorState = document.getElementById('errorState');
@@ -354,12 +372,16 @@ temp/
         const excludedList = document.getElementById('excludedList');
         const includedCount = document.getElementById('includedCount');
         const excludedCount = document.getElementById('excludedCount');
+        const excludedCountInline = document.getElementById('excludedCountInline');
         const totalSize = document.getElementById('totalSize');
         const errorMessage = document.getElementById('errorMessage');
         const successModal = document.getElementById('successModal');
         const successMessage = document.getElementById('successMessage');
         const closeSuccessModal = document.getElementById('closeSuccessModal');
         const successOk = document.getElementById('successOk');
+        const toggleExcluded = document.getElementById('toggleExcluded');
+        const excludedSection = document.getElementById('excludedSection');
+        const excludedToggleIcon = document.getElementById('excludedToggleIcon');
 
         // Initialize the application
         function init() {
@@ -435,6 +457,18 @@ temp/
             successModal.addEventListener('click', (e) => {
                 if (e.target === successModal) {
                     successModal.classList.remove('show');
+                }
+            });
+
+            // Excluded files toggle
+            toggleExcluded.addEventListener('click', () => {
+                const isHidden = excludedSection.classList.contains('hidden');
+                if (isHidden) {
+                    excludedSection.classList.remove('hidden');
+                    excludedToggleIcon.classList.add('rotate-180');
+                } else {
+                    excludedSection.classList.add('hidden');
+                    excludedToggleIcon.classList.remove('rotate-180');
                 }
             });
         }
@@ -565,8 +599,10 @@ temp/
         function displayResults(data) {
             // Update summary stats
             const includedFileCount = countFilesInTree(data.included);
+            const excludedFileCount = data.excluded.length;
             includedCount.textContent = includedFileCount.toString();
-            excludedCount.textContent = data.excluded.length.toString();
+            excludedCount.textContent = excludedFileCount.toString();
+            excludedCountInline.textContent = excludedFileCount.toString();
             totalSize.textContent = formatSize(data.included.size || 0);
 
             // Render included files tree
