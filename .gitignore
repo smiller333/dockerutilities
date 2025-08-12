@@ -1,10 +1,9 @@
 .DS_Store
 
-# Ignore environment files
-**/*.env
-
 # Ignore the binary
 /dockerutils
 /bin/**/*
 
+# Ignore data and temp files
+/data
 /tmp
