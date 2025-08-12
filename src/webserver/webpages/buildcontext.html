@@ -392,6 +392,7 @@ temp/
     <script>
         let currentPreviewData = null;
         let debounceTimer = null;
+        let dockerignoreTextareaModified = false; // Track if user has interacted with the textarea
 
         // DOM elements
         const contextDirInput = document.getElementById('contextDir');
@@ -466,14 +467,16 @@ temp/
             // Clear button
             clearBtn.addEventListener('click', () => {
                 dockerignoreTextarea.value = '';
+                dockerignoreTextareaModified = true; // Mark as modified when cleared
                 updateLineNumbers();
                 if (autoPreviewCheckbox.checked && contextDirInput.value.trim()) {
-                    debouncedPreview();
+                    debouncedPreview(); // Use normal preview logic now
                 }
             });
 
             // Auto-preview on textarea changes
             dockerignoreTextarea.addEventListener('input', () => {
+                dockerignoreTextareaModified = true; // Mark as modified when user types
                 updateLineNumbers();
                 if (autoPreviewCheckbox.checked && contextDirInput.value.trim()) {
                     debouncedPreview();
@@ -628,6 +631,7 @@ temp/
                 }
                 
                 dockerignoreTextarea.value = result.content || '';
+                dockerignoreTextareaModified = false; // Reset modified flag when loading from file
                 updateLineNumbers();
                 
                 const message = result.content 
@@ -651,6 +655,10 @@ temp/
         async function previewBuildContext() {
             const contextDir = contextDirInput.value.trim();
             const dockerignoreContent = dockerignoreTextarea.value;
+            
+            // If the textarea has been modified by the user, always use its content exactly
+            // (even if empty). Only fall back to reading from file if never modified.
+            const useEmptyContent = dockerignoreTextareaModified && dockerignoreContent === '';
 
             // Only hide error state and show loading - keep results visible
             errorState.classList.add('hidden');
@@ -664,7 +672,8 @@ temp/
                     },
                     body: JSON.stringify({
                         context_dir: contextDir,
-                        dockerignore_content: dockerignoreContent
+                        dockerignore_content: dockerignoreContent,
+                        use_empty_content: useEmptyContent
                     })
                 });
 
@@ -712,7 +721,7 @@ temp/
         function displayResults(data) {
             // Update summary stats
             const includedFileCount = countFilesInTree(data.included);
-            const excludedFileCount = data.excluded.length;
+            const excludedFileCount = (data.excluded || []).length; // Handle null/undefined excluded array
             includedCount.textContent = includedFileCount.toString();
             excludedCount.textContent = excludedFileCount.toString();
             excludedCountInline.textContent = excludedFileCount.toString();
@@ -722,7 +731,7 @@ temp/
             renderIncludedTree(data.included);
 
             // Render excluded files list
-            renderExcludedList(data.excluded);
+            renderExcludedList(data.excluded || []); // Handle null/undefined excluded array
 
             resultsSection.classList.remove('hidden');
         }

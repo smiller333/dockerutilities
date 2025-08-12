@@ -4,6 +4,7 @@ go 1.24.2
 
 require (
 	github.com/docker/docker v28.3.0+incompatible
+	github.com/moby/patternmatcher v0.6.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/spf13/cobra v1.9.1
 	golang.org/x/text v0.26.0

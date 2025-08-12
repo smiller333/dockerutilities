@@ -89,7 +89,7 @@ func TestParseDockerignorePatterns(t *testing.T) {
 		{
 			name:     "simple patterns",
 			content:  "*.log\n.git\nnode_modules/",
-			expected: []string{"*.log", ".git", "node_modules/"},
+			expected: []string{"*.log", ".git", "node_modules"},
 		},
 		{
 			name: "with comments and empty lines",
@@ -102,12 +102,22 @@ node_modules/
 
 # Temporary files
 *.tmp`,
-			expected: []string{"*.log", "node_modules/", ".git", "*.tmp"},
+			expected: []string{"*.log", "node_modules", ".git", "*.tmp"},
 		},
 		{
 			name:     "whitespace handling",
 			content:  "  *.log  \n\t.git\t\n  node_modules/  ",
-			expected: []string{"*.log", ".git", "node_modules/"},
+			expected: []string{"*.log", ".git", "node_modules"},
+		},
+		{
+			name:     "dot pattern filtered out",
+			content:  ".\n*.log\n.git",
+			expected: []string{"*.log", ".git"},
+		},
+		{
+			name:     "preprocessed paths",
+			content:  "./src\n../temp\nsrc/./main.go",
+			expected: []string{"src", "../temp", "src/main.go"},
 		},
 	}
 
@@ -201,74 +211,6 @@ func TestShouldIgnore(t *testing.T) {
 	}
 }
 
-func TestMatchesPattern(t *testing.T) {
-	tests := []struct {
-		name     string
-		path     string
-		pattern  string
-		expected bool
-	}{
-		{
-			name:     "exact match",
-			path:     "file.txt",
-			pattern:  "file.txt",
-			expected: true,
-		},
-		{
-			name:     "wildcard extension",
-			path:     "file.log",
-			pattern:  "*.log",
-			expected: true,
-		},
-		{
-			name:     "directory pattern with trailing slash",
-			path:     "node_modules/package.json",
-			pattern:  "node_modules/",
-			expected: true,
-		},
-		{
-			name:     "directory exact match",
-			path:     "node_modules",
-			pattern:  "node_modules/",
-			expected: true,
-		},
-		{
-			name:     "double asterisk prefix",
-			path:     "deep/nested/file.tmp",
-			pattern:  "**/*.tmp",
-			expected: true,
-		},
-		{
-			name:     "double asterisk middle",
-			path:     "src/main/java/App.java",
-			pattern:  "src/**/App.java",
-			expected: true,
-		},
-		{
-			name:     "no match",
-			path:     "file.txt",
-			pattern:  "*.log",
-			expected: false,
-		},
-		{
-			name:     "partial path match",
-			path:     "logs/error.log",
-			pattern:  "logs",
-			expected: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := matchesPattern(tt.path, tt.pattern)
-			if result != tt.expected {
-				t.Errorf("Expected %v for path %q with pattern %q, got %v",
-					tt.expected, tt.path, tt.pattern, result)
-			}
-		})
-	}
-}
-
 func TestComputeBuildContext(t *testing.T) {
 	tests := []struct {
 		name             string
@@ -294,13 +236,26 @@ func TestComputeBuildContext(t *testing.T) {
 			files: map[string]string{
 				"main.go":        "package main",
 				"README.md":      "# Test",
-				"logs/error.log": "error",
-				"logs/debug.log": "debug",
+				"error.log":      "error", // moved to root level
+				"debug.log":      "debug", // moved to root level
 				"temp.tmp":       "temp",
+				"logs/other.txt": "other",
 			},
 			dockerignore:     "*.log\n*.tmp\nREADME.md",
-			expectedIncluded: []string{"main.go", "logs"},
-			expectedExcluded: []string{"README.md", "temp.tmp", "logs/error.log", "logs/debug.log"},
+			expectedIncluded: []string{"main.go", "logs", "logs/other.txt"},
+			expectedExcluded: []string{"README.md", "temp.tmp", "error.log", "debug.log"},
+		},
+		{
+			name: "nested file patterns",
+			files: map[string]string{
+				"main.go":        "package main",
+				"logs/error.log": "error",
+				"logs/debug.log": "debug",
+				"src/test.log":   "test",
+			},
+			dockerignore:     "**/*.log", // This should match nested .log files
+			expectedIncluded: []string{"main.go"},
+			expectedExcluded: []string{"logs/error.log", "logs/debug.log", "src/test.log"},
 		},
 		{
 			name: "directory exclusion",

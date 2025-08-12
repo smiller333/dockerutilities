@@ -5,5 +5,5 @@
 /bin/**/*
 
 # Ignore data and temp files
-/data
-/tmp
+**/data
+**/tmp

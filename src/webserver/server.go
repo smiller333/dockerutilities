@@ -94,6 +94,7 @@ type AsyncAnalyzeResponse struct {
 type BuildContextPreviewRequest struct {
 	ContextDir          string `json:"context_dir"`
 	DockerignoreContent string `json:"dockerignore_content"`
+	UseEmptyContent     bool   `json:"use_empty_content,omitempty"` // If true, use empty content even if dockerignore_content is empty
 }
 
 // BuildContextPreviewResponse represents the response for build context preview
@@ -1199,7 +1200,7 @@ func (s *Server) handleBuildContextPreview(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Compute build context using the buildcontext package
-	included, excluded, err := buildcontext.ComputeBuildContext(contextDir, req.DockerignoreContent)
+	included, excluded, err := buildcontext.ComputeBuildContextWithOptions(contextDir, req.DockerignoreContent, req.UseEmptyContent)
 	if err != nil {
 		response := BuildContextPreviewResponse{
 			Success: false,

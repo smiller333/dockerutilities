@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/moby/patternmatcher"
 )
 
 // BuildFileInfo represents a file within a build context with its metadata
@@ -48,11 +50,18 @@ func ReadDockerignore(contextDir string) (string, error) {
 // applying .dockerignore patterns to exclude files and directories.
 // Returns the included files/directories structure and a list of excluded paths.
 func ComputeBuildContext(contextDir string, dockerignoreContent string) (*BuildDirectoryInfo, []string, error) {
+	return ComputeBuildContextWithOptions(contextDir, dockerignoreContent, false)
+}
+
+// ComputeBuildContextWithOptions analyzes a directory with additional options.
+// If useEmptyContent is true, empty dockerignoreContent will be treated as explicitly empty
+// rather than falling back to reading from the .dockerignore file.
+func ComputeBuildContextWithOptions(contextDir string, dockerignoreContent string, useEmptyContent bool) (*BuildDirectoryInfo, []string, error) {
 	// Clean and validate context directory
 	contextDir = filepath.Clean(contextDir)
 
-	// If dockerignoreContent is empty, try to read from file
-	if dockerignoreContent == "" {
+	// If dockerignoreContent is empty and useEmptyContent is false, try to read from file
+	if dockerignoreContent == "" && !useEmptyContent {
 		var err error
 		dockerignoreContent, err = ReadDockerignore(contextDir)
 		if err != nil {
@@ -70,7 +79,7 @@ func ComputeBuildContext(contextDir string, dockerignoreContent string) (*BuildD
 		Files:       []BuildFileInfo{},
 	}
 
-	var excludedPaths []string
+	excludedPaths := make([]string, 0) // Initialize as empty slice instead of nil
 
 	// Walk the directory tree
 	err := filepath.WalkDir(contextDir, func(path string, d fs.DirEntry, err error) error {
@@ -122,7 +131,8 @@ func ComputeBuildContext(contextDir string, dockerignoreContent string) (*BuildD
 }
 
 // parseDockerignorePatterns parses the content of a .dockerignore file and returns
-// a slice of patterns, handling comments and empty lines.
+// a slice of patterns, handling comments and empty lines with proper preprocessing
+// as specified in Docker documentation.
 func parseDockerignorePatterns(content string) []string {
 	var patterns []string
 	scanner := bufio.NewScanner(strings.NewReader(content))
@@ -135,109 +145,48 @@ func parseDockerignorePatterns(content string) []string {
 			continue
 		}
 
-		patterns = append(patterns, line)
+		// Apply preprocessing step as mentioned in Docker docs:
+		// Use Go's filepath.Clean to trim whitespace and remove . and ..
+		line = filepath.Clean(line)
+
+		// Skip the special "." pattern for historical reasons (Docker behavior)
+		if line == "." {
+			continue
+		}
+
+		// Lines that are blank after preprocessing are ignored
+		if line != "" {
+			patterns = append(patterns, line)
+		}
 	}
 
 	return patterns
 }
 
 // shouldIgnore determines if a path should be ignored based on .dockerignore patterns.
-// This implements a simplified version of Docker's ignore logic.
+// This uses the official moby/patternmatcher library for full Docker compatibility.
 func shouldIgnore(path string, patterns []string) bool {
-	// Normalize path separators to forward slashes for consistent pattern matching
-	normalizedPath := filepath.ToSlash(path)
-
-	ignored := false
-
-	for _, pattern := range patterns {
-		// Handle negation patterns (starting with !)
-		if strings.HasPrefix(pattern, "!") {
-			negatePattern := strings.TrimPrefix(pattern, "!")
-			if matchesPattern(normalizedPath, negatePattern) {
-				ignored = false // Un-ignore this path
-			}
-			continue
-		}
-
-		// Check if path matches the ignore pattern
-		if matchesPattern(normalizedPath, pattern) {
-			ignored = true
-		}
+	// If no patterns, don't ignore anything
+	if len(patterns) == 0 {
+		return false
 	}
 
-	return ignored
-}
-
-// matchesPattern checks if a path matches a dockerignore pattern.
-// This is a simplified implementation that handles basic glob patterns.
-func matchesPattern(path, pattern string) bool {
-	// Normalize pattern separators
-	pattern = filepath.ToSlash(pattern)
-
-	// Handle directory patterns (ending with /)
-	if strings.HasSuffix(pattern, "/") {
-		pattern = strings.TrimSuffix(pattern, "/")
-		// For directory patterns, check if path starts with the pattern
-		return strings.HasPrefix(path, pattern+"/") || path == pattern
+	// Create pattern matcher using the official moby implementation
+	pm, err := patternmatcher.New(patterns)
+	if err != nil {
+		// If pattern compilation fails, fall back to not ignoring
+		// In a production system, you might want to log this error
+		return false
 	}
 
-	// Handle patterns with **/ (match any number of directories)
-	if strings.Contains(pattern, "**/") {
-		parts := strings.Split(pattern, "**/")
-		if len(parts) == 2 {
-			prefix, suffix := parts[0], parts[1]
-
-			// Remove trailing slash from prefix if present
-			prefix = strings.TrimSuffix(prefix, "/")
-
-			// Check if path matches the pattern
-			if prefix == "" {
-				// Pattern starts with **/
-				matched, _ := filepath.Match(suffix, filepath.Base(path))
-				if matched {
-					return true
-				}
-				// Also check if any part of the path matches
-				return strings.Contains(path, suffix)
-			} else {
-				// Pattern has prefix/**/suffix
-				if strings.HasPrefix(path, prefix+"/") {
-					remaining := strings.TrimPrefix(path, prefix+"/")
-					matched, _ := filepath.Match(suffix, filepath.Base(remaining))
-					if matched {
-						return true
-					}
-					return strings.Contains(remaining, suffix)
-				}
-			}
-		}
+	// Use the pattern matcher to check if the path should be excluded
+	matches, err := pm.Matches(path)
+	if err != nil {
+		// If matching fails, fall back to not ignoring
+		return false
 	}
 
-	// Handle simple glob patterns
-	matched, err := filepath.Match(pattern, filepath.Base(path))
-	if err == nil && matched {
-		return true
-	}
-
-	// Check if the full path matches
-	matched, err = filepath.Match(pattern, path)
-	if err == nil && matched {
-		return true
-	}
-
-	// Check if any parent directory matches for directory-style patterns
-	if strings.Contains(path, "/") {
-		pathParts := strings.Split(path, "/")
-		for i := range pathParts {
-			partialPath := strings.Join(pathParts[:i+1], "/")
-			matched, err := filepath.Match(pattern, partialPath)
-			if err == nil && matched {
-				return true
-			}
-		}
-	}
-
-	return false
+	return matches
 }
 
 // addDirectoryToContext adds a directory to the build context structure
