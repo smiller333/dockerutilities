@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Context Visualizer - Docker Image Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .file-tree {
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        
+        .file-tree ul {
+            list-style: none;
+            padding-left: 1rem;
+        }
+        
+        .file-tree li {
+            margin: 0.25rem 0;
+        }
+        
+        .folder-icon::before {
+            content: "📁 ";
+        }
+        
+        .folder-icon.collapsed::before {
+            content: "📁 ";
+        }
+        
+        .folder-icon.expanded::before {
+            content: "📂 ";
+        }
+        
+        .file-icon::before {
+            content: "📄 ";
+        }
+        
+        .file-icon {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .folder-toggle {
+            user-select: none;
+        }
+        
+        .subfolder-hidden {
+            display: none;
+        }
+        
+        .file-tree-item {
+            transition: background-color 0.15s ease;
+            border-radius: 0.25rem;
+            padding: 0.125rem 0.25rem;
+            margin: 0.125rem 0;
+        }
+        
+        .file-tree-item:hover {
+            background-color: #e5e7eb;
+        }
+        
+        .excluded-file {
+            color: #9ca3af;
+            text-decoration: line-through;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .textarea-container {
+            position: relative;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            overflow: hidden;
+        }
+        
+        .line-numbers {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3rem;
+            background-color: #f9fafb;
+            border-right: 1px solid #e5e7eb;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            padding: 0.75rem 0.5rem;
+            color: #9ca3af;
+            text-align: right;
+            user-select: none;
+            overflow-y: hidden;
+            overflow-x: hidden;
+        }
+        
+        .line-numbers-content {
+            white-space: pre;
+        }
+        
+        .textarea-with-numbers {
+            width: 100%;
+            border: none;
+            outline: none;
+            resize: vertical;
+            padding: 0.75rem 0.75rem 0.75rem 3.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            background: transparent;
+        }
+        
+        .textarea-with-numbers:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: -2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-100">
+    <!-- Header -->
+    <div class="bg-blue-600 text-white text-center py-4">
+        <h1 class="text-2xl font-bold">Build Context Visualizer</h1>
+    </div>
+
+    <!-- Navigation -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4 py-2">
+            <a href="index.html" class="text-blue-600 hover:text-blue-800 text-sm">← Back to Image List</a>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 max-w-7xl">
+        <!-- Controls Section -->
+        <div class="bg-white shadow rounded-md p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Build Context Analysis</h2>
+            
+            <!-- Context Directory Input -->
+            <div class="mb-4">
+                <label for="contextDir" class="block text-sm font-medium text-gray-700 mb-2">Build Context Directory</label>
+                <div class="flex gap-2">
+                    <input
+                        id="contextDir"
+                        type="text"
+                        placeholder="/path/to/build/context"
+                        class="flex-1 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                        id="loadDockerignoreBtn"
+                        class="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors duration-200"
+                        title="Load existing .dockerignore file"
+                    >
+                        Load .dockerignore
+                    </button>
+                    <button
+                        id="previewBtn"
+                        class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200"
+                    >
+                        Preview
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">Enter the absolute path to your build context directory</p>
+            </div>
+
+            <!-- Dockerignore Editor -->
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="dockerignoreContent" class="block text-sm font-medium text-gray-700">.dockerignore Content</label>
+                    <button
+                        id="clearBtn"
+                        class="text-sm text-red-600 hover:text-red-800"
+                    >
+                        Clear
+                    </button>
+                </div>
+                <div class="textarea-container">
+                    <div class="line-numbers">
+                        <div id="lineNumbersContent" class="line-numbers-content">1</div>
+                    </div>
+                    <textarea
+                        id="dockerignoreContent"
+                        rows="10"
+                        placeholder="# Add your .dockerignore patterns here
+# Example:
+node_modules
+*.log
+temp/
+.git"
+                        class="textarea-with-numbers min-h-[250px]"
+                    ></textarea>
+                </div>
+                <p class="text-sm text-gray-500 mt-2">Edit your .dockerignore patterns. Changes are previewed in real-time.</p>
+            </div>
+
+            <!-- Auto-preview toggle -->
+            <div class="flex items-center">
+                <input
+                    id="autoPreview"
+                    type="checkbox"
+                    checked
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label for="autoPreview" class="ml-2 block text-sm text-gray-700">
+                    Auto-preview changes (updates as you type)
+                </label>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <!-- Summary Stats -->
+            <div class="bg-white shadow rounded-md p-4 mb-6">
+                <h3 class="text-lg font-medium text-gray-800 mb-3">Build Context Summary</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-green-50 rounded p-3 border border-green-200">
+                        <p class="text-xs text-green-600 uppercase tracking-wide font-medium">Included</p>
+                        <p id="includedCount" class="text-2xl font-bold text-green-800">0</p>
+                        <p class="text-xs text-green-600">files & directories</p>
+                    </div>
+                    <div class="bg-red-50 rounded p-3 border border-red-200">
+                        <p class="text-xs text-red-600 uppercase tracking-wide font-medium">Excluded</p>
+                        <p id="excludedCount" class="text-2xl font-bold text-red-800">0</p>
+                        <p class="text-xs text-red-600">files & directories</p>
+                    </div>
+                    <div class="bg-blue-50 rounded p-3 border border-blue-200">
+                        <p class="text-xs text-blue-600 uppercase tracking-wide font-medium">Total Size</p>
+                        <p id="totalSize" class="text-2xl font-bold text-blue-800">0 B</p>
+                        <p class="text-xs text-blue-600">included content</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Panel Layout -->
+            <div class="flex flex-col xl:flex-row gap-6">
+                <!-- Left Panel: Included Files Tree -->
+                <div class="bg-white shadow rounded-md p-4 xl:w-1/2">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                        <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                        Included Files & Directories
+                    </h3>
+                    <div id="includedTree" class="file-tree overflow-y-auto border rounded p-3 bg-gray-50" style="height: 70vh;">
+                        <!-- Included files tree will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Right Panel: Excluded Files List -->
+                <div class="bg-white shadow rounded-md p-4 xl:w-1/2">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                        <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                        Excluded Files & Directories
+                    </h3>
+                    <div id="excludedList" class="overflow-y-auto border rounded p-3 bg-gray-50" style="height: 70vh;">
+                        <!-- Excluded files list will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden bg-white shadow rounded-md p-8">
+            <div class="flex items-center justify-center">
+                <div class="loading-spinner"></div>
+                <span class="ml-3 text-gray-600">Analyzing build context...</span>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden bg-red-50 border border-red-200 rounded-md p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">Error</h3>
+                    <div class="mt-2 text-sm text-red-700">
+                        <p id="errorMessage"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h2 class="text-xl font-semibold text-green-800">Success</h2>
+                <button id="closeSuccessModal" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div class="p-4">
+                <div class="flex items-center mb-4">
+                    <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <p id="successMessage" class="text-gray-600"></p>
+                </div>
+                <div class="flex justify-end">
+                    <button id="successOk" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-200">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPreviewData = null;
+        let debounceTimer = null;
+
+        // DOM elements
+        const contextDirInput = document.getElementById('contextDir');
+        const dockerignoreTextarea = document.getElementById('dockerignoreContent');
+        const loadDockerignoreBtn = document.getElementById('loadDockerignoreBtn');
+        const previewBtn = document.getElementById('previewBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const autoPreviewCheckbox = document.getElementById('autoPreview');
+        const resultsSection = document.getElementById('resultsSection');
+        const loadingState = document.getElementById('loadingState');
+        const errorState = document.getElementById('errorState');
+        const includedTree = document.getElementById('includedTree');
+        const excludedList = document.getElementById('excludedList');
+        const includedCount = document.getElementById('includedCount');
+        const excludedCount = document.getElementById('excludedCount');
+        const totalSize = document.getElementById('totalSize');
+        const errorMessage = document.getElementById('errorMessage');
+        const successModal = document.getElementById('successModal');
+        const successMessage = document.getElementById('successMessage');
+        const closeSuccessModal = document.getElementById('closeSuccessModal');
+        const successOk = document.getElementById('successOk');
+
+        // Initialize the application
+        function init() {
+            setupEventListeners();
+            setupSyntaxHighlighting();
+            
+            // Set default context directory to current working directory
+            contextDirInput.value = '.';
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Preview button
+            previewBtn.addEventListener('click', () => {
+                if (validateInputs()) {
+                    previewBuildContext();
+                }
+            });
+
+            // Load .dockerignore button
+            loadDockerignoreBtn.addEventListener('click', () => {
+                if (validateContextDir()) {
+                    loadDockerignore();
+                }
+            });
+
+            // Clear button
+            clearBtn.addEventListener('click', () => {
+                dockerignoreTextarea.value = '';
+                updateLineNumbers();
+                if (autoPreviewCheckbox.checked && contextDirInput.value.trim()) {
+                    debouncedPreview();
+                }
+            });
+
+            // Auto-preview on textarea changes
+            dockerignoreTextarea.addEventListener('input', () => {
+                updateLineNumbers();
+                if (autoPreviewCheckbox.checked && contextDirInput.value.trim()) {
+                    debouncedPreview();
+                }
+            });
+
+            // Sync scroll between textarea and line numbers
+            dockerignoreTextarea.addEventListener('scroll', () => {
+                const lineNumbers = document.querySelector('.line-numbers');
+                lineNumbers.scrollTop = dockerignoreTextarea.scrollTop;
+            });
+
+            // Auto-preview on context directory changes
+            contextDirInput.addEventListener('input', () => {
+                if (autoPreviewCheckbox.checked && contextDirInput.value.trim()) {
+                    debouncedPreview();
+                }
+            });
+
+            // Enter key shortcuts
+            contextDirInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && validateInputs()) {
+                    previewBuildContext();
+                }
+            });
+
+            // Success modal
+            closeSuccessModal.addEventListener('click', () => {
+                successModal.classList.remove('show');
+            });
+
+            successOk.addEventListener('click', () => {
+                successModal.classList.remove('show');
+            });
+
+            successModal.addEventListener('click', (e) => {
+                if (e.target === successModal) {
+                    successModal.classList.remove('show');
+                }
+            });
+        }
+
+        // Setup syntax highlighting and line numbers
+        function setupSyntaxHighlighting() {
+            updateLineNumbers();
+        }
+
+        // Update line numbers in the textarea
+        function updateLineNumbers() {
+            const content = dockerignoreTextarea.value;
+            const lines = content.split('\n').length;
+            const lineNumbersContent = document.getElementById('lineNumbersContent');
+            
+            // Create line numbers from 1 to number of lines
+            let lineNumbers = '';
+            for (let i = 1; i <= lines; i++) {
+                lineNumbers += i;
+                if (i < lines) {
+                    lineNumbers += '\n';
+                }
+            }
+            
+            lineNumbersContent.textContent = lineNumbers;
+        }
+
+        // Debounced preview for auto-preview
+        function debouncedPreview() {
+            if (debounceTimer) {
+                clearTimeout(debounceTimer);
+            }
+            debounceTimer = setTimeout(() => {
+                if (validateInputs()) {
+                    previewBuildContext();
+                }
+            }, 500);
+        }
+
+        // Validate inputs
+        function validateInputs() {
+            return validateContextDir();
+        }
+
+        // Validate context directory
+        function validateContextDir() {
+            const contextDir = contextDirInput.value.trim();
+            if (!contextDir) {
+                showError('Please enter a build context directory');
+                return false;
+            }
+            return true;
+        }
+
+        // Load existing .dockerignore file
+        async function loadDockerignore() {
+            const contextDir = contextDirInput.value.trim();
+            
+            try {
+                const response = await fetch('/api/buildcontext/read', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        context_dir: contextDir
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                dockerignoreTextarea.value = result.content || '';
+                updateLineNumbers();
+                
+                const message = result.content 
+                    ? 'Successfully loaded .dockerignore file'
+                    : 'No .dockerignore file found - starting with empty content';
+                showSuccess(message);
+
+                // Auto-preview if enabled
+                if (autoPreviewCheckbox.checked) {
+                    debouncedPreview();
+                }
+            } catch (error) {
+                showError(`Failed to load .dockerignore: ${error.message}`);
+            }
+        }
+
+        // Preview build context
+        async function previewBuildContext() {
+            const contextDir = contextDirInput.value.trim();
+            const dockerignoreContent = dockerignoreTextarea.value;
+
+            hideStates();
+            loadingState.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/buildcontext/preview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        context_dir: contextDir,
+                        dockerignore_content: dockerignoreContent
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                currentPreviewData = result;
+                
+                hideStates();
+                displayResults(result);
+            } catch (error) {
+                hideStates();
+                showError(`Failed to preview build context: ${error.message}`);
+            }
+        }
+
+        // Display results
+        function displayResults(data) {
+            // Update summary stats
+            const includedFileCount = countFilesInTree(data.included);
+            includedCount.textContent = includedFileCount.toString();
+            excludedCount.textContent = data.excluded.length.toString();
+            totalSize.textContent = formatSize(data.included.size || 0);
+
+            // Render included files tree
+            renderIncludedTree(data.included);
+
+            // Render excluded files list
+            renderExcludedList(data.excluded);
+
+            resultsSection.classList.remove('hidden');
+        }
+
+        // Count files in directory tree
+        function countFilesInTree(dir) {
+            if (!dir) return 0;
+            
+            let count = (dir.files || []).length;
+            
+            if (dir.directories) {
+                for (const subdir of Object.values(dir.directories)) {
+                    count += countFilesInTree(subdir);
+                }
+            }
+            
+            return count;
+        }
+
+        // Render included files tree
+        function renderIncludedTree(directoryData) {
+            if (!directoryData) {
+                includedTree.innerHTML = '<p class="text-gray-500 italic">No data available</p>';
+                return;
+            }
+
+            const treeHtml = renderDirectoryTree(directoryData.directories || {}, directoryData.files || [], 0, 'included');
+            includedTree.innerHTML = treeHtml || '<p class="text-gray-500 italic">No included files</p>';
+        }
+
+        // Render excluded files list
+        function renderExcludedList(excludedPaths) {
+            if (!excludedPaths || excludedPaths.length === 0) {
+                excludedList.innerHTML = '<p class="text-gray-500 italic">No excluded files</p>';
+                return;
+            }
+
+            const sortedPaths = [...excludedPaths].sort();
+            let listHtml = '<ul class="space-y-1">';
+            
+            for (const path of sortedPaths) {
+                listHtml += `
+                    <li class="flex items-center py-1 px-2 text-sm text-red-700 bg-red-50 rounded border border-red-200">
+                        <svg class="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        <span class="font-mono">${escapeHtml(path)}</span>
+                    </li>
+                `;
+            }
+            
+            listHtml += '</ul>';
+            excludedList.innerHTML = listHtml;
+        }
+
+        // Render directory tree recursively (similar to details.html)
+        function renderDirectoryTree(directories, files = [], depth = 0, context = 'included') {
+            const hasDirectories = directories && Object.keys(directories).length > 0;
+            const hasFiles = files && files.length > 0;
+            
+            if (!hasDirectories && !hasFiles) {
+                return '<p class="text-gray-500 italic">Empty directory</p>';
+            }
+
+            let html = '<ul>';
+            
+            // First, render directories (sorted by name)
+            if (hasDirectories) {
+                const sortedDirEntries = Object.entries(directories).sort(([a], [b]) => a.localeCompare(b));
+                
+                for (const [name, dir] of sortedDirEntries) {
+                    const hasSubdirs = dir.directories && Object.keys(dir.directories).length > 0;
+                    const hasSubfiles = dir.files && dir.files.length > 0;
+                    const size = formatSize(dir.size);
+                    const folderId = `folder-${Math.random().toString(36).substr(2, 9)}`;
+                    
+                    html += '<li>';
+                    html += `<div class="file-tree-item flex items-center justify-between py-1 folder-toggle cursor-pointer" onclick="toggleFolder('${folderId}')">`;
+                    html += `<span class="folder-icon ${(hasSubdirs || hasSubfiles) ? 'collapsed' : ''}" id="icon-${folderId}">${escapeHtml(name)}/</span>`;
+                    html += `<span class="text-xs text-gray-500">${size}</span>`;
+                    html += '</div>';
+                    
+                    if (hasSubdirs || hasSubfiles) {
+                        html += `<div id="${folderId}" class="subfolder-hidden">`;
+                        html += renderDirectoryTree(dir.directories || {}, dir.files || [], depth + 1, context);
+                        html += '</div>';
+                    }
+                    
+                    html += '</li>';
+                }
+            }
+            
+            // Then, render files (sorted by name)
+            if (hasFiles) {
+                const sortedFiles = [...files].sort((a, b) => a.name.localeCompare(b.name));
+                
+                for (const f of sortedFiles) {
+                    const size = formatSize(f.size);
+                    html += '<li>';
+                    html += `<div class="file-tree-item flex items-center justify-between py-1">`;
+                    html += `<span class="file-icon">${escapeHtml(f.name)}</span>`;
+                    html += `<span class="text-xs text-gray-500">${size}</span>`;
+                    html += '</div>';
+                    html += '</li>';
+                }
+            }
+            
+            html += '</ul>';
+            return html;
+        }
+
+        // Toggle folder visibility (same as details.html)
+        function toggleFolder(folderId) {
+            const folder = document.getElementById(folderId);
+            const icon = document.getElementById(`icon-${folderId}`);
+            
+            if (folder && icon) {
+                if (folder.classList.contains('subfolder-hidden')) {
+                    folder.classList.remove('subfolder-hidden');
+                    icon.classList.remove('collapsed');
+                    icon.classList.add('expanded');
+                } else {
+                    folder.classList.add('subfolder-hidden');
+                    icon.classList.remove('expanded');
+                    icon.classList.add('collapsed');
+                }
+            }
+        }
+
+        // Format file size (same as other pages)
+        function formatSize(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+
+        // Hide all states
+        function hideStates() {
+            resultsSection.classList.add('hidden');
+            loadingState.classList.add('hidden');
+            errorState.classList.add('hidden');
+        }
+
+        // Show error state
+        function showError(message) {
+            hideStates();
+            errorMessage.textContent = message;
+            errorState.classList.remove('hidden');
+        }
+
+        // Show success modal
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successModal.classList.add('show');
+        }
+
+        // Start the application
+        init();
+    </script>
+</body>
+</html>
