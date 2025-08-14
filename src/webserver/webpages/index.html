@@ -5,32 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Docker Utilities</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .tool-card {
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        
-        .tool-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .feature-icon {
-            transition: color 0.2s ease-in-out;
-        }
-
-        .tool-card:hover .feature-icon {
-            color: #3b82f6;
-        }
-    </style>
+    <link rel="stylesheet" href="theme.css">
 </head>
 <body class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <div class="gradient-bg text-white">
+    <div class="header-primary">
         <div class="container mx-auto px-4 py-12 text-center">
             <h1 class="text-4xl font-bold mb-4">Docker Utilities</h1>
             <p class="text-xl text-blue-100 max-w-2xl mx-auto">
@@ -126,7 +105,7 @@
         </div>
 
         <!-- Features Overview -->
-        <div class="bg-white rounded-xl shadow-lg p-8 mb-12">
+        <div class="feature-overview">
             <h2 class="text-2xl font-bold text-gray-800 text-center mb-8">Why Choose Docker Utilities?</h2>
             
             <div class="grid md:grid-cols-3 gap-6">
@@ -169,7 +148,7 @@
         </div>
 
         <!-- Getting Started -->
-        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 border border-blue-200">
+        <div class="getting-started">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">Getting Started</h2>
             <p class="text-gray-600 mb-6">
                 Choose a tool above to begin analyzing your Docker images and build contexts. 
@@ -177,14 +156,14 @@
             </p>
             
             <div class="grid md:grid-cols-2 gap-4">
-                <div class="bg-white rounded-lg p-4 border border-blue-100">
+                <div class="getting-started-item">
                     <h4 class="font-semibold text-gray-800 mb-2">📊 For Image Analysis</h4>
                     <p class="text-sm text-gray-600">
                         Use the Docker Image Viewer to understand image composition, analyze layers, and identify optimization opportunities.
                     </p>
                 </div>
                 
-                <div class="bg-white rounded-lg p-4 border border-blue-100">
+                <div class="getting-started-item">
                     <h4 class="font-semibold text-gray-800 mb-2">🔍 For Build Optimization</h4>
                     <p class="text-sm text-gray-600">
                         Use the Build Context Visualizer to preview .dockerignore effects and optimize your build context.
@@ -195,7 +174,7 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-8 mt-16">
+    <footer class="footer">
         <div class="container mx-auto px-4 text-center">
             <p class="text-gray-300">
                 Docker Utilities - Comprehensive Docker Analysis Tools
@@ -203,7 +182,220 @@
             <p class="text-gray-400 text-sm mt-2">
                 Built with Go and modern web technologies
             </p>
+            <div class="mt-4">
+                <button 
+                    id="systemStatusBtn"
+                    class="text-gray-400 hover:text-gray-200 text-sm transition-colors duration-200 underline"
+                    title="View system health and Docker status"
+                >
+                    System Status
+                </button>
+            </div>
         </div>
     </footer>
+
+    <!-- Health Modal -->
+    <div id="healthModal" class="modal">
+        <div class="modal-content max-w-4xl">
+            <div class="modal-header">
+                <h2 class="modal-title">System Health</h2>
+                <button id="closeHealthModal" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body max-h-96 overflow-y-auto">
+                <div id="healthContent" class="space-y-4">
+                    <div class="flex items-center justify-center py-8">
+                        <div class="loading-spinner"></div>
+                        <span class="ml-2 text-gray-600">Loading health information...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Health modal elements
+        const systemStatusBtn = document.getElementById('systemStatusBtn');
+        const healthModal = document.getElementById('healthModal');
+        const healthContent = document.getElementById('healthContent');
+        const closeHealthModal = document.getElementById('closeHealthModal');
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            // System status button
+            systemStatusBtn.addEventListener('click', showHealthModal);
+            
+            // Health modal event listeners
+            closeHealthModal.addEventListener('click', () => {
+                healthModal.classList.remove('show');
+            });
+
+            healthModal.addEventListener('click', (e) => {
+                if (e.target === healthModal) {
+                    healthModal.classList.remove('show');
+                }
+            });
+        }
+
+        // Show health modal with system information
+        async function showHealthModal() {
+            // Show the modal first with loading content
+            healthModal.classList.add('show');
+            
+            // Reset content to loading state
+            healthContent.innerHTML = `
+                <div class="flex items-center justify-center py-8">
+                    <div class="loading-spinner"></div>
+                    <span class="ml-2 text-gray-600">Loading health information...</span>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/health');
+                const healthData = await response.json();
+                
+                // Display the health information
+                displayHealthData(healthData);
+            } catch (error) {
+                healthContent.innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <div class="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-red-800 font-medium">Failed to load health information</h3>
+                                <p class="text-red-600 text-sm">${error.message}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Display health data in a structured format
+        function displayHealthData(data) {
+            const statusIcon = data.status === 'healthy' 
+                ? '<div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center"><svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>'
+                : '<div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center"><svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg></div>';
+
+            const dockerStatusIcon = data.docker?.status === 'connected'
+                ? '<div class="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center"><svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>'
+                : '<div class="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center"><svg class="w-3 h-3 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></div>';
+
+            let dockerInfoHtml = '';
+            if (data.docker?.info) {
+                const info = data.docker.info;
+                dockerInfoHtml = `
+                    <div class="mt-3 grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span class="font-medium text-gray-700">Containers Running:</span>
+                            <span class="text-gray-600">${info.containers_running || 0}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">Images:</span>
+                            <span class="text-gray-600">${info.images || 0}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">Server Version:</span>
+                            <span class="text-gray-600">${info.server_version || 'Unknown'}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">Architecture:</span>
+                            <span class="text-gray-600">${info.architecture || 'Unknown'}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">OS Type:</span>
+                            <span class="text-gray-600">${info.os_type || 'Unknown'}</span>
+                        </div>
+                        <div>
+                            <span class="font-medium text-gray-700">CPUs:</span>
+                            <span class="text-gray-600">${info.cpu_count || 'Unknown'}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let dockerVersionHtml = '';
+            if (data.docker?.version) {
+                const version = data.docker.version;
+                dockerVersionHtml = `
+                    <div class="mt-3 text-sm">
+                        <div class="font-medium text-gray-700 mb-2">Docker Version Details:</div>
+                        <div class="grid grid-cols-2 gap-2 text-xs">
+                            <div><span class="font-medium">Version:</span> ${version.version || 'Unknown'}</div>
+                            <div><span class="font-medium">API Version:</span> ${version.api_version || 'Unknown'}</div>
+                            <div><span class="font-medium">Go Version:</span> ${version.go_version || 'Unknown'}</div>
+                            <div><span class="font-medium">Git Commit:</span> ${version.git_commit || 'Unknown'}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            healthContent.innerHTML = `
+                <div class="space-y-4">
+                    <!-- Overall Status -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center mb-2">
+                            ${statusIcon}
+                            <h3 class="ml-3 text-lg font-medium text-gray-800">System Status: ${data.status.charAt(0).toUpperCase() + data.status.slice(1)}</h3>
+                        </div>
+                    </div>
+
+                    <!-- Docker Status -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-center mb-2">
+                            ${dockerStatusIcon}
+                            <h3 class="ml-3 text-lg font-medium text-gray-800">Docker Daemon: ${data.docker?.status === 'connected' ? 'Connected' : 'Disconnected'}</h3>
+                        </div>
+                        ${data.docker?.docker_host ? `<div class="text-sm text-gray-600 mb-2"><span class="font-medium">Docker Host:</span> ${data.docker.docker_host}</div>` : ''}
+                        ${data.docker?.error ? `<div class="text-sm text-red-600 mb-2">${data.docker.error}</div>` : ''}
+                        ${dockerInfoHtml}
+                        ${dockerVersionHtml}
+                    </div>
+
+                    <!-- Build Information -->
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 class="text-lg font-medium text-gray-800 mb-3">Build Information</h3>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="font-medium text-gray-700">Version:</span>
+                                <span class="text-gray-600">${data.build?.version || 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Git Commit:</span>
+                                <span class="text-gray-600 font-mono">${data.build?.git_commit || 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Build Time:</span>
+                                <span class="text-gray-600">${data.build?.build_time && data.build.build_time !== 'unknown' ? new Date(data.build.build_time).toLocaleString() : 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Go Version:</span>
+                                <span class="text-gray-600">${data.build?.go_version || 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Target OS:</span>
+                                <span class="text-gray-600">${data.build?.goos || 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Architecture:</span>
+                                <span class="text-gray-600">${data.build?.goarch || 'Unknown'}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize the application
+        function init() {
+            setupEventListeners();
+        }
+
+        // Start the application
+        init();
+    </script>
 </body>
 </html>

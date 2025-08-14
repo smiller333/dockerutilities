@@ -5,96 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Build Context Visualizer - Docker Image Viewer</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme.css">
     <style>
-        .loading-spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .file-tree {
-            font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
-        }
-        
-        .file-tree ul {
-            list-style: none;
-            padding-left: 1rem;
-        }
-        
-        .file-tree li {
-            margin: 0.25rem 0;
-        }
-        
-        .folder-icon::before {
-            content: "📁 ";
-        }
-        
-        .folder-icon.collapsed::before {
-            content: "📁 ";
-        }
-        
-        .folder-icon.expanded::before {
-            content: "📂 ";
-        }
-        
-        .file-icon::before {
-            content: "📄 ";
-        }
-        
-        .file-icon {
-            color: #6b7280;
-            font-size: 0.875rem;
-        }
-        
-        .folder-toggle {
-            user-select: none;
-        }
-        
-        .subfolder-hidden {
-            display: none;
-        }
-        
-        .file-tree-item {
-            transition: background-color 0.15s ease;
-            border-radius: 0.25rem;
-            padding: 0.125rem 0.25rem;
-            margin: 0.125rem 0;
-        }
-        
-        .file-tree-item:hover {
-            background-color: #e5e7eb;
-        }
-        
         .excluded-file {
             color: #9ca3af;
             text-decoration: line-through;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-        
-        .modal.show {
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         
         .textarea-container {
@@ -112,7 +27,7 @@
             width: 3rem;
             background-color: #f9fafb;
             border-right: 1px solid #e5e7eb;
-            font-family: 'Courier New', monospace;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 0.875rem;
             line-height: 1.5;
             padding: 0.75rem 0.5rem;
@@ -133,7 +48,7 @@
             outline: none;
             resize: vertical;
             padding: 0.75rem 0.75rem 0.75rem 3.5rem;
-            font-family: 'Courier New', monospace;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 0.875rem;
             line-height: 1.5;
             background: transparent;
@@ -147,21 +62,21 @@
 </head>
 <body class="min-h-screen bg-gray-100">
     <!-- Header -->
-    <div class="bg-blue-600 text-white text-center py-4">
+    <div class="header-secondary">
         <h1 class="text-2xl font-bold">Build Context Visualizer</h1>
     </div>
 
     <!-- Navigation -->
-    <div class="bg-white shadow-sm border-b">
+    <div class="nav-breadcrumb">
         <div class="container mx-auto px-4 py-2">
             <a href="index.html" class="text-blue-600 hover:text-blue-800 text-sm">← Back to Tools</a>
         </div>
     </div>
 
     <!-- Main Container -->
-    <div class="container mx-auto p-4 max-w-7xl">
+    <div class="container mx-auto p-4 max-w-5xl">
         <!-- Controls Section -->
-        <div id="analysisSection" class="bg-white shadow rounded-md p-6 mb-6 transition-all duration-300">
+        <div id="analysisSection" class="card p-6 mb-6 transition-all duration-300">
             <h2 class="text-xl font-semibold mb-4 text-gray-800">Build Context Analysis</h2>
             
             <!-- Collapsed State (Initially Hidden) -->
@@ -182,24 +97,24 @@
             <div id="expandedState">
                 <!-- Context Directory Input -->
                 <div class="mb-4">
-                    <label for="contextDir" class="block text-sm font-medium text-gray-700 mb-2">Build Context Directory</label>
+                    <label for="contextDir" class="form-label">Build Context Directory</label>
                     <div class="flex gap-2">
                         <input
                             id="contextDir"
                             type="text"
                             placeholder="/path/to/build/context"
-                            class="flex-1 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="form-input flex-1"
                         />
                         <button
                             id="loadDockerignoreBtn"
                             type="button"
-                            class="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors duration-200"
+                            class="btn btn-secondary"
                             title="Load existing .dockerignore file"
                         >
                             Load .dockerignore
                         </button>
                     </div>
-                    <p class="text-sm text-gray-500 mt-2">Enter the absolute path to your build context directory</p>
+                    <p class="form-help">Enter the absolute path to your build context directory</p>
                 </div>
                 
                 <!-- Collapse Button -->
@@ -222,43 +137,46 @@
         <!-- Results Section -->
         <div id="resultsSection" class="hidden">
             <!-- Summary Stats -->
-            <div class="bg-white shadow rounded-md p-4 mb-6">
-                <h3 class="text-lg font-medium text-gray-800 mb-3">Build Context Summary</h3>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div class="bg-green-50 rounded p-3 border border-green-200">
-                        <p class="text-xs text-green-600 uppercase tracking-wide font-medium">Included</p>
-                        <p id="includedCount" class="text-2xl font-bold text-green-800">0</p>
-                        <p class="text-xs text-green-600">files & directories</p>
-                    </div>
-                    <div class="bg-red-50 rounded p-3 border border-red-200">
-                        <p class="text-xs text-red-600 uppercase tracking-wide font-medium">Excluded</p>
-                        <p id="excludedCount" class="text-2xl font-bold text-red-800">0</p>
-                        <p class="text-xs text-red-600">files & directories</p>
-                    </div>
-                    <div class="bg-blue-50 rounded p-3 border border-blue-200">
-                        <p class="text-xs text-blue-600 uppercase tracking-wide font-medium">Total Size</p>
-                        <p id="totalSize" class="text-2xl font-bold text-blue-800">0 B</p>
-                        <p class="text-xs text-blue-600">included content</p>
+            <div class="card mb-6">
+                <div class="card-body">
+                    <h3 class="card-title">Build Context Summary</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card success">
+                            <p class="stat-label">Included</p>
+                            <p id="includedCount" class="stat-value">0</p>
+                            <p class="stat-description">files & directories</p>
+                        </div>
+                        <div class="stat-card error">
+                            <p class="stat-label">Excluded</p>
+                            <p id="excludedCount" class="stat-value">0</p>
+                            <p class="stat-description">files & directories</p>
+                        </div>
+                        <div class="stat-card info">
+                            <p class="stat-label">Total Size</p>
+                            <p id="totalSize" class="stat-value">0 B</p>
+                            <p class="stat-description">included content</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Two Panel Layout -->
-            <div class="flex flex-col xl:flex-row gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <!-- Left Panel: Dockerignore Editor -->
-                <div class="bg-white shadow rounded-md p-4 xl:w-1/2">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-medium text-gray-800 flex items-center">
-                            <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-                            .dockerignore Content
-                        </h3>
-                        <button
-                            id="clearBtn"
-                            class="text-sm text-red-600 hover:text-red-800 px-2 py-1 rounded border border-red-200 hover:bg-red-50"
-                        >
-                            Clear
-                        </button>
-                    </div>
+                <div class="card lg:col-span-1">
+                    <div class="card-body">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="card-title flex items-center">
+                                <span class="w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                                .dockerignore Content
+                            </h3>
+                            <button
+                                id="clearBtn"
+                                class="btn btn-danger btn-sm"
+                            >
+                                Clear
+                            </button>
+                        </div>
                     <div class="textarea-container">
                         <div class="line-numbers">
                             <div id="lineNumbersContent" class="line-numbers-content">1</div>
@@ -294,19 +212,21 @@ temp/
                         <button
                             id="previewBtn"
                             type="button"
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors duration-200 text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            class="btn btn-primary btn-sm"
                         >
                             Preview
                         </button>
                     </div>
+                    </div>
                 </div>
 
                 <!-- Right Panel: Included Files Tree -->
-                <div class="bg-white shadow rounded-md p-4 xl:w-1/2">
-                    <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                        <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                        Included Files & Directories
-                    </h3>
+                <div class="card lg:col-span-1">
+                    <div class="card-body">
+                        <h3 class="card-title flex items-center">
+                            <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                            Included Files & Directories
+                        </h3>
                     <div id="includedTree" class="file-tree overflow-y-auto border rounded p-3 bg-gray-50" style="height: 70vh;">
                         <!-- Included files tree will be rendered here -->
                     </div>
@@ -331,12 +251,13 @@ temp/
                             </div>
                         </div>
                     </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Loading State -->
-        <div id="loadingState" class="hidden bg-white shadow rounded-md p-8">
+        <div id="loadingState" class="hidden card p-8">
             <div class="flex items-center justify-center">
                 <div class="loading-spinner"></div>
                 <span class="ml-3 text-gray-600">Analyzing build context...</span>
@@ -344,7 +265,7 @@ temp/
         </div>
 
         <!-- Error State -->
-        <div id="errorState" class="hidden bg-red-50 border border-red-200 rounded-md p-4">
+        <div id="errorState" class="hidden status-error">
             <div class="flex">
                 <div class="flex-shrink-0">
                     <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -363,12 +284,12 @@ temp/
 
     <!-- Success Modal -->
     <div id="successModal" class="modal">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div class="flex items-center justify-between p-4 border-b">
-                <h2 class="text-xl font-semibold text-green-800">Success</h2>
-                <button id="closeSuccessModal" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title text-green-800">Success</h2>
+                <button id="closeSuccessModal" class="modal-close">&times;</button>
             </div>
-            <div class="p-4">
+            <div class="modal-body">
                 <div class="flex items-center mb-4">
                     <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mr-3">
                         <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,23 +298,23 @@ temp/
                     </div>
                     <p id="successMessage" class="text-gray-600"></p>
                 </div>
-                <div class="flex justify-end">
-                    <button id="successOk" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors duration-200">
-                        OK
-                    </button>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="successOk" class="btn btn-success">
+                    OK
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Error Modal -->
     <div id="errorModal" class="modal">
-        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
-            <div class="flex items-center justify-between p-4 border-b">
-                <h2 class="text-xl font-semibold text-red-800">Error</h2>
-                <button id="closeErrorModal" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        <div class="modal-content max-w-lg">
+            <div class="modal-header">
+                <h2 class="modal-title text-red-800">Error</h2>
+                <button id="closeErrorModal" class="modal-close">&times;</button>
             </div>
-            <div class="p-4">
+            <div class="modal-body">
                 <div class="flex items-start mb-4">
                     <div class="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
                         <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -408,11 +329,11 @@ temp/
                         </div>
                     </div>
                 </div>
-                <div class="flex justify-end">
-                    <button id="errorOk" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors duration-200">
-                        OK
-                    </button>
-                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="errorOk" class="btn btn-danger">
+                    OK
+                </button>
             </div>
         </div>
     </div>
@@ -845,7 +766,7 @@ temp/
                     
                     html += '<li>';
                     html += `<div class="file-tree-item flex items-center justify-between py-1 folder-toggle cursor-pointer" onclick="toggleFolder('${folderId}')">`;
-                    html += `<span class="folder-icon ${(hasSubdirs || hasSubfiles) ? 'collapsed' : ''}" id="icon-${folderId}">${escapeHtml(name)}/</span>`;
+                    html += `<span class="folder-icon ${(hasSubdirs || hasSubfiles) ? 'collapsed' : ''}" id="icon-${folderId}">${name}/</span>`;
                     html += `<span class="text-xs text-gray-500">${size}</span>`;
                     html += '</div>';
                     
@@ -867,7 +788,7 @@ temp/
                     const size = formatSize(f.size);
                     html += '<li>';
                     html += `<div class="file-tree-item flex items-center justify-between py-1">`;
-                    html += `<span class="file-icon">${escapeHtml(f.name)}</span>`;
+                    html += `<span class="file-icon">${f.name}</span>`;
                     html += `<span class="text-xs text-gray-500">${size}</span>`;
                     html += '</div>';
                     html += '</li>';
