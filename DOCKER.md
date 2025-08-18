@@ -1,6 +1,6 @@
-# Docker Deployment for DockerUtils Image Viewer
+# Docker Deployment for Docker Utils
 
-This directory contains Docker configuration files and scripts for running the DockerUtils Image Viewer in a containerized environment.
+This guide covers deploying and running Docker Utils in containerized environments using Docker, Docker Compose, and container orchestration platforms.
 
 ## Quick Start
 
@@ -12,6 +12,8 @@ This directory contains Docker configuration files and scripts for running the D
 
 # Build and run with persistent data storage
 ./scripts/docker-run.sh run --persistent
+# or use the legacy command:
+./scripts/docker-run.sh run-persistent
 
 # Use a custom Docker socket location (e.g., Docker Desktop on macOS)
 ./scripts/docker-run.sh run --socket ~/.docker/desktop/docker.sock
@@ -22,17 +24,14 @@ This directory contains Docker configuration files and scripts for running the D
 # Use custom port and data directory
 ./scripts/docker-run.sh run --persistent --port 3000 --data-dir ./my-data
 
-# View help for all options
-./scripts/docker-run.sh help
-
-# View logs
-./scripts/docker-run.sh logs
-
-# Stop the container
-./scripts/docker-run.sh stop
-
-# Clean up everything
-./scripts/docker-run.sh clean
+# Available commands:
+./scripts/docker-run.sh help          # Show help and usage
+./scripts/docker-run.sh build         # Build Docker image only
+./scripts/docker-run.sh run           # Build and run container
+./scripts/docker-run.sh logs          # View container logs
+./scripts/docker-run.sh shell         # Open shell in running container
+./scripts/docker-run.sh stop          # Stop the container
+./scripts/docker-run.sh clean         # Remove container and image
 ```
 
 **Environment Variables:**
@@ -50,18 +49,29 @@ export DOCKER_SOCKET=~/.docker/desktop/docker.sock
 
 ### Option 2: Using Docker Compose
 
+> **Note**: Docker Compose files are not included in the current version. Use the build script (Option 1) or manual Docker commands (Option 3).
+
+For a basic Docker Compose setup, create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+services:
+  dockerutils:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data  # Optional: for persistent storage
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8080
+    restart: unless-stopped
+```
+
+Then run:
 ```bash
-# Run with ephemeral storage
 docker-compose up -d
-
-# Run with persistent storage (edit docker-compose.yml to uncomment volume mount)
-docker-compose -f docker-compose.prod.yml up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
 ```
 
 ### Option 3: Manual Docker Commands
@@ -252,9 +262,8 @@ Once the container is running, you can access:
 # Build image
 ./scripts/docker-run.sh build
 
-# Run with auto-rebuild on changes (requires file watching)
-# This is better done with local development instead of Docker
-go run main.go image-viewer --tmp-dir ./data
+# For development, use local mode instead of Docker:
+go run main.go tools --port 8080
 ```
 
 ### Debugging
@@ -273,9 +282,10 @@ docker run -it --rm \
 
 For production deployment, consider:
 
-1. **Use docker-compose.prod.yml:**
+1. **Use Docker Compose for production:**
    ```bash
-   docker-compose -f docker-compose.prod.yml up -d
+   # Create production docker-compose.yml with proper resource limits
+   docker-compose up -d
    ```
 
 2. **Enable persistent storage**
@@ -284,10 +294,15 @@ For production deployment, consider:
 5. **Use a reverse proxy for HTTPS**
 6. **Implement backup strategies for analysis data**
 
-## Files
+## Related Files
 
 - `Dockerfile` - Multi-stage Docker build configuration
-- `docker-compose.yml` - Basic Docker Compose configuration
-- `docker-compose.prod.yml` - Production Docker Compose configuration
 - `scripts/docker-run.sh` - Convenience script for building and running
 - `.dockerignore` - Files to exclude from Docker build context
+
+## Additional Resources
+
+- [Installation Guide](INSTALLATION.md) - Comprehensive installation instructions
+- [User Guide](docs/USER_GUIDE.md) - Complete usage documentation
+- [Troubleshooting](TROUBLESHOOTING.md) - Common Docker issues and solutions
+- [Examples](EXAMPLES.md) - Docker deployment examples

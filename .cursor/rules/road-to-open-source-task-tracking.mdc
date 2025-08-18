@@ -3,13 +3,57 @@ title: Road to Open Source Task Tracking
 description: Ensures completed tasks are marked as completed in road_to_open_source directory files based on current chat session
 applies_to:
   - "docs/road_to_open_source/**/*"
+always_apply: true
+triggers_when:
+  - "Any task documented in road_to_open_source guides is completed"
+  - "Documentation files mentioned in guides are created/modified"
+  - "Implementation work matches tasks in road_to_open_source files"
 ---
 
 # Road to Open Source Task Tracking Rule
 
 ## Purpose
 
-This rule ensures that when working on files in the `docs/road_to_open_source/` directory, any tasks completed during the current chat session are immediately and properly marked as completed in the relevant documentation files.
+This rule ensures that when working on ANY files in the project, if tasks documented in the `docs/road_to_open_source/` guides are completed, those files are automatically updated with completion markers.
+
+## Rule Scope & Activation
+
+**File Scope:** This rule only modifies files within `docs/road_to_open_source/`
+
+**Activation Triggers:** The rule should activate during a session when:
+1. **Any task listed in road_to_open_source guides is completed** (regardless of where the work happens)
+2. **Documentation files referenced in the guides are created/modified**
+3. **Implementation work matches specific tasks in road_to_open_source checklists**
+
+## Auto-Update Requirements
+
+When tasks documented in road_to_open_source guides are completed ANYWHERE in the project:
+1. **Identify** which specific tasks in `docs/road_to_open_source/` files correspond to the completed work
+2. **Update** those specific guide files with completion markers
+3. **Update** `docs/road_to_open_source/README.md` overview sections
+4. **Update** status tables and success criteria in road_to_open_source files ONLY
+
+## Task Mapping (Auto-Detection)
+
+### Phase 1 Documentation Tasks (DOCUMENTATION_STANDARDS_GUIDE.md)
+When these files are created/modified, automatically mark corresponding tasks complete:
+
+| File Created/Modified | Task to Mark Complete |
+|----------------------|----------------------|
+| `INSTALLATION.md` | `INSTALLATION.md` - Comprehensive install guide |
+| `TROUBLESHOOTING.md` | `TROUBLESHOOTING.md` - Common issues and solutions |
+| `EXAMPLES.md` | Add comprehensive `EXAMPLES.md` |
+| `README.md` (enhanced) | Update `README.md` with better examples |
+| `DOCKER.md` (fixed) | Fix `DOCKER.md` inconsistencies |
+
+### Cross-File Updates Required
+When ANY of the above files are modified, also update (WITHIN docs/road_to_open_source/ ONLY):
+- `DOCUMENTATION_STANDARDS_GUIDE.md` task checkboxes
+- `README.md` progress sections  
+- Implementation status table in README.md
+- Success criteria checkboxes
+
+**Important:** This rule ONLY modifies files within `docs/road_to_open_source/` directory.
 
 ## Task Completion Requirements
 
@@ -108,6 +152,26 @@ Ensure that:
 - Status indicators are consistent across files
 - Completion timestamps are accurate
 - All related documentation reflects the same state
+
+## Proactive Enforcement
+
+### Session End Checklist (AUTOMATIC)
+Before ending any session, the AI MUST automatically:
+
+1. **Scan all work completed in current session**
+2. **Cross-reference with road_to_open_source task lists**  
+3. **Update ALL matching tasks with completion markers**
+4. **Verify cross-file consistency**
+5. **Update overview files and status tables**
+
+### Mandatory Check Points
+The AI should check and update road_to_open_source files ONLY when:
+- Creating documentation files mentioned in road_to_open_source guides
+- Completing implementation work documented in road_to_open_source tasks
+- Before providing final response if any road_to_open_source tasks were completed
+- When user explicitly mentions completing tasks from road_to_open_source guides
+
+**Constraint:** Only modify files within `docs/road_to_open_source/` directory.
 
 ## Quality Assurance
 

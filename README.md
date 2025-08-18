@@ -17,7 +17,10 @@ cd dockerutils
 ./scripts/docker-run.sh run-persistent
 
 # Access the web interface at http://localhost:8080
+# Try analyzing: alpine:latest, nginx:latest, or node:18-alpine
 ```
+
+> **New to Docker Utils?** Check out our [Installation Guide](INSTALLATION.md) for platform-specific instructions, or try our [hands-on examples](EXAMPLES.md).
 
 ## ✨ Key Features
 
@@ -65,6 +68,8 @@ docker run -d --name dockerutils-viewer \
 ```
 
 For more Docker deployment options, see [DOCKER.md](DOCKER.md).
+
+> **💡 Need help?** Our [Troubleshooting Guide](TROUBLESHOOTING.md) covers common issues and solutions.
 
 ### Building from Source
 
@@ -308,7 +313,7 @@ dockerutils/
 ├── cmd/                 # Command definitions
 │   ├── root.go         # Root command and CLI setup
 │   ├── completion.go   # Shell completion command
-│   └── image-viewer.go # Web server command for viewing results
+│   └── tools.go        # Web server command for analysis tools
 ├── src/                 # Implementation logic (separated by concern)
 │   ├── analyzer/       # Dockerfile and image analysis logic
 │   │   ├── analyzer.go
@@ -329,9 +334,16 @@ dockerutils/
 │       ├── README.md
 │       └── webpages/   # HTML templates and static files
 ├── docs/               # Documentation
+│   ├── USER_GUIDE.md   # Comprehensive user guide
+│   ├── API.md          # REST API documentation
+│   ├── CLI_REFERENCE.md # Command-line reference
 │   ├── apis/           # API documentation
 │   │   └── dockersdk/  # Docker SDK API references
-│   └── examples/       # Example Dockerfiles
+│   └── examples/       # Example Dockerfiles and tutorials
+├── INSTALLATION.md     # Platform-specific installation guide
+├── TROUBLESHOOTING.md  # Common issues and solutions
+├── EXAMPLES.md         # Hands-on examples and tutorials
+├── DOCKER.md           # Docker deployment guide
 ├── tmp/                # Temporary analysis outputs
 ├── bin/                # Built binaries
 ├── .gitignore          # Git ignore patterns
@@ -354,41 +366,31 @@ dockerutils/
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### Quick Fixes
 
 #### Docker Permission Denied
 ```bash
 # Add your user to the docker group (Linux/macOS)
 sudo usermod -aG docker $USER
 # Then logout and login again
-
-# Or run with sudo (not recommended for production)
-sudo dockerutils tools
 ```
 
 #### Port Already in Use
 ```bash
 # Use a different port
 dockerutils tools --port 3000
-
-# Or find and kill the process using port 8080
-lsof -ti:8080 | xargs kill -9
 ```
 
-#### Rancher Desktop Issues
-For Rancher Desktop users, ensure "Administrative access" is enabled in Preferences → General for proper Docker socket access.
-
 #### Analysis Fails
-- Ensure Docker daemon is running: `docker info`
-- Check image exists: `docker pull <image-name>`
-- Check disk space in the temp directory
-- Review logs in the web interface or console output
+```bash
+# Check Docker is running
+docker info
 
-### Performance Tips
+# Verify image exists
+docker pull alpine:latest
+```
 
-- Use `--tmp-dir` to store analysis data on faster storage (SSD)
-- Clean up old analysis results regularly through the web interface
-- For large images, increase timeout settings if analysis fails
+> **📋 For comprehensive troubleshooting:** See our detailed [Troubleshooting Guide](TROUBLESHOOTING.md) which covers installation issues, Docker problems, API errors, and performance optimization.
 
 ## 🤝 Contributing
 
@@ -421,6 +423,36 @@ make build-dev
 3. **Documentation**: Update documentation for any API changes
 4. **Commits**: Use conventional commit messages
 5. **Pull Requests**: Ensure all CI checks pass before submitting
+
+## 📚 Documentation
+
+Our comprehensive documentation covers everything from installation to advanced usage:
+
+### Getting Started
+- **[Installation Guide](INSTALLATION.md)** - Platform-specific installation instructions for Linux, macOS, Windows
+- **[User Guide](docs/USER_GUIDE.md)** - Complete guide to using Docker Utils effectively
+- **[Examples](EXAMPLES.md)** - Hands-on tutorials and real-world usage scenarios
+
+### Reference Documentation
+- **[API Reference](docs/API.md)** - Complete REST API documentation with examples
+- **[CLI Reference](docs/CLI_REFERENCE.md)** - Command-line interface documentation
+- **[Docker Deployment](DOCKER.md)** - Containerized deployment options
+
+### Troubleshooting & Support
+- **[Troubleshooting Guide](TROUBLESHOOTING.md)** - Common issues, solutions, and performance tips
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
+
+### Quick Links
+| Task | Documentation |
+|------|---------------|
+| First-time setup | [Installation Guide](INSTALLATION.md) |
+| Learn the basics | [User Guide](docs/USER_GUIDE.md) |
+| Try examples | [Examples](EXAMPLES.md) |
+| Deploy with Docker | [Docker Guide](DOCKER.md) |
+| Use the API | [API Reference](docs/API.md) |
+| Troubleshoot issues | [Troubleshooting](TROUBLESHOOTING.md) |
+| Contribute | [Contributing](CONTRIBUTING.md) |
 
 ## 📄 License
 
