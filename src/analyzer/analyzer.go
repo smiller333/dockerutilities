@@ -1,4 +1,7 @@
 // Package analyzer provides functionality for analyzing Dockerfiles and Docker images.
+// Copyright (c) 2025 Docker Utils Contributors
+// Licensed under the MIT License. See LICENSE file in the project root for license information.
+
 package analyzer
 
 import (

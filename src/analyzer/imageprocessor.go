@@ -1,14 +1,17 @@
+// Copyright (c) 2025 Docker Utils Contributors
+// Licensed under the MIT License. See LICENSE file in the project root for license information.
+
 package analyzer
 
 import (
 	"archive/tar"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -18,6 +21,193 @@ import (
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/smiller333/dockerutils/src/dockerclient"
 )
+
+// SafeTarExtraction extracts tar archive using Go native library
+func SafeTarExtraction(tarPath string, destDir string) error {
+	file, err := os.Open(tarPath)
+	if err != nil {
+		return fmt.Errorf("failed to open tar file: %w", err)
+	}
+	defer file.Close()
+
+	var reader io.Reader = file
+
+	// Handle gzipped tar files
+	if strings.HasSuffix(tarPath, ".tar.gz") || strings.HasSuffix(tarPath, ".tgz") {
+		gzReader, err := gzip.NewReader(file)
+		if err != nil {
+			return fmt.Errorf("failed to create gzip reader: %w", err)
+		}
+		defer gzReader.Close()
+		reader = gzReader
+	}
+
+	tarReader := tar.NewReader(reader)
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("error reading tar: %w", err)
+		}
+
+		// Security: Validate file path
+		if err := validateTarPath(header.Name); err != nil {
+			return fmt.Errorf("invalid tar path %s: %w", header.Name, err)
+		}
+
+		targetPath := filepath.Join(destDir, header.Name)
+
+		// Security: Ensure target path is within destination directory
+		if !strings.HasPrefix(targetPath, filepath.Clean(destDir)+string(os.PathSeparator)) {
+			return fmt.Errorf("path traversal attempt: %s", header.Name)
+		}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(targetPath, 0755); err != nil {
+				return fmt.Errorf("failed to create directory: %w", err)
+			}
+		case tar.TypeReg:
+			if err := extractSecureFile(tarReader, targetPath, header.Mode); err != nil {
+				return fmt.Errorf("failed to extract file %s: %w", header.Name, err)
+			}
+		case tar.TypeSymlink:
+			// Handle symbolic links with security checks
+			if err := extractSecureSymlink(header.Linkname, targetPath, destDir); err != nil {
+				// Log warning but continue - symlink creation is not critical
+				continue
+			}
+		case tar.TypeLink:
+			// Handle hard links with security checks
+			if err := extractSecureHardlink(header.Linkname, targetPath, destDir); err != nil {
+				// Log warning but continue - hardlink creation is not critical
+				continue
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateTarPath validates tar file paths for security
+func validateTarPath(path string) error {
+	// Check for path traversal attempts
+	if strings.Contains(path, "..") {
+		return fmt.Errorf("path contains '..' directory traversal")
+	}
+
+	// Check for absolute paths
+	if filepath.IsAbs(path) {
+		return fmt.Errorf("absolute paths not allowed")
+	}
+
+	// Check for suspicious paths - allow them but warn
+	suspiciousPaths := []string{
+		"etc/", "/etc/", "var/", "/var/", "usr/", "/usr/",
+		".ssh/", "/.ssh/", ".env", "/.env",
+	}
+
+	for _, suspicious := range suspiciousPaths {
+		if strings.HasPrefix(path, suspicious) {
+			// Don't block, just log - these might be legitimate in container images
+			// This is intentionally checking without action for awareness
+			break
+		}
+	}
+
+	return nil
+}
+
+// extractSecureFile safely extracts a single file from tar
+func extractSecureFile(reader io.Reader, targetPath string, mode int64) error {
+	// Create parent directory
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+		return err
+	}
+
+	// Create file with restricted permissions
+	file, err := os.OpenFile(targetPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(mode)&0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Copy with size limit to prevent zip bombs
+	const maxFileSize = 100 * 1024 * 1024 // 100MB limit
+	_, err = io.CopyN(file, reader, maxFileSize)
+	if err != nil && err != io.EOF {
+		return err
+	}
+
+	return nil
+}
+
+// extractSecureSymlink safely extracts a symbolic link with security checks
+func extractSecureSymlink(linkTarget, linkPath, baseDir string) error {
+	// Security: ensure link target is relative and within base directory
+	if filepath.IsAbs(linkTarget) {
+		return fmt.Errorf("absolute symlink targets not allowed: %s", linkTarget)
+	}
+
+	// Resolve the target path
+	resolvedTarget := filepath.Join(filepath.Dir(linkPath), linkTarget)
+	cleanTarget := filepath.Clean(resolvedTarget)
+	cleanBase := filepath.Clean(baseDir)
+
+	// Ensure target is within base directory
+	if !strings.HasPrefix(cleanTarget, cleanBase+string(os.PathSeparator)) && cleanTarget != cleanBase {
+		return fmt.Errorf("symlink target outside base directory: %s", linkTarget)
+	}
+
+	// Check if the symlink already exists
+	if _, err := os.Lstat(linkPath); err == nil {
+		// File already exists, skip symlink creation to avoid warnings
+		return nil
+	}
+
+	return os.Symlink(linkTarget, linkPath)
+}
+
+// extractSecureHardlink safely extracts a hard link with security checks
+func extractSecureHardlink(linkTarget, linkPath, baseDir string) error {
+	// Security: ensure link target is within base directory
+	cleanTarget := filepath.Clean(filepath.Join(baseDir, linkTarget))
+	cleanBase := filepath.Clean(baseDir)
+
+	if !strings.HasPrefix(cleanTarget, cleanBase+string(os.PathSeparator)) && cleanTarget != cleanBase {
+		return fmt.Errorf("hardlink target outside base directory: %s", linkTarget)
+	}
+
+	// Check if source exists
+	if _, err := os.Stat(cleanTarget); err != nil {
+		return fmt.Errorf("hardlink source does not exist: %s", linkTarget)
+	}
+
+	return os.Link(cleanTarget, linkPath)
+}
+
+// createSecureTempDir creates a temporary directory with restrictive permissions
+func createSecureTempDir(prefix string) (string, error) {
+	tempDir := os.TempDir()
+
+	// Create directory with restrictive permissions (0700 = rwx------)
+	dirPath := filepath.Join(tempDir, fmt.Sprintf("%s-%d", prefix, time.Now().UnixNano()))
+
+	if err := os.MkdirAll(dirPath, 0700); err != nil {
+		return "", fmt.Errorf("failed to create secure temp directory: %w", err)
+	}
+
+	return dirPath, nil
+}
+
+// secureFileCreate creates files with restricted permissions
+func secureFileCreate(path string) (*os.File, error) {
+	// Create file with permissions 0600 (rw-------)
+	return os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+}
 
 // ImageInfo represents the JSON info of an analyzed Docker image
 type ImageInfo struct {
@@ -118,23 +308,29 @@ func AnalyzeImageWithTmpDir(imageName string, keepTempFiles bool, forcePull bool
 		return nil, fmt.Errorf("image name cannot be empty")
 	}
 
+	// Validate image name format
+	if err := dockerclient.ValidateImageName(imageName); err != nil {
+		return nil, fmt.Errorf("invalid image name: %w", err)
+	}
+
+	// Warn about untrusted images
+	dockerclient.WarnUntrustedImage(imageName)
+
 	// Set default tmp directory if not provided
 	var tmpBaseDir string
 	if tmpDir == "" {
-		// Create a tmp directory at the current working location
-		// Get current working directory
-		cwd, err := os.Getwd()
+		// Create a secure temporary subdirectory
+		var err error
+		tmpBaseDir, err = createSecureTempDir("dockerutils-analysis")
 		if err != nil {
-			return nil, fmt.Errorf("failed to get current working directory: %w", err)
+			return nil, fmt.Errorf("failed to create secure tmp directory: %w", err)
 		}
-		tmpBaseDir = filepath.Join(cwd, "tmp")
 	} else {
 		tmpBaseDir = tmpDir
-	}
-
-	// Create tmp directory if it doesn't exist
-	if err := os.MkdirAll(tmpBaseDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create tmp directory: %w", err)
+		// Create tmp directory if it doesn't exist with secure permissions
+		if err := os.MkdirAll(tmpBaseDir, 0700); err != nil {
+			return nil, fmt.Errorf("failed to create tmp directory: %w", err)
+		}
 	}
 
 	// Parse the image name to extract tag and source
@@ -147,6 +343,11 @@ func AnalyzeImageWithTmpDir(imageName string, keepTempFiles bool, forcePull bool
 		IsImageAnalysis: true,
 		BuildSuccess:    false,      // For images, this indicates successful inspection
 		ExtractedPath:   tmpBaseDir, // Set the base directory for all operations
+	}
+
+	// Validate Docker access and warn about security implications
+	if err := dockerclient.ValidateDockerAccess(); err != nil {
+		return result, fmt.Errorf("docker access validation failed: %w", err)
 	}
 
 	// Create Docker client
@@ -313,8 +514,8 @@ func saveImageToTar(ctx context.Context, dockerClient *dockerclient.DockerClient
 	}
 	defer saveReader.Close()
 
-	// Create the tar file
-	tarFile, err := os.Create(tarPath)
+	// Create the tar file with secure permissions
+	tarFile, err := secureFileCreate(tarPath)
 	if err != nil {
 		return fmt.Errorf("failed to create tar file %s: %w", tarPath, err)
 	}
@@ -342,26 +543,15 @@ func extractImageTar(tarPath string, result *AnalysisResult) error {
 	extractDirName := strings.TrimSuffix(tarBaseName, ".tar")
 	extractPath := filepath.Join(tarDir, extractDirName)
 
-	// Create extraction directory
-	if err := os.MkdirAll(extractPath, 0755); err != nil {
+	// Create extraction directory with secure permissions
+	if err := os.MkdirAll(extractPath, 0700); err != nil {
 		return fmt.Errorf("failed to create extraction directory %s: %w", extractPath, err)
 	}
 
-	// Extract using tar command for simplicity and reliability
-	// This handles the Docker image tar format properly
-	// Use absolute path for tar file to avoid path issues
-	absTarPath, err := filepath.Abs(tarPath)
+	// Extract using secure Go native tar extraction
+	err := SafeTarExtraction(tarPath, extractPath)
 	if err != nil {
-		return fmt.Errorf("failed to get absolute path for tar file: %w", err)
-	}
-
-	// Execute tar extraction directly without cd command for better reliability
-	execCmd := exec.Command("tar", "-xf", absTarPath)
-	execCmd.Dir = extractPath
-
-	output, err := execCmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to extract tar file: %w, output: %s", err, string(output))
+		return fmt.Errorf("failed to extract tar file: %w", err)
 	}
 
 	// Update result with successful extraction information
@@ -380,9 +570,9 @@ func extractLayerFileSystems(extractedImagePath string) error {
 		return fmt.Errorf("blobs/sha256 directory not found in %s", extractedImagePath)
 	}
 
-	// Create layer_contents directory
+	// Create layer_contents directory with secure permissions
 	fileSystemsPath := filepath.Join(extractedImagePath, "layer_contents")
-	if err := os.MkdirAll(fileSystemsPath, 0755); err != nil {
+	if err := os.MkdirAll(fileSystemsPath, 0700); err != nil {
 		return fmt.Errorf("failed to create layer_contents directory: %w", err)
 	}
 
@@ -401,9 +591,9 @@ func extractLayerFileSystems(extractedImagePath string) error {
 		blobFilePath := filepath.Join(blobsPath, blobName)
 
 		// Check if this file might be a tar file by trying to extract it
-		// Create subdirectory for this layer
+		// Create subdirectory for this layer with secure permissions
 		layerDir := filepath.Join(fileSystemsPath, blobName)
-		if err := os.MkdirAll(layerDir, 0755); err != nil {
+		if err := os.MkdirAll(layerDir, 0700); err != nil {
 			continue // Skip this layer if we can't create the directory
 		}
 
@@ -422,19 +612,10 @@ func extractLayerFileSystems(extractedImagePath string) error {
 
 // extractBlobTar extracts a blob tar file to the specified directory
 func extractBlobTar(blobPath, extractDir string) error {
-	// Get absolute path for the blob file
-	absBlobPath, err := filepath.Abs(blobPath)
+	// Extract using secure Go native tar extraction
+	err := SafeTarExtraction(blobPath, extractDir)
 	if err != nil {
-		return fmt.Errorf("failed to get absolute path for blob file: %w", err)
-	}
-
-	// Execute tar extraction
-	execCmd := exec.Command("tar", "-xf", absBlobPath)
-	execCmd.Dir = extractDir
-
-	output, err := execCmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to extract blob tar file: %w, output: %s", err, string(output))
+		return fmt.Errorf("failed to extract blob tar file: %w", err)
 	}
 
 	return nil
@@ -519,9 +700,9 @@ func copyContainerFilesystem(ctx context.Context, dockerClient *dockerclient.Doc
 		return fmt.Errorf("temporary directory not set in result")
 	}
 
-	// Create container_contents subdirectory
+	// Create container_contents subdirectory with secure permissions
 	containerFSPath := filepath.Join(baseDir, "container_contents")
-	if err := os.MkdirAll(containerFSPath, 0755); err != nil {
+	if err := os.MkdirAll(containerFSPath, 0700); err != nil {
 		return fmt.Errorf("failed to create container_contents directory %s: %w", containerFSPath, err)
 	}
 

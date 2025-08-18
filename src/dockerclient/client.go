@@ -1,5 +1,8 @@
 // Package dockerclient provides a flexible wrapper around the Docker SDK client.
 // It enhances the standard Docker client with additional functionality and configuration options.
+// Copyright (c) 2025 Docker Utils Contributors
+// Licensed under the MIT License. See LICENSE file in the project root for license information.
+
 package dockerclient
 
 import (
@@ -11,8 +14,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -32,6 +38,92 @@ var (
 	// ErrImageNotFound is returned when an image is not found in the registry
 	ErrImageNotFound = errors.New("image not found")
 )
+
+var trustedRegistries = []string{
+	"docker.io",
+	"gcr.io",
+	"quay.io",
+	"registry.k8s.io",
+	"ghcr.io",
+}
+
+// ValidateDockerAccess checks Docker socket access and warns about risks
+func ValidateDockerAccess() error {
+	var socketPath string
+
+	if runtime.GOOS == "windows" {
+		socketPath = `\\.\pipe\docker_engine`
+	} else {
+		socketPath = "/var/run/docker.sock"
+	}
+
+	// Check if socket exists and is accessible
+	if _, err := os.Stat(socketPath); err != nil {
+		return fmt.Errorf("Docker socket not accessible at %s: %w", socketPath, err)
+	}
+
+	// Log security warning
+	log.Printf("⚠️  SECURITY WARNING: This application requires Docker socket access")
+	log.Printf("   Socket: %s", socketPath)
+	log.Printf("   Risk: Significant system privileges - only analyze trusted Docker images")
+	log.Printf("   Recommendation: Only use with images from trusted sources")
+
+	return nil
+}
+
+// ValidateImageSource checks if an image comes from a trusted source
+func ValidateImageSource(imageName string) (bool, string) {
+	// Parse image name to extract registry
+	parts := strings.Split(imageName, "/")
+	var registry string
+
+	if len(parts) > 1 && strings.Contains(parts[0], ".") {
+		registry = parts[0]
+	} else {
+		registry = "docker.io" // Default registry
+	}
+
+	// Check against trusted registries
+	for _, trusted := range trustedRegistries {
+		if registry == trusted {
+			return true, "Trusted registry"
+		}
+	}
+
+	return false, fmt.Sprintf("Untrusted registry: %s", registry)
+}
+
+// WarnUntrustedImage displays warnings for untrusted images
+func WarnUntrustedImage(imageName string) {
+	trusted, reason := ValidateImageSource(imageName)
+
+	if !trusted {
+		log.Printf("🚨 SECURITY WARNING: Analyzing potentially untrusted image")
+		log.Printf("   Image: %s", imageName)
+		log.Printf("   Reason: %s", reason)
+		log.Printf("   Risk: Malicious images could exploit the analysis process")
+		log.Printf("   Recommendation: Only proceed if you trust this image source")
+	}
+}
+
+// ValidateImageName validates Docker image name format
+func ValidateImageName(imageName string) error {
+	if imageName == "" {
+		return fmt.Errorf("image name cannot be empty")
+	}
+
+	if len(imageName) > 255 {
+		return fmt.Errorf("image name too long (max 255 characters)")
+	}
+
+	// Basic validation for Docker image name format
+	imageNameRegex := regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*(/[a-zA-Z0-9][a-zA-Z0-9_.-]*)*(:[\w][\w.-]{0,127})?$`)
+	if !imageNameRegex.MatchString(imageName) {
+		return fmt.Errorf("invalid image name format: %s", imageName)
+	}
+
+	return nil
+}
 
 // Config holds configuration options for the Docker client wrapper
 type Config struct {

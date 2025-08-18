@@ -1,4 +1,7 @@
 // Package webserver provides a web server for viewing Docker image analysis results.
+// Copyright (c) 2025 Docker Utils Contributors
+// Licensed under the MIT License. See LICENSE file in the project root for license information.
+
 package webserver
 
 import (
@@ -10,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -201,8 +205,8 @@ func New(config *Config) (*Server, error) {
 		tmpDir = filepath.Join(cwd, "tmp")
 	}
 
-	// Ensure tmp directory exists
-	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+	// Ensure tmp directory exists with secure permissions
+	if err := os.MkdirAll(tmpDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create tmp directory: %w", err)
 	}
 
@@ -1136,39 +1140,90 @@ func (s *Server) imageInfoToSummary(info analyzer.ImageInfo) ImageSummary {
 	}
 }
 
+// Sensitive directories that should be restricted or warned about
+var sensitiveDirs = []string{
+	"/etc", "/var", "/usr/bin", "/usr/sbin", "/root",
+	"/.ssh", "/home", "/System", "/Windows",
+	"/proc", "/sys", "/dev",
+}
+
+// validateBuildContextPath checks if a path is safe for build context access
+func validateBuildContextPath(requestedPath string) (string, error) {
+	// Clean and resolve the path
+	cleanPath := filepath.Clean(requestedPath)
+	absPath, err := filepath.Abs(cleanPath)
+	if err != nil {
+		return "", fmt.Errorf("invalid path: %w", err)
+	}
+
+	// Check for sensitive directories
+	for _, sensitiveDir := range sensitiveDirs {
+		if strings.HasPrefix(absPath, sensitiveDir) {
+			return "", fmt.Errorf("access to sensitive directory not allowed: %s", sensitiveDir)
+		}
+	}
+
+	// Check for user home directory access and warn
+	if err := checkHomeDirectoryAccess(absPath); err != nil {
+		// Log warning but allow access for now - user may have legitimate docker files
+		log.Printf("⚠️  Build context warning: %v", err)
+	}
+
+	return absPath, nil
+}
+
+// checkHomeDirectoryAccess warns about accessing sensitive home directories
+func checkHomeDirectoryAccess(path string) error {
+	currentUser, err := user.Current()
+	if err != nil {
+		return nil // Continue if we can't get user info
+	}
+
+	homeDir := currentUser.HomeDir
+	sensitiveHomeDirs := []string{
+		filepath.Join(homeDir, ".ssh"),
+		filepath.Join(homeDir, ".aws"),
+		filepath.Join(homeDir, ".docker"),
+		filepath.Join(homeDir, ".kube"),
+		filepath.Join(homeDir, ".gnupg"),
+		filepath.Join(homeDir, ".env"),
+	}
+
+	for _, sensitiveDir := range sensitiveHomeDirs {
+		if strings.HasPrefix(path, sensitiveDir) {
+			return fmt.Errorf("accessing sensitive directory %s - proceed with caution", sensitiveDir)
+		}
+	}
+
+	return nil
+}
+
 // validateContextDir validates and resolves the context directory path to prevent directory traversal attacks
 func (s *Server) validateContextDir(contextDir string) (string, error) {
 	if contextDir == "" {
 		return "", fmt.Errorf("context directory cannot be empty")
 	}
 
-	// Clean the path to resolve any .. or other path components
-	cleanPath := filepath.Clean(contextDir)
-
-	// Convert to absolute path
-	absPath, err := filepath.Abs(cleanPath)
+	// Apply enhanced security validation
+	validatedPath, err := validateBuildContextPath(contextDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve absolute path: %w", err)
+		return "", fmt.Errorf("path access denied: %w", err)
 	}
 
 	// Check if the path exists and is a directory
-	info, err := os.Stat(absPath)
+	info, err := os.Stat(validatedPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", fmt.Errorf("directory does not exist: %s", absPath)
+			return "", fmt.Errorf("directory does not exist: %s", validatedPath)
 		}
 		return "", fmt.Errorf("failed to access directory: %w", err)
 	}
 
 	if !info.IsDir() {
-		return "", fmt.Errorf("path is not a directory: %s", absPath)
+		return "", fmt.Errorf("path is not a directory: %s", validatedPath)
 	}
 
-	// For additional security, you could add workspace root validation here
-	// For example, ensure the path is within the current working directory or a specific allowed directory
-	// This is optional based on your security requirements
-
-	return absPath, nil
+	return validatedPath, nil
 }
 
 // handleBuildContextPreview handles POST requests to preview build context with .dockerignore

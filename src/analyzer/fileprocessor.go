@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Docker Utils Contributors
+// Licensed under the MIT License. See LICENSE file in the project root for license information.
+
 package analyzer
 
 import (
@@ -41,6 +44,12 @@ func AnalyzeDockerfile(dockerfilePath string) (*AnalysisResult, error) {
 		Content:      string(content),
 		ImageTag:     imageTag,
 		BuildSuccess: false,
+	}
+
+	// Validate Docker access and warn about security implications
+	if err := dockerclient.ValidateDockerAccess(); err != nil {
+		result.BuildOutput = fmt.Sprintf("Docker access validation failed: %v", err)
+		return result, nil // Return result with build failure, don't fail the analysis
 	}
 
 	// Create Docker client and build the image

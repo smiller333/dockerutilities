@@ -1,4 +1,7 @@
 // Package version provides build information and version details for the dockerutils application.
+// Copyright (c) 2025 Docker Utils Contributors
+// Licensed under the MIT License. See LICENSE file in the project root for license information.
+
 package version
 
 import (

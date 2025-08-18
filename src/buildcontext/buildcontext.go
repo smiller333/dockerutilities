@@ -1,6 +1,9 @@
 // Package buildcontext provides functionality for analyzing and managing Docker build contexts,
 // including handling .dockerignore patterns to determine which files should be included
 // or excluded from a Docker build.
+// Copyright (c) 2025 Docker Utils Contributors
+// Licensed under the MIT License. See LICENSE file in the project root for license information.
+
 package buildcontext
 
 import (
