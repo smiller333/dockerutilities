@@ -1,0 +1,175 @@
+---
+title: Road to Open Source Task Tracking
+description: Ensures completed tasks are marked as completed in road_to_open_source directory files based on current chat session
+applies_to:
+  - "docs/road_to_open_source/**/*"
+---
+
+# Road to Open Source Task Tracking Rule
+
+## Purpose
+
+This rule ensures that when working on files in the `docs/road_to_open_source/` directory, any tasks completed during the current chat session are immediately and properly marked as completed in the relevant documentation files.
+
+## Task Completion Requirements
+
+### Immediate Task Marking
+When a task is completed in the current chat session:
+
+1. **Update the specific guide file** where the task is documented
+2. **Mark with appropriate completion indicator** using standardized format
+3. **Update overview files** (README.md) to reflect progress
+4. **Add completion timestamp** where beneficial
+
+### Standardized Completion Indicators
+
+#### For Major Sections/Phases
+- `✅ COMPLETED` - Full section completion
+- `✅ DOCUMENTATION COMPLETED` - Documentation phase done
+- `✅ SECURITY COMPLETED` - Security implementation done
+- `🚧 IN PROGRESS` - Currently being worked on
+- `⚠️ PARTIAL` - Partially implemented
+
+#### For Individual Tasks
+- `✅ Fixed` - Bug fixes and security issues resolved
+- `✅ Enhanced` - Improvements and enhancements completed
+- `✅ Added` - New features or documentation created
+- `✅ Updated` - Modifications to existing items completed
+- `✅ Renamed` - Renaming/refactoring completed
+- `✅ Implemented` - Feature implementation completed
+- `- [x]` or `- ✅` - Checklist items completed
+
+#### For Pending Tasks
+- `🚫 Required` - Still needs implementation
+- `🚫 Recommended` - Optional but beneficial
+- `- [ ]` - Uncompleted checklist items
+
+### Priority Levels (maintain consistency)
+- 🔴 CRITICAL
+- 🟡 HIGH
+- 🔵 MEDIUM  
+- 🟢 LOW
+
+## Implementation Process
+
+### Step 1: Identify Completed Work
+When any implementation work is completed in the current session, immediately identify which documented tasks have been fulfilled.
+
+### Step 2: Update Specific Guide Files
+Update the relevant guide file(s) in `docs/road_to_open_source/` with completion markers:
+
+```markdown
+Completed tasks:
+- ✅ Replace tar command execution with Go native library (Completed: 2025-01-21)
+- ✅ Improve path validation for build context
+- ✅ Add security warnings for untrusted images
+```
+
+### Step 3: Update Overview Documentation
+Update `docs/road_to_open_source/README.md` to reflect progress:
+
+```markdown
+### Phase 1: Critical Security & Foundation (1-2 days) ✅ **COMPLETED**
+```markdown
+Priority: 🔴 CRITICAL - ✅ COMPLETED
+Completed: SECURITY_IMPLEMENTATION_GUIDE.md
+
+Completed tasks:
+- ✅ Replace tar command execution with Go native library
+- ✅ Improve path validation for build context  
+- ✅ Add security warnings for untrusted images
+```
+
+### Step 4: Update Status Tables
+When status tables exist, update them accordingly:
+
+| Area | Guide | Status | Priority |
+|------|-------|--------|----------|
+| **Security** | Security Implementation | ✅ Complete | 🔴 Critical |
+| **CLI** | CLI Improvement | ✅ Complete | 🟡 High |
+
+## File-Specific Requirements
+
+### README.md Updates
+- Update implementation status table
+- Mark completed phases with ✅ **COMPLETED**
+- Update success criteria checkboxes
+- Update progress percentages if present
+
+### Individual Guide File Updates  
+- Mark specific tasks as completed with appropriate indicators
+- Update progress tracking sections
+- Add completion context when helpful
+- Maintain chronological order of completions
+
+### Cross-File Consistency
+Ensure that:
+- Overview progress matches individual guide progress
+- Status indicators are consistent across files
+- Completion timestamps are accurate
+- All related documentation reflects the same state
+
+## Quality Assurance
+
+### Before Completing Session
+1. **Verify all completed work is documented** with proper completion markers
+2. **Check cross-file consistency** between overview and detailed guides
+3. **Ensure completion dates** match implementation timeline
+4. **Update any summary sections** that reference the completed work
+
+### Validation Rules
+- **Never mark tasks complete** unless actually implemented in current session
+- **Always provide context** for complex completions
+- **Maintain traceability** between task completion and actual changes
+- **Update dependent tasks** when prerequisites are completed
+
+## Examples
+
+### Security Task Completion
+When security improvements are implemented:
+
+```markdown
+### 🟡 MEDIUM-003: Replace Command Injection in Tar Extraction ✅ **COMPLETED**
+
+**Status:** ✅ Fixed with Go native archive/tar library (Completed: 2025-01-21)
+**Implementation:** Replaced exec.Command("tar") with secure Go native implementation
+```
+
+### CLI Improvement Completion
+When CLI commands are improved:
+
+```markdown
+### Issue 1: Command Naming Convention ✅ **COMPLETED**
+
+**Solution Implemented:** ✅ Renamed `tools` command to `server` (Completed: 2025-01-21)
+**Files Updated:** cmd/tools.go renamed to cmd/server.go, documentation updated
+```
+
+### Documentation Task Completion
+When documentation is created or updated:
+
+```markdown
+Completed documentation tasks:
+- ✅ Enhanced README.md with modern design and comprehensive examples
+- ✅ Created comprehensive API documentation (../API.md)  
+- ✅ Added detailed user guide with tutorials (../USER_GUIDE.md)
+- ✅ Created complete CLI reference (../CLI_REFERENCE.md)
+```
+
+## Error Prevention
+
+### Common Mistakes to Avoid
+- Marking tasks complete before actual implementation
+- Inconsistent status indicators across files
+- Missing updates to overview documentation
+- Incorrect completion timestamps
+- Forgetting to update related status tables
+
+### Best Practices
+- Complete documentation updates immediately after implementation
+- Use consistent language and indicators
+- Provide sufficient context for future reference
+- Cross-reference related tasks when updating status
+- Maintain chronological accuracy in completion tracking
+
+This rule ensures accurate progress tracking and maintains the integrity of the road_to_open_source documentation system.
