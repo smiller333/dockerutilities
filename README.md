@@ -1,17 +1,34 @@
 # Docker Utilities
 
-A collection of Docker utilities providing a command-line interface for Docker analysis and management tasks.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/smiller333/dockerutils)](https://goreportcard.com/report/github.com/smiller333/dockerutils)
+[![Go Version](https://img.shields.io/badge/go-1.24.2+-blue.svg)](https://golang.org/)
 
-## Overview
+A powerful CLI tool and web interface for comprehensive Docker image analysis and management. Built with Go and the official Docker SDK, it provides detailed insights into Docker images through both command-line tools and an interactive web interface.
 
-`dockerutils` is a CLI tool built in Go that provides comprehensive Docker image analysis capabilities through an interactive web interface. The tool uses the official Docker SDK to interact with Docker Engine and offers detailed insights into Docker images through a modern web-based interface.
+## 🚀 Quick Start
 
-### Key Features
+Get up and running in under 30 seconds:
 
-- **Web Interface**: Interactive web server for viewing Docker image analysis results
-- **Docker SDK Integration**: Built on the official Docker client library (v28.3.0+incompatible)
-- **Image Analysis**: Inspect Docker images and extract their contents through the web interface
-- **Comprehensive Reporting**: Generate detailed analysis reports with build metrics and image metadata
+```bash
+# Using Docker (recommended)
+git clone https://github.com/smiller333/dockerutils.git
+cd dockerutils
+./scripts/docker-run.sh run-persistent
+
+# Access the web interface at http://localhost:8080
+```
+
+## ✨ Key Features
+
+- **🖥️ Interactive Web Interface**: Modern, responsive UI for Docker image analysis
+- **🔍 Deep Image Analysis**: Extract and analyze Docker image contents, layers, and metadata
+- **⚡ Live Analysis**: Real-time Docker image inspection with detailed reports
+- **📊 Comprehensive Reporting**: Generate detailed analysis reports with build metrics
+- **🐳 Docker SDK Integration**: Built on the official Docker client library (v28.3.0+)
+- **🛠️ CLI Tools**: Command-line interface for automation and scripting
+- **📁 File System Explorer**: Browse extracted image contents through the web interface
+- **🔄 Asynchronous Operations**: Non-blocking image analysis with progress tracking
 
 ## Prerequisites
 
@@ -154,50 +171,118 @@ The tool requires access to the Docker daemon to perform analysis operations thr
 - Your user has permission to access the Docker socket
 - On Unix systems, you may need to add your user to the `docker` group or run with appropriate permissions
 
-## Usage
-
-### Available Commands
-
-- `version` - Print the version number of dockerutils
-- `image-viewer` - Start a web server for viewing Docker image analysis results
-- `completion` - Generate autocompletion scripts for various shells
+## 🔧 Usage
 
 ### Basic Commands
 
 ```bash
-# Display help
+# Display help and available commands
 dockerutils --help
 
-# Show version
+# Show detailed version information
 dockerutils version
 
-# Start web server for viewing analysis results
-dockerutils image-viewer --port 8080
+# Start the web interface (automatically opens browser)
+dockerutils tools
+
+# Start on custom port
+dockerutils tools --port 3000
+
+# Start without opening browser automatically
+dockerutils tools --no-browser
+
+# Start with custom configuration
+dockerutils tools --port 8080 --host 0.0.0.0 --tmp-dir /app/data
 ```
 
-### Image Viewer Command
+### Web Interface Features
 
-The `image-viewer` command starts a local web server that provides comprehensive Docker image analysis capabilities through an interactive web interface:
+Once the server is running, you can:
 
-**Features:**
-- Interactive web interface for analyzing Docker images in real-time
-- Live Docker image analysis with detailed metadata extraction
-- Static file serving for analysis reports and extracted contents
-- REST API endpoints for accessing image summaries and filesystem data
-- Real-time visualization of Docker image layers and contents
-- Capability to analyze both local and remote Docker images
+1. **🔍 Analyze Images**: Enter any Docker image name (e.g., `nginx:latest`, `alpine:3.20`)
+2. **📊 View Analysis Results**: Browse detailed image metadata, layers, and filesystem contents
+3. **📁 Explore File Systems**: Navigate through extracted image contents
+4. **🗂️ Manage Results**: Delete old analysis results to free up space
+5. **⚡ Live Analysis**: Perform real-time image analysis through the web UI
 
-**Options:**
-- `--port <port>` - Port to run the web server on (default: 8080)
-- `--host <host>` - Host to bind the server to (default: localhost)
-- `--web-root <path>` - Root directory for serving web files (optional)
-- `--tmp-dir <path>` - Directory for storing analysis data (default: ./tmp)
+### Common Use Cases
 
-**Web Interface Usage:**
-1. Start the web server with `dockerutils image-viewer --port 8080`
-2. Open your browser to `http://localhost:8080`
-3. Use the web interface to analyze Docker images interactively
-4. Browse existing analysis results if any are available in the temp directory
+#### Analyzing a Public Image
+```bash
+# Start the web interface
+dockerutils tools
+
+# Then in the web interface:
+# 1. Enter "nginx:latest" in the image name field
+# 2. Click "Analyze Image"
+# 3. Browse the results including filesystem, layers, and metadata
+```
+
+#### Analyzing a Private Registry Image
+```bash
+# Ensure you're logged into your registry first
+docker login your-registry.com
+
+# Start dockerutils
+dockerutils tools
+
+# In the web interface, analyze:
+# your-registry.com/your-org/your-app:v1.0.0
+```
+
+#### Batch Analysis via API
+```bash
+# Start the server
+dockerutils tools &
+
+# Use the REST API for automation
+curl -X POST http://localhost:8080/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"image_name": "alpine:latest"}'
+
+# Check analysis results
+curl http://localhost:8080/api/summaries
+```
+
+### API Reference
+
+The web server provides a comprehensive REST API for programmatic access:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Server health status and version info |
+| `/api/summaries` | GET | List all analyzed images with metadata |
+| `/api/info/{id}` | GET | Get full analysis data for specific image |
+| `/api/info/{id}` | DELETE | Remove analysis results for specific image |
+| `/api/analyze` | POST | Analyze image synchronously (blocks until complete) |
+| `/api/analyze-async` | POST | Start asynchronous image analysis |
+
+#### Example API Usage
+
+```bash
+# Check server health
+curl http://localhost:8080/api/health
+
+# List all analyzed images
+curl http://localhost:8080/api/summaries
+
+# Analyze an image (synchronous)
+curl -X POST http://localhost:8080/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_name": "alpine:latest",
+    "keep_temp_files": true,
+    "force_pull": false
+  }'
+
+# Start async analysis
+curl -X POST http://localhost:8080/api/analyze-async \
+  -H "Content-Type: application/json" \
+  -d '{"image_name": "nginx:latest"}'
+
+# Get detailed analysis results
+curl http://localhost:8080/api/info/7aab056cecc6
+```
 
 ## Development
 
@@ -267,24 +352,109 @@ dockerutils/
 - [OpenContainers Image Spec](https://github.com/opencontainers/image-spec) v1.1.1 - OCI image specification support
 - [golang.org/x/text](https://golang.org/x/text) v0.26.0 - Additional text processing utilities
 
-## Contributing
+## 🔧 Troubleshooting
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+### Common Issues
+
+#### Docker Permission Denied
+```bash
+# Add your user to the docker group (Linux/macOS)
+sudo usermod -aG docker $USER
+# Then logout and login again
+
+# Or run with sudo (not recommended for production)
+sudo dockerutils tools
+```
+
+#### Port Already in Use
+```bash
+# Use a different port
+dockerutils tools --port 3000
+
+# Or find and kill the process using port 8080
+lsof -ti:8080 | xargs kill -9
+```
+
+#### Rancher Desktop Issues
+For Rancher Desktop users, ensure "Administrative access" is enabled in Preferences → General for proper Docker socket access.
+
+#### Analysis Fails
+- Ensure Docker daemon is running: `docker info`
+- Check image exists: `docker pull <image-name>`
+- Check disk space in the temp directory
+- Review logs in the web interface or console output
+
+### Performance Tips
+
+- Use `--tmp-dir` to store analysis data on faster storage (SSD)
+- Clean up old analysis results regularly through the web interface
+- For large images, increase timeout settings if analysis fails
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Quick Development Setup
+
+```bash
+# Clone and setup
+git clone https://github.com/smiller333/dockerutils.git
+cd dockerutils
+
+# Install dependencies
+go mod download
+
+# Run tests
+make test
+
+# Build development version
+make build-dev
+
+# Run locally
+./bin/dockerutils tools
+```
 
 ### Development Guidelines
 
-1. Follow Go best practices and conventions
-2. Write unit tests for new functionality
-3. Update documentation as needed
-4. Ensure all tests pass before submitting PRs
-5. Use the provided build scripts for consistent builds
+1. **Code Quality**: Follow Go best practices and run `golangci-lint`
+2. **Testing**: Write unit tests for new functionality (`make test`)
+3. **Documentation**: Update documentation for any API changes
+4. **Commits**: Use conventional commit messages
+5. **Pull Requests**: Ensure all CI checks pass before submitting
 
-## License
+## 📄 License
 
-This project is open source.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Version Information
+## 🏷️ Version Information
 
-Current version: Based on git commit hash (e.g., aeaea31)
+Version information is automatically embedded during build:
 
-The version is automatically determined from git information during build time. Use `dockerutils version` to see the current build details.
+```bash
+# Quick version check
+dockerutils -v
+# Output: dockerutils v1.0.0 (built 2025-01-21 14:47:10 UTC)
+
+# Detailed version information
+dockerutils version
+# Output:
+# dockerutils v1.0.0
+# Git Commit: a1b2c3d
+# Build Time: 2025-01-21 14:47:10 UTC
+# Go Version: go1.24.2
+# OS/Arch: darwin/arm64
+```
+
+## 🌟 Star History
+
+If you find this project helpful, please consider giving it a star! ⭐
+
+## 🔗 Related Projects
+
+- [Docker Official Documentation](https://docs.docker.com/)
+- [Docker SDK for Go](https://github.com/docker/docker)
+- [Dive](https://github.com/wagoodman/dive) - Another Docker image explorer
+
+---
+
+**Made with ❤️ by the Docker Utils community**
