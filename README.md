@@ -188,16 +188,16 @@ dockerutils --help
 dockerutils version
 
 # Start the web interface (automatically opens browser)
-dockerutils tools
+dockerutils server
 
 # Start on custom port
-dockerutils tools --port 3000
+dockerutils server --port 3000
 
 # Start without opening browser automatically
-dockerutils tools --no-browser
+dockerutils server --no-browser
 
 # Start with custom configuration
-dockerutils tools --port 8080 --host 0.0.0.0 --tmp-dir /app/data
+dockerutils server --port 8080 --host 0.0.0.0 --tmp-dir /app/data
 ```
 
 ### Web Interface Features
@@ -215,7 +215,7 @@ Once the server is running, you can:
 #### Analyzing a Public Image
 ```bash
 # Start the web interface
-dockerutils tools
+dockerutils server
 
 # Then in the web interface:
 # 1. Enter "nginx:latest" in the image name field
@@ -229,7 +229,7 @@ dockerutils tools
 docker login your-registry.com
 
 # Start dockerutils
-dockerutils tools
+dockerutils server
 
 # In the web interface, analyze:
 # your-registry.com/your-org/your-app:v1.0.0
@@ -238,7 +238,7 @@ dockerutils tools
 #### Batch Analysis via API
 ```bash
 # Start the server
-dockerutils tools &
+dockerutils server &
 
 # Use the REST API for automation
 curl -X POST http://localhost:8080/api/analyze \
@@ -378,7 +378,7 @@ sudo usermod -aG docker $USER
 #### Port Already in Use
 ```bash
 # Use a different port
-dockerutils tools --port 3000
+dockerutils server --port 3000
 ```
 
 #### Analysis Fails
@@ -413,7 +413,7 @@ make test
 make build-dev
 
 # Run locally
-./bin/dockerutils tools
+./bin/dockerutils server
 ```
 
 ### Development Guidelines

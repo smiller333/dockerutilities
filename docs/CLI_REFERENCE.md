@@ -62,13 +62,13 @@ dockerutils version
 
 ## Commands
 
-### tools
+### server
 
-Start the Docker analysis tools web server with an interactive interface and REST API.
+Start the Docker analysis web server with an interactive interface and REST API.
 
 #### Syntax
 ```bash
-dockerutils tools [flags]
+dockerutils server [flags]
 ```
 
 #### Description
@@ -95,22 +95,22 @@ Starts a local web server that provides comprehensive Docker image analysis capa
 
 ```bash
 # Start server with default settings (localhost:8080)
-dockerutils tools
+dockerutils server
 
 # Start server on custom port
-dockerutils tools --port 3000
+dockerutils server --port 3000
 
 # Bind to all interfaces
-dockerutils tools --host 0.0.0.0 --port 8080
+dockerutils server --host 0.0.0.0 --port 8080
 
 # Use custom directories
-dockerutils tools --tmp-dir /app/data --web-root ./custom-ui
+dockerutils server --tmp-dir /app/data --web-root ./custom-ui
 
 # Start without opening browser automatically
-dockerutils tools --no-browser
+dockerutils server --no-browser
 
 # Production-like setup
-dockerutils tools --host 0.0.0.0 --port 8080 --tmp-dir /var/lib/dockerutils --no-browser
+dockerutils server --host 0.0.0.0 --port 8080 --tmp-dir /var/lib/dockerutils --no-browser
 ```
 
 #### Key Features
@@ -250,9 +250,9 @@ After installation, test completion by typing:
 
 ```bash
 dockerutils <TAB>
-# Should show: completion, help, tools, version
+# Should show: completion, help, server, version
 
-dockerutils tools --<TAB>
+dockerutils server --<TAB>
 # Should show: --help, --host, --no-browser, --port, --tmp-dir, --web-root
 ```
 
@@ -268,24 +268,24 @@ dockerutils --help
 dockerutils -v
 
 # Start web interface
-dockerutils tools
+dockerutils server
 ```
 
 ### Web Server Configuration
 
 ```bash
 # Development setup
-dockerutils tools --port 3000
+dockerutils server --port 3000
 
 # Production setup
-dockerutils tools \
+dockerutils server \
   --host 0.0.0.0 \
   --port 8080 \
   --tmp-dir /var/lib/dockerutils \
   --no-browser
 
 # Custom UI development
-dockerutils tools \
+dockerutils server \
   --web-root ./my-custom-ui \
   --tmp-dir ./dev-data \
   --port 3000
@@ -304,7 +304,7 @@ if ! command -v dockerutils &> /dev/null; then
 fi
 
 # Start server in background
-dockerutils tools \
+dockerutils server \
   --host 0.0.0.0 \
   --port 8080 \
   --no-browser \
@@ -336,7 +336,7 @@ fi
 # ci-analysis.sh
 
 # Start dockerutils for CI analysis
-dockerutils tools --no-browser --port 8080 &
+dockerutils server --no-browser --port 8080 &
 DOCKERUTILS_PID=$!
 
 # Cleanup function
@@ -404,11 +404,11 @@ export DOCKER_HOST=tcp://remote-docker:2376
 export DOCKER_TLS_VERIFY=1
 export DOCKER_CERT_PATH=/path/to/certs
 
-dockerutils tools
+dockerutils server
 
 # Enable debug logging
 export DOCKER_UTILS_DEBUG=1
-dockerutils tools
+dockerutils server
 ```
 
 ### Docker Socket Access

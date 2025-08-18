@@ -199,7 +199,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
 2. **Set specific API version:**
    ```bash
    export DOCKER_API_VERSION=1.40
-   dockerutils tools
+   dockerutils server
    ```
 
 3. **Update Docker daemon:**
@@ -255,7 +255,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
 2. **Try with smaller image:**
    ```bash
    # Start with a small image
-   dockerutils tools
+   dockerutils server
    # Then analyze: alpine:latest (5MB)
    ```
 
@@ -268,7 +268,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
 4. **Restart dockerutils:**
    ```bash
    pkill dockerutils
-   dockerutils tools
+   dockerutils server
    ```
 
 5. **Clean up Docker system:**
@@ -279,7 +279,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
 
 6. **Check logs for specific errors:**
    ```bash
-   dockerutils tools --verbose
+   dockerutils server --verbose
    ```
 
 ### Large Image Timeouts
@@ -355,12 +355,12 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
 
 2. **Start the server:**
    ```bash
-   dockerutils tools --port 8080
+   dockerutils server --port 8080
    ```
 
 3. **Try different port:**
    ```bash
-   dockerutils tools --port 8081
+   dockerutils server --port 8081
    open http://localhost:8081
    ```
 
@@ -376,7 +376,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
 
 5. **Use different interface:**
    ```bash
-   dockerutils tools --host 127.0.0.1 --port 8080
+   dockerutils server --host 127.0.0.1 --port 8080
    ```
 
 ### Web Interface Loads But No Images
@@ -481,7 +481,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
    ```bash
    # Move tmp directory to SSD
    mkdir /path/to/ssd/dockerutils-tmp
-   dockerutils tools --tmp-dir /path/to/ssd/dockerutils-tmp
+   dockerutils server --tmp-dir /path/to/ssd/dockerutils-tmp
    ```
 
 4. **Increase Docker resources:**
@@ -522,7 +522,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
    ```bash
    # For long-running sessions
    pkill dockerutils
-   dockerutils tools
+   dockerutils server
    ```
 
 ### Disk Space Issues
@@ -549,7 +549,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
 
 4. **Use different tmp directory:**
    ```bash
-   dockerutils tools --tmp-dir /path/to/large/disk/tmp
+   dockerutils server --tmp-dir /path/to/large/disk/tmp
    ```
 
 5. **Enable auto-cleanup:**
@@ -678,7 +678,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
 **Solutions:**
 1. **Check server logs:**
    ```bash
-   dockerutils tools --verbose
+   dockerutils server --verbose
    ```
 
 2. **Verify request format:**
@@ -696,7 +696,7 @@ Common issues and solutions for Docker Utils. If you encounter problems not cove
 4. **Restart server:**
    ```bash
    pkill dockerutils
-   dockerutils tools
+   dockerutils server
    ```
 
 ### JSON Parse Errors
@@ -737,7 +737,7 @@ docker version
 dockerutils version
 
 # Error details
-dockerutils tools --verbose 2>&1 | head -50
+dockerutils server --verbose 2>&1 | head -50
 
 # Docker status
 docker info
@@ -752,7 +752,7 @@ free -h
 
 ```bash
 # Collect logs
-dockerutils tools --verbose > dockerutils.log 2>&1 &
+dockerutils server --verbose > dockerutils.log 2>&1 &
 # Reproduce the issue
 # Then:
 pkill dockerutils

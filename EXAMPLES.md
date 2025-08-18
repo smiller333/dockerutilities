@@ -23,7 +23,7 @@ cd dockerutils
 make build-dev
 
 # Step 2: Start the web interface
-./dockerutils tools --port 8080
+./dockerutils server --port 8080
 
 # Step 3: Open browser and navigate to http://localhost:8080
 
@@ -62,7 +62,7 @@ dockerutils analyze alpine:latest nginx:latest node:18-alpine
 **Scenario**: Analyze a lightweight Alpine Linux image
 
 **Steps**:
-1. Start dockerutils: `dockerutils tools`
+1. Start dockerutils: `dockerutils server`
 2. Open http://localhost:8080
 3. Enter image name: `alpine:latest`
 4. Click "Analyze Image"
@@ -236,7 +236,7 @@ curl -X DELETE http://localhost:8080/api/info/7aab056cecc6
 
 ```bash
 # 1. Start dockerutils
-dockerutils tools
+dockerutils server
 
 # 2. Analyze the production image
 curl -X POST http://localhost:8080/api/analyze \
@@ -391,7 +391,7 @@ IMAGES=(
 # Start dockerutils if not running
 if ! curl -s http://localhost:8080/api/health >/dev/null 2>&1; then
   echo "Starting dockerutils..."
-  dockerutils tools --port 8080 &
+  dockerutils server --port 8080 &
   sleep 5
 fi
 
@@ -458,7 +458,7 @@ jobs:
     
     - name: Start dockerutils
       run: |
-        ./dockerutils tools --port 8080 &
+        ./dockerutils server --port 8080 &
         sleep 10
     
     - name: Analyze image

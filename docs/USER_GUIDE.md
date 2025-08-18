@@ -38,13 +38,13 @@ cd dockerutils
 git clone https://github.com/smiller333/dockerutils.git
 cd dockerutils
 make build-release
-./bin/dockerutils tools
+./bin/dockerutils server
 ```
 
 #### Option 3: Quick Development Build
 ```bash
 go build -o dockerutils
-./dockerutils tools
+./dockerutils server
 ```
 
 Once running, open http://localhost:8080 in your browser.
@@ -53,7 +53,7 @@ Once running, open http://localhost:8080 in your browser.
 
 ### First Steps
 
-1. **Start the Server**: Run `dockerutils tools` and wait for the browser to open
+1. **Start the Server**: Run `dockerutils server` and wait for the browser to open
 2. **Check Connection**: The interface will show if Docker is accessible
 3. **View Dashboard**: See any existing analysis results (if any)
 
@@ -127,26 +127,26 @@ dockerutils version
 dockerutils --help
 
 # Command-specific help
-dockerutils tools --help
+dockerutils server --help
 dockerutils completion --help
 ```
 
 #### Starting the Web Server
 ```bash
 # Default settings (localhost:8080)
-dockerutils tools
+dockerutils server
 
 # Custom port
-dockerutils tools --port 3000
+dockerutils server --port 3000
 
 # Bind to all interfaces
-dockerutils tools --host 0.0.0.0 --port 8080
+dockerutils server --host 0.0.0.0 --port 8080
 
 # Custom directories
-dockerutils tools --tmp-dir /app/data --web-root /custom/ui
+dockerutils server --tmp-dir /app/data --web-root /custom/ui
 
 # Don't open browser automatically
-dockerutils tools --no-browser
+dockerutils server --no-browser
 ```
 
 ### Command Options Reference
@@ -187,7 +187,7 @@ dockerutils completion powershell > dockerutils.ps1
 #### Scanning for Vulnerabilities
 ```bash
 # Start dockerutils
-dockerutils tools
+dockerutils server
 
 # Analyze a potentially vulnerable image
 # Navigate to: http://localhost:8080
@@ -240,7 +240,7 @@ IMAGE_NAME="$1"
 REPORT_DIR="./security-reports"
 
 # Start dockerutils in background
-dockerutils tools --no-browser --port 8080 &
+dockerutils server --no-browser --port 8080 &
 SERVER_PID=$!
 sleep 5  # Wait for server to start
 
@@ -604,7 +604,7 @@ lsof -i :8080
 netstat -tulpn | grep 8080
 
 # Use a different port
-dockerutils tools --port 3000
+dockerutils server --port 3000
 
 # Or kill the process using the port
 sudo kill -9 $(lsof -ti:8080)
@@ -613,7 +613,7 @@ sudo kill -9 $(lsof -ti:8080)
 **Problem**: "Cannot access from remote machine"
 ```bash
 # Bind to all interfaces instead of localhost
-dockerutils tools --host 0.0.0.0 --port 8080
+dockerutils server --host 0.0.0.0 --port 8080
 
 # Check firewall settings
 # Linux (ufw)
@@ -657,7 +657,7 @@ df -h
 **Problem**: "Analysis is very slow"
 ```bash
 # Use faster storage for tmp directory
-dockerutils tools --tmp-dir /path/to/fast/storage
+dockerutils server --tmp-dir /path/to/fast/storage
 
 # Analyze smaller images first
 # Avoid very large images (>1GB) for testing
@@ -684,7 +684,7 @@ Enable verbose logging:
 ```bash
 # Set environment variable for detailed logging
 export DOCKER_UTILS_DEBUG=1
-dockerutils tools
+dockerutils server
 
 # Or check Docker daemon logs
 journalctl -u docker.service -f  # Linux systemd
@@ -717,7 +717,7 @@ curl -X DELETE http://localhost:8080/api/info/{old_image_id}
 du -sh ./tmp
 
 # Use dedicated storage for tmp directory
-dockerutils tools --tmp-dir /dedicated/fast/storage
+dockerutils server --tmp-dir /dedicated/fast/storage
 ```
 
 #### Network Optimization
@@ -771,7 +771,7 @@ if [ -f Dockerfile ]; then
   docker build -t "$IMAGE_TAG" .
   
   # Analyze with dockerutils
-  dockerutils tools --no-browser &
+  dockerutils server --no-browser &
   SERVER_PID=$!
   sleep 5
   

@@ -371,7 +371,7 @@ dockerutils version
 docker ps
 
 # Start server
-dockerutils tools --port 8080
+dockerutils server --port 8080
 
 # Test API (in another terminal)
 curl http://localhost:8080/api/health
@@ -384,7 +384,7 @@ curl http://localhost:8080/api/health
 docker run hello-world
 
 # 2. Start dockerutils
-dockerutils tools &
+dockerutils server &
 
 # 3. Test image analysis
 curl -X POST http://localhost:8080/api/analyze \
@@ -518,7 +518,7 @@ lsof -i :8080
 netstat -tlnp | grep 8080
 
 # Use different port
-dockerutils tools --port 8081
+dockerutils server --port 8081
 ```
 
 #### Firewall Issues
@@ -637,7 +637,7 @@ After installation, verify everything works:
 
 3. **Web server:**
    ```bash
-   dockerutils tools --port 8080 &
+   dockerutils server --port 8080 &
    curl http://localhost:8080/api/health
    ```
 
