@@ -189,20 +189,6 @@ func extractSecureHardlink(linkTarget, linkPath, baseDir string) error {
 	return os.Link(cleanTarget, linkPath)
 }
 
-// createSecureTempDir creates a temporary directory with restrictive permissions
-func createSecureTempDir(prefix string) (string, error) {
-	tempDir := os.TempDir()
-
-	// Create directory with restrictive permissions (0700 = rwx------)
-	dirPath := filepath.Join(tempDir, fmt.Sprintf("%s-%d", prefix, time.Now().UnixNano()))
-
-	if err := os.MkdirAll(dirPath, 0700); err != nil {
-		return "", fmt.Errorf("failed to create secure temp directory: %w", err)
-	}
-
-	return dirPath, nil
-}
-
 // secureFileCreate creates files with restricted permissions
 func secureFileCreate(path string) (*os.File, error) {
 	// Create file with permissions 0600 (rw-------)
@@ -294,14 +280,7 @@ func parseImageNameAndSource(fullImageName string) (imageTag, imageSource string
 	return fullImageName, ""
 }
 
-// AnalyzeImage pulls and analyzes the specified Docker image
-// If forcePull is false, it will only pull the image if it doesn't already exist locally
-func AnalyzeImage(imageName string, keepTempFiles bool, forcePull bool) (*AnalysisResult, error) {
-	return AnalyzeImageWithTmpDir(imageName, keepTempFiles, forcePull, "")
-}
-
 // AnalyzeImageWithTmpDir pulls and analyzes the specified Docker image with a custom tmp directory
-// If tmpDir is empty, it defaults to "./tmp" in the current working directory
 // If forcePull is false, it will only pull the image if it doesn't already exist locally
 func AnalyzeImageWithTmpDir(imageName string, keepTempFiles bool, forcePull bool, tmpDir string) (*AnalysisResult, error) {
 	if imageName == "" {
@@ -316,21 +295,10 @@ func AnalyzeImageWithTmpDir(imageName string, keepTempFiles bool, forcePull bool
 	// Warn about untrusted images
 	dockerclient.WarnUntrustedImage(imageName)
 
-	// Set default tmp directory if not provided
-	var tmpBaseDir string
-	if tmpDir == "" {
-		// Create a secure temporary subdirectory
-		var err error
-		tmpBaseDir, err = createSecureTempDir("dockerutils-analysis")
-		if err != nil {
-			return nil, fmt.Errorf("failed to create secure tmp directory: %w", err)
-		}
-	} else {
-		tmpBaseDir = tmpDir
-		// Create tmp directory if it doesn't exist with secure permissions
-		if err := os.MkdirAll(tmpBaseDir, 0700); err != nil {
-			return nil, fmt.Errorf("failed to create tmp directory: %w", err)
-		}
+	// Use provided tmp directory and ensure it exists with secure permissions
+	tmpBaseDir := tmpDir
+	if err := os.MkdirAll(tmpBaseDir, 0700); err != nil {
+		return nil, fmt.Errorf("failed to create tmp directory: %w", err)
 	}
 
 	// Parse the image name to extract tag and source
