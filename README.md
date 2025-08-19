@@ -29,7 +29,7 @@ cd dockerutils
 - **⚡ Live Analysis**: Real-time Docker image inspection with detailed reports
 - **📊 Comprehensive Reporting**: Generate detailed analysis reports with build metrics
 - **🐳 Docker SDK Integration**: Built on the official Docker client library (v28.3.0+)
-- **🛠️ CLI Tools**: Command-line interface for automation and scripting
+- **🛠️ CLI Commands**: Command-line interface for automation and scripting
 - **📁 File System Explorer**: Browse extracted image contents through the web interface
 - **🔄 Asynchronous Operations**: Non-blocking image analysis with progress tracking
 
@@ -313,7 +313,7 @@ dockerutils/
 ├── cmd/                 # Command definitions
 │   ├── root.go         # Root command and CLI setup
 │   ├── completion.go   # Shell completion command
-│   └── tools.go        # Web server command for analysis tools
+│   └── server.go       # Web server command for analysis tools
 ├── src/                 # Implementation logic (separated by concern)
 │   ├── analyzer/       # Dockerfile and image analysis logic
 │   │   ├── analyzer.go

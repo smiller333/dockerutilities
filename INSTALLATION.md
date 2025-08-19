@@ -226,7 +226,7 @@ go build -o dockerutils main.go
 go test ./...
 
 # Run with race detection
-go run -race main.go tools
+go run -race main.go server
 ```
 
 ## Container Deployment

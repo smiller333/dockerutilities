@@ -26,7 +26,7 @@ Docker Utils is a CLI tool and web interface for comprehensive Docker image anal
 │  CLI Interface (Cobra)     │     Web Interface (HTTP)       │
 │  ┌─────────────────────────┼─────────────────────────────┐   │
 │  │ Commands                │ REST API + Static Files    │   │
-│  │ - tools                 │ - /api/analyze             │   │
+│  │ - server                │ - /api/analyze             │   │
 │  │ - version               │ - /api/summaries           │   │
 │  │ - completion            │ - /api/buildcontext        │   │
 │  │                         │ - Static HTML/CSS/JS       │   │
@@ -84,14 +84,14 @@ Built on the [Cobra](https://github.com/spf13/cobra) library for command-line in
 ```go
 // Command Structure
 rootCmd (dockerutils)
-├── toolsCmd     // Web server management
+├── serverCmd    // Web server management
 ├── versionCmd   // Version information
 └── completion   // Shell completion
 ```
 
 **Key Components:**
 - `root.go` - Root command and global configuration
-- `tools.go` - Web server startup and management
+- `server.go` - Web server startup and management
 - `completion.go` - Shell completion generation
 
 ### Service Layer (`src/`)

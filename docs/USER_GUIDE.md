@@ -155,7 +155,7 @@ dockerutils server --no-browser
 - `-h, --help`: Show help information
 - `-v, --version`: Show version information
 
-#### Tools Command Options
+#### Server Command Options
 - `--port string`: Port number for web server (default: "8080")
 - `--host string`: Host/IP to bind server to (default: "localhost")
 - `--tmp-dir string`: Directory for analysis data (default: "./tmp")
@@ -418,7 +418,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./analysis-data:/app/tmp
-    command: tools --host 0.0.0.0
+    command: server --host 0.0.0.0
     
   analyzer:
     image: curlimages/curl
@@ -453,7 +453,7 @@ spec:
         volumeMounts:
         - name: docker-socket
           mountPath: /var/run/docker.sock
-        command: ["dockerutils", "tools", "--host", "0.0.0.0"]
+        command: ["dockerutils", "server", "--host", "0.0.0.0"]
       volumes:
       - name: docker-socket
         hostPath:
@@ -819,7 +819,7 @@ jobs:
         chmod +x dockerutils-linux-amd64
         
         # Start server
-        ./dockerutils-linux-amd64 tools --no-browser &
+        ./dockerutils-linux-amd64 server --no-browser &
         sleep 10
         
         # Analyze image

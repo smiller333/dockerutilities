@@ -156,7 +156,7 @@ curl http://localhost:8080/api/health
 dockerutils/
 ├── cmd/                     # CLI command implementations
 │   ├── root.go             # Root command and global flags
-│   ├── tools.go            # Web server command
+│   ├── server.go           # Web server command
 │   └── completion.go       # Shell completion
 ├── src/                     # Core implementation packages
 │   ├── analyzer/           # Docker image analysis
@@ -416,7 +416,7 @@ export DEBUG=1
 go install github.com/go-delve/delve/cmd/dlv@latest
 
 # Debug main application
-dlv debug . -- tools --port 8080
+dlv debug . -- server --port 8080
 
 # Debug specific test
 dlv test ./src/analyzer/ -- -test.run TestAnalyzeImage
@@ -456,7 +456,7 @@ groups $USER
 
 ```bash
 # Start server with profiling
-go run . tools --port 8080 --profile
+go run . server --port 8080 --profile
 
 # CPU profiling
 go tool pprof http://localhost:8080/debug/pprof/profile

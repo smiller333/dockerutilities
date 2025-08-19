@@ -14,10 +14,29 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "dockerutils",
-	Short: "A collection of Docker utilities",
-	Long: `dockerutils is a CLI tool that provides various utilities for working with Docker containers, images, and other Docker-related tasks.
+	Short: "Docker analysis and management utilities",
+	Long: `dockerutils is a comprehensive CLI tool for Docker image analysis and management.
 
-This tool aims to simplify common Docker operations and provide additional functionality for Docker workflows.`,
+This tool provides:
+- Interactive web interface for Docker image analysis
+- Command-line utilities for Docker operations
+- REST API for programmatic access to analysis data
+- Docker build context preview and validation
+- Image filesystem exploration and metadata extraction
+
+Key Features:
+- Analyze local and remote Docker images
+- Extract and browse image filesystem contents  
+- View layer information and build history
+- Generate comprehensive analysis reports
+- Docker build context preview and .dockerignore validation
+
+Examples:
+  dockerutils --version                    # Show version information
+  dockerutils server --port 8080          # Start web analysis server
+  dockerutils completion bash             # Generate bash completion script
+
+For more information about a command, use 'dockerutils [command] --help'`,
 	Version: version.GetVersionString(),
 }
 

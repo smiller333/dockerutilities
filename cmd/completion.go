@@ -14,10 +14,13 @@ import (
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish|powershell]",
 	Short: "Generate autocompletion scripts for various shells",
-	Long: `Generate autocompletion scripts for dockerutils for the specified shell.
+	Long: `Generate autocompletion scripts for dockerutils to enable command and flag completion in your shell.
 
-The completion script can be sourced to enable autocompletion for dockerutils commands,
-flags, and arguments in your shell.
+This command generates shell-specific completion scripts that provide:
+- Command name completion (server, completion, etc.)
+- Flag and option completion (--port, --host, etc.)
+- Argument completion for supported commands
+- Context-aware suggestions based on current command
 
 Available shells:
   bash       Generate autocompletion script for bash
@@ -26,8 +29,11 @@ Available shells:
   powershell Generate autocompletion script for PowerShell
 
 Examples:
-  # Generate bash completion script
-  dockerutils completion bash > /etc/bash_completion.d/dockerutils
+  # Generate and install bash completion (Linux)
+  dockerutils completion bash | sudo tee /etc/bash_completion.d/dockerutils
+  
+  # Generate and install bash completion (macOS)
+  dockerutils completion bash | sudo tee /usr/local/etc/bash_completion.d/dockerutils
   
   # Generate zsh completion script
   dockerutils completion zsh > "${fpath[1]}/_dockerutils"
@@ -38,26 +44,22 @@ Examples:
   # Generate PowerShell completion script
   dockerutils completion powershell > dockerutils.ps1
 
-Installation Instructions:
+Quick Installation:
 
-  Bash:
-    # Linux:
+  Bash (Linux/macOS):
     dockerutils completion bash | sudo tee /etc/bash_completion.d/dockerutils
-    # macOS (using Homebrew):
-    dockerutils completion bash | sudo tee /usr/local/etc/bash_completion.d/dockerutils
     
   Zsh:
-    # Add to your ~/.zshrc:
-    autoload -U compinit; compinit
-    # Then generate the completion file:
+    # Add to ~/.zshrc: autoload -U compinit; compinit
     dockerutils completion zsh > "${fpath[1]}/_dockerutils"
     
   Fish:
     dockerutils completion fish > ~/.config/fish/completions/dockerutils.fish
     
   PowerShell:
-    # Add to your PowerShell profile:
-    dockerutils completion powershell | Out-String | Invoke-Expression`,
+    dockerutils completion powershell | Out-String | Invoke-Expression
+
+After installation, restart your shell or run 'source ~/.bashrc' (bash) to enable completion.`,
 	DisableFlagsInUseLine: true,
 	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
 	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),

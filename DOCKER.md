@@ -263,7 +263,7 @@ Once the container is running, you can access:
 ./scripts/docker-run.sh build
 
 # For development, use local mode instead of Docker:
-go run main.go tools --port 8080
+go run main.go server --port 8080
 ```
 
 ### Debugging

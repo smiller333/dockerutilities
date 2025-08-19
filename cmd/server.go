@@ -66,17 +66,24 @@ func init() {
 	rootCmd.AddCommand(serverCmd)
 
 	// Add command flags
-	serverCmd.Flags().StringVar(&serverPort, "port", "8080", "Port number for the web server")
-	serverCmd.Flags().StringVar(&host, "host", "localhost", "Host/IP address to bind the server to")
-	serverCmd.Flags().StringVar(&webRoot, "web-root", "", "Custom path to web root directory (optional)")
-	serverCmd.Flags().StringVar(&tmpDir, "tmp-dir", "", "Custom path to tmp directory for analysis data (optional)")
-	serverCmd.Flags().BoolVar(&noBrowser, "no-browser", false, "Don't automatically open browser when server starts")
+	serverCmd.Flags().StringVar(&serverPort, "port", "8080", "Port number for the web server (default: 8080)")
+	serverCmd.Flags().StringVar(&host, "host", "localhost", "Host/IP address to bind the server to (default: localhost)")
+	serverCmd.Flags().StringVar(&webRoot, "web-root", "", "Custom path to web root directory for custom UI (optional)")
+	serverCmd.Flags().StringVar(&tmpDir, "tmp-dir", "", "Custom path to temporary directory for analysis data (optional)")
+	serverCmd.Flags().BoolVar(&noBrowser, "no-browser", false, "Disable automatic browser opening when server starts")
 }
 
 // runServer starts the web server for viewing Docker image analysis results
 func runServer(cmd *cobra.Command, args []string) error {
-	fmt.Printf("Starting Docker Server...\n")
-	fmt.Printf("Server will be available at: http://%s:%s\n", host, serverPort)
+	fmt.Printf("🚀 Starting Docker Utils Server...\n")
+	fmt.Printf("📍 Server will be available at: http://%s:%s\n", host, serverPort)
+
+	if webRoot != "" {
+		fmt.Printf("📁 Using custom web root: %s\n", webRoot)
+	}
+	if tmpDir != "" {
+		fmt.Printf("📁 Using custom temp directory: %s\n", tmpDir)
+	}
 
 	// Create server configuration
 	config := &webserver.Config{
@@ -89,7 +96,15 @@ func runServer(cmd *cobra.Command, args []string) error {
 	// Create and start the web server
 	server, err := webserver.New(config)
 	if err != nil {
-		return fmt.Errorf("failed to create web server: %w", err)
+		return fmt.Errorf(`❌ Failed to create web server: %w
+
+Troubleshooting steps:
+1. Check if port %s is already in use: lsof -i :%s
+2. Verify you have permission to bind to %s:%s
+3. Try a different port: dockerutils server --port 8081
+4. Check system resources and available memory
+
+For more help, see: https://github.com/smiller333/dockerutils/docs/TROUBLESHOOTING.md`, err, serverPort, serverPort, host, serverPort)
 	}
 
 	// Set up graceful shutdown handling
@@ -111,21 +126,27 @@ func runServer(cmd *cobra.Command, args []string) error {
 			time.Sleep(1 * time.Second)
 			url := fmt.Sprintf("http://%s:%s", host, serverPort)
 			if err := openBrowser(url); err != nil {
-				fmt.Printf("Could not automatically open browser: %v\n", err)
-				fmt.Printf("Please manually open: %s\n", url)
+				fmt.Printf("⚠️  Could not automatically open browser: %v\n", err)
+				fmt.Printf("🌐 Please manually open: %s\n", url)
 			} else {
-				fmt.Printf("Opening browser to: %s\n", url)
+				fmt.Printf("🌐 Opening browser to: %s\n", url)
 			}
 		}()
+	} else {
+		fmt.Printf("🌐 Browser auto-open disabled. Open manually: http://%s:%s\n", host, serverPort)
 	}
 
 	// Wait for shutdown signal or server error
 	select {
 	case sig := <-sigChan:
-		fmt.Printf("\nReceived signal %v, shutting down server...\n", sig)
-		return server.Shutdown()
+		fmt.Printf("\n🛑 Received signal %v, shutting down server gracefully...\n", sig)
+		if err := server.Shutdown(); err != nil {
+			return fmt.Errorf("❌ Error during server shutdown: %w", err)
+		}
+		fmt.Printf("✅ Server shutdown complete\n")
+		return nil
 	case err := <-serverErrChan:
-		return fmt.Errorf("server error: %w", err)
+		return fmt.Errorf("❌ Server error: %w", err)
 	}
 }
 
