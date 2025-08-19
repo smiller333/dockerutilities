@@ -2,6 +2,17 @@
 
 A Go-based CLI tool and web interface for Docker image analysis and management. Built with the official Docker SDK, it provides insights into Docker images through both command-line tools and an interactive web interface.
 
+## ⚠️ Security Warning
+
+**This application should ONLY be run on local development systems and trusted networks.**
+
+- The web interface binds to `localhost` by default but can be configured to bind to other interfaces
+- The application requires access to the Docker socket (`/var/run/docker.sock`) which provides full access to the Docker daemon
+- Running this application on public networks or production systems without proper security measures could expose your system to unauthorized access
+- This tool is intended for development and analysis purposes only
+
+**Do not deploy this application to production environments or expose it to untrusted networks.**
+
 ## 🚀 Quick Start
 
 ```bash
@@ -34,6 +45,7 @@ chmod +x scripts/*.sh
 - Go 1.24.2 or later
 - Docker Engine running locally
 - Access to Docker socket (`/var/run/docker.sock`)
+- **Local development environment only** - Do not run on production systems
 
 ## Usage
 
