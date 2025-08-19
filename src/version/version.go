@@ -1,4 +1,4 @@
-// Package version provides build information and version details for the dockerutils application.
+// Package version provides build information and version details for the dockerutilities application.
 // Copyright (c) 2025 Docker Utils Contributors
 // Licensed under the MIT License. See LICENSE file in the project root for license information.
 
@@ -70,7 +70,7 @@ func GetFullVersionString() string {
 		buildTimeStr = "unknown"
 	}
 
-	return fmt.Sprintf("dockerutils %s\nGit Commit: %s\nBuild Time: %s\nGo Version: %s\nOS/Arch: %s/%s",
+	return fmt.Sprintf("dockerutilities %s\nGit Commit: %s\nBuild Time: %s\nGo Version: %s\nOS/Arch: %s/%s",
 		buildInfo.Version,
 		buildInfo.GitCommit,
 		buildTimeStr,

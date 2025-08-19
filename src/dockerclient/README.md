@@ -23,7 +23,7 @@ import (
     "fmt"
     "log"
     
-    "github.com/smiller333/dockerutils/src/dockerclient"
+    	"github.com/smiller333/dockerutilities/src/dockerclient"
 )
 
 func main() {

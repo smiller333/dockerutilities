@@ -6,12 +6,12 @@ A Go-based CLI tool and web interface for Docker image analysis and management. 
 
 ```bash
 # Clone and build
-git clone https://github.com/smiller333/dockerutils.git
-cd dockerutils
+git clone https://github.com/smiller333/dockerutilities.git
+cd dockerutilities
 ./scripts/build.sh dev
 
 # Start the web interface
-./bin/dockerutils server
+./bin/dockerutilities server
 
 # Access at http://localhost:8080
 ```
@@ -36,10 +36,10 @@ cd dockerutils
 
 ```bash
 # Start the server
-./bin/dockerutils server
+./bin/dockerutilities server
 
 # Start on custom port
-./bin/dockerutils server --port 3000
+./bin/dockerutilities server --port 3000
 ```
 
 Once running, you can:
@@ -53,13 +53,13 @@ Once running, you can:
 
 ```bash
 # Show help
-./bin/dockerutils --help
+./bin/dockerutilities --help
 
 # Show version
-./bin/dockerutils version
+./bin/dockerutilities version
 
 # Start web server
-./bin/dockerutils server
+./bin/dockerutilities server
 ```
 
 ### API Endpoints
@@ -75,7 +75,7 @@ The web server provides a REST API:
 ## Project Structure
 
 ```
-dockerutils/
+dockerutilities/
 ├── cmd/                 # CLI command definitions
 ├── src/                 # Implementation logic
 │   ├── analyzer/       # Image analysis logic

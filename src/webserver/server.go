@@ -18,10 +18,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/smiller333/dockerutils/src/analyzer"
-	"github.com/smiller333/dockerutils/src/buildcontext"
-	"github.com/smiller333/dockerutils/src/dockerclient"
-	"github.com/smiller333/dockerutils/src/version"
+	"github.com/smiller333/dockerutilities/src/analyzer"
+	"github.com/smiller333/dockerutilities/src/buildcontext"
+	"github.com/smiller333/dockerutilities/src/dockerclient"
+	"github.com/smiller333/dockerutilities/src/version"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )

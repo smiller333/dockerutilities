@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/smiller333/dockerutils/src/dockerclient"
+	"github.com/smiller333/dockerutilities/src/dockerclient"
 )
 
 // AnalyzeDockerfile reads and analyzes a Dockerfile at the specified path, then builds the image
@@ -130,9 +130,9 @@ func generateImageTag(dockerfilePath string) string {
 	dir := filepath.Dir(dockerfilePath)
 	baseName := filepath.Base(dir)
 
-	// If we're in the root or the directory name is not useful, use "dockerutils"
+	// If we're in the root or the directory name is not useful, use "dockerutilities"
 	if baseName == "." || baseName == "/" || baseName == "" {
-		baseName = "dockerutils"
+		baseName = "dockerutilities"
 	}
 
 	// Clean the name to be Docker-compatible (lowercase, no special chars except -, _)

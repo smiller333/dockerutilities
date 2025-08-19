@@ -1,12 +1,12 @@
-# Makefile for dockerutils - Go-based Docker command-line utilities
-# This Makefile builds the dockerutils binary with embedded build-time information
+# Makefile for dockerutilities - Go-based Docker command-line utilities
+# This Makefile builds the dockerutilities binary with embedded build-time information
 
 .PHONY: build build-dev clean test version help install deps lint fmt check dev watch
 
 # Project information
-PROJECT_NAME := dockerutils
-MODULE_NAME := github.com/smiller333/dockerutils
-CMD_PATH := ./cmd/dockerutils
+PROJECT_NAME := dockerutilities
+MODULE_NAME := github.com/smiller333/dockerutilities
+CMD_PATH := ./cmd/dockerutilities
 MAIN_PATH := .
 
 # Build output directory

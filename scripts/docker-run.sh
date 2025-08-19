@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Build and run script for dockerutils image-viewer in Docker
+# Build and run script for dockerutilities in Docker
 set -e
 
 # Colors for output
@@ -11,8 +11,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-IMAGE_NAME="dockerutils-viewer"
-CONTAINER_NAME="dockerutils-viewer"
+IMAGE_NAME="dockerutilities"
+CONTAINER_NAME="dockerutilities"
 PORT="8080"
 DATA_DIR="./data"
 

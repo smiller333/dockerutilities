@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/smiller333/dockerutils/cmd"
+	"github.com/smiller333/dockerutilities/cmd"
 )
 
 func main() {

@@ -101,7 +101,7 @@ func TestGetFullVersionString(t *testing.T) {
 
 	// Should contain various components
 	expectedComponents := []string{
-		"dockerutils",
+		"dockerutilities",
 		"Git Commit:",
 		"Build Time:",
 		"Go Version:",
@@ -124,7 +124,7 @@ func TestBuildTimeFormatting(t *testing.T) {
 	BuildTime = testTime
 
 	fullVersionStr := GetFullVersionString()
-	
+
 	// Should format the time nicely, not show raw RFC3339
 	if strings.Contains(fullVersionStr, testTime) {
 		t.Error("Full version string should format build time, not show raw RFC3339")

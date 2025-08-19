@@ -1,4 +1,4 @@
-// Package cmd provides command-line interface functionality for dockerutils.
+// Package cmd provides command-line interface functionality for dockerutilities.
 // Copyright (c) 2025 Docker Utils Contributors
 // Licensed under the MIT License. See LICENSE file in the project root for license information.
 
@@ -7,15 +7,15 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/smiller333/dockerutils/src/version"
+	"github.com/smiller333/dockerutilities/src/version"
 	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "dockerutils",
+	Use:   "dockerutilities",
 	Short: "Docker analysis and management utilities",
-	Long: `dockerutils is a comprehensive CLI tool for Docker image analysis and management.
+	Long: `dockerutilities is a comprehensive CLI tool for Docker image analysis and management.
 
 This tool provides:
 - Interactive web interface for Docker image analysis
@@ -32,19 +32,18 @@ Key Features:
 - Docker build context preview and .dockerignore validation
 
 Examples:
-  dockerutils --version                    # Show version information
-  dockerutils server --port 8080          # Start web analysis server
-  dockerutils completion bash             # Generate bash completion script
+  	dockerutilities --version                    # Show version information
+	dockerutilities server --port 8080          # Start web analysis server
 
-For more information about a command, use 'dockerutils [command] --help'`,
+For more information about a command, use 'dockerutilities [command] --help'`,
 	Version: version.GetVersionString(),
 }
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the version information of dockerutils",
-	Long:  `Print detailed version information of dockerutils including build time, git commit, and Go version.`,
+	Short: "Print the version information of dockerutilities",
+	Long:  `Print detailed version information of dockerutilities including build time, git commit, and Go version.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Print(version.GetFullVersionString())
 	},

@@ -1,4 +1,4 @@
-// Package cmd provides command-line interface functionality for dockerutils.
+// Package cmd provides command-line interface functionality for dockerutilities.
 // Copyright (c) 2025 Docker Utils Contributors
 // Licensed under the MIT License. See LICENSE file in the project root for license information.
 
@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/smiller333/dockerutils/src/webserver"
+	"github.com/smiller333/dockerutilities/src/webserver"
 	"github.com/spf13/cobra"
 )
 
@@ -48,12 +48,12 @@ Key Features:
 - Docker build context preview and .dockerignore validation
 
 Examples:
-  dockerutils server                                       # Start server on default port 8080 (opens browser automatically)
-  dockerutils server --port 3000                          # Start server on port 3000
-  dockerutils server --port 8080 --host 0.0.0.0           # Bind to all interfaces
-  dockerutils server --web-root ./custom-ui               # Use custom web root directory
-  dockerutils server --tmp-dir /app/data                  # Use custom tmp directory for analysis data
-  dockerutils server --no-browser                         # Start server without opening browser automatically
+  	dockerutilities server                                       # Start server on default port 8080 (opens browser automatically)
+	dockerutilities server --port 3000                          # Start server on port 3000
+	dockerutilities server --port 8080 --host 0.0.0.0           # Bind to all interfaces
+	dockerutilities server --web-root ./custom-ui               # Use custom web root directory
+	dockerutilities server --tmp-dir /app/data                  # Use custom tmp directory for analysis data
+	dockerutilities server --no-browser                         # Start server without opening browser automatically
 
 The server will automatically open your default web browser to the analysis tools interface.
 Use --no-browser to disable automatic browser opening.`,
@@ -101,10 +101,10 @@ func runServer(cmd *cobra.Command, args []string) error {
 Troubleshooting steps:
 1. Check if port %s is already in use: lsof -i :%s
 2. Verify you have permission to bind to %s:%s
-3. Try a different port: dockerutils server --port 8081
+	3. Try a different port: dockerutilities server --port 8081
 4. Check system resources and available memory
 
-For more help, see: https://github.com/smiller333/dockerutils/docs/TROUBLESHOOTING.md`, err, serverPort, serverPort, host, serverPort)
+For more help, see: https://github.com/smiller333/dockerutilities/docs/TROUBLESHOOTING.md`, err, serverPort, serverPort, host, serverPort)
 	}
 
 	// Set up graceful shutdown handling

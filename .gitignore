@@ -1,7 +1,7 @@
 .DS_Store
 
 # Ignore the binary
-/dockerutils
+/dockerutilities
 /bin/**/*
 
 # Ignore data and temp files

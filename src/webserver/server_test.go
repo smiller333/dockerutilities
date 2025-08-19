@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/smiller333/dockerutils/src/analyzer"
+	"github.com/smiller333/dockerutilities/src/analyzer"
 )
 
 func TestNew(t *testing.T) {

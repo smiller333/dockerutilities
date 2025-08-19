@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o dockerutils .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o dockerutilities .
 
 # Runtime stage
 FROM alpine:latest
@@ -28,13 +28,13 @@ RUN apk --no-cache add ca-certificates wget
 # Create docker group with common GID and non-root user
 # Handle case where docker group might already exist
 RUN (addgroup -g 999 -S docker 2>/dev/null || addgroup -S docker) && \
-    addgroup -g 1001 -S dockerutils && \
-    adduser -u 1001 -S dockerutils -G dockerutils && \
-    adduser dockerutils docker
+    addgroup -g 1001 -S dockerutilities && \
+adduser -u 1001 -S dockerutilities -G dockerutilities && \
+adduser dockerutilities docker
 
 # Create directories and handle potential Docker socket group
 RUN mkdir -p /app/data && \
-    chown -R dockerutils:dockerutils /app
+    chown -R dockerutilities:dockerutilities /app
 
 # Create an entrypoint script to handle dynamic Docker socket permissions
 COPY <<'EOF' /entrypoint.sh
@@ -52,10 +52,10 @@ if [ -S /var/run/docker.sock ]; then
     
     # Get the group name for this GID
     GROUP_NAME=$(getent group "$DOCKER_SOCKET_GID" | cut -d: -f1)
-    echo "Adding dockerutils user to group: $GROUP_NAME"
+    echo "Adding dockerutilities user to group: $GROUP_NAME"
     
-    # Add dockerutils user to the docker socket group
-    adduser dockerutils "$GROUP_NAME"
+    # Add dockerutilities user to the docker socket group
+adduser dockerutilities "$GROUP_NAME"
 fi
 
 # Install su-exec if not already available
@@ -63,8 +63,8 @@ if ! command -v su-exec >/dev/null 2>&1; then
     apk add --no-cache su-exec
 fi
 
-# Switch to dockerutils user and execute the original command
-exec su-exec dockerutils "$@"
+# Switch to dockerutilities user and execute the original command
+exec su-exec dockerutilities "$@"
 EOF
 
 RUN chmod +x /entrypoint.sh
@@ -76,10 +76,10 @@ RUN apk add --no-cache su-exec
 WORKDIR /app
 
 # Copy binary from builder stage
-COPY --from=builder /app/dockerutils .
+COPY --from=builder /app/dockerutilities .
 
 # Change ownership of the binary
-RUN chown dockerutils:dockerutils dockerutils
+RUN chown dockerutilities:dockerutilities dockerutilities
 
 # Create volume mount point for persistent data
 VOLUME ["/app/data"]
@@ -93,4 +93,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Command to run the application
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["./dockerutils", "image-viewer", "--host", "0.0.0.0", "--port", "8080", "--tmp-dir", "/app/data"]
+CMD ["./dockerutilities", "server", "--host", "0.0.0.0", "--port", "8080", "--tmp-dir", "/app/data"]

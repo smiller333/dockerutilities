@@ -1,4 +1,4 @@
-module github.com/smiller333/dockerutils
+module github.com/smiller333/dockerutilities
 
 go 1.24.2
 

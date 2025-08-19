@@ -19,7 +19,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/smiller333/dockerutils/src/dockerclient"
+	"github.com/smiller333/dockerutilities/src/dockerclient"
 )
 
 // SafeTarExtraction extracts tar archive using Go native library

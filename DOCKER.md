@@ -29,22 +29,22 @@ This guide covers running Docker Utils in a containerized environment.
 
 ```bash
 # Build the image
-docker build -t dockerutils-viewer .
+docker build -t dockerutilities .
 
 # Run with persistent storage
 docker run -d \
-  --name dockerutils-viewer \
+  --name dockerutilities \
   -p 8080:8080 \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v $(pwd)/data:/app/data \
-  dockerutils-viewer
+  dockerutilities
 
 # Run with ephemeral storage
 docker run -d \
-  --name dockerutils-viewer \
+  --name dockerutilities \
   -p 8080:8080 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  dockerutils-viewer
+  dockerutilities
 ```
 
 ## Configuration

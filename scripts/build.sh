@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# build.sh - Simple build script for dockerutils with version injection
+# build.sh - Simple build script for dockerutilities with version injection
 # This script wraps the Makefile for easier usage
 
 set -e
@@ -33,7 +33,7 @@ print_error() {
 show_usage() {
     echo "Usage: $0 [OPTIONS] [TARGET]"
     echo ""
-    echo "Build dockerutils with embedded version information"
+    echo "Build dockerutilities with embedded version information"
     echo ""
     echo "TARGETS:"
     echo "  dev          Build development version (default)"
@@ -110,7 +110,7 @@ if ! command -v go >/dev/null 2>&1; then
 fi
 
 # Execute the target
-print_info "Building dockerutils..."
+print_info "Building dockerutilities..."
 print_info "Target: $TARGET"
 
 case $TARGET in
@@ -164,11 +164,11 @@ esac
 
 # Show binary information if build was successful
 if [[ "$TARGET" == "dev" || "$TARGET" == "release" ]]; then
-    if [ -f "bin/dockerutils" ]; then
-        print_info "Binary information:"
-        ls -lh bin/dockerutils
-        
-        print_info "Testing version output:"
-        ./bin/dockerutils version 2>/dev/null || echo "Note: version command may not be fully implemented yet"
-    fi
+    	if [ -f "bin/dockerutilities" ]; then
+		print_info "Binary information:"
+		ls -lh bin/dockerutilities
+		
+		print_info "Testing version output:"
+		./bin/dockerutilities version 2>/dev/null || echo "Note: version command may not be fully implemented yet"
+	fi
 fi
