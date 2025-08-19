@@ -1246,7 +1246,7 @@ func (s *Server) handleBuildContextPreview(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		response := BuildContextPreviewResponse{
 			Success: false,
-			Error:   fmt.Sprintf("Invalid context directory: %v", err),
+			Error:   err.Error(),
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -1259,7 +1259,7 @@ func (s *Server) handleBuildContextPreview(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		response := BuildContextPreviewResponse{
 			Success: false,
-			Error:   fmt.Sprintf("Failed to compute build context: %v", err),
+			Error:   err.Error(),
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1298,7 +1298,7 @@ func (s *Server) handleBuildContextRead(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		response := BuildContextReadResponse{
 			Success: false,
-			Error:   fmt.Sprintf("Invalid context directory: %v", err),
+			Error:   err.Error(),
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -1311,7 +1311,7 @@ func (s *Server) handleBuildContextRead(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		response := BuildContextReadResponse{
 			Success: false,
-			Error:   fmt.Sprintf("Failed to read .dockerignore: %v", err),
+			Error:   err.Error(),
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)

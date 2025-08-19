@@ -43,7 +43,7 @@ func ReadDockerignore(contextDir string) (string, error) {
 		if os.IsNotExist(err) {
 			return "", nil // Return empty string if .dockerignore doesn't exist
 		}
-		return "", fmt.Errorf("failed to read .dockerignore file: %w", err)
+		return "", fmt.Errorf("failed to read .dockerignore file at %s: %w", dockerignorePath, err)
 	}
 
 	return string(content), nil

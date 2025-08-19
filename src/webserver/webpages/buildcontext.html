@@ -309,7 +309,7 @@ temp/
 
     <!-- Error Modal -->
     <div id="errorModal" class="modal">
-        <div class="modal-content max-w-lg">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title text-red-800">Error</h2>
                 <button id="closeErrorModal" class="modal-close">&times;</button>
@@ -549,8 +549,15 @@ temp/
             const contextDir = contextDirInput.value.trim();
             if (!contextDir) {
                 showError(
-                    'Build context directory is required',
-                    'Please enter the absolute path to your Docker build context directory (e.g., /path/to/your/project)'
+                    'Missing Directory Path',
+                    'Please enter the absolute path to your Docker build context directory.',
+                    null,
+                    [
+                        'Use the absolute path starting with / (e.g., /Users/username/projects/myapp)',
+                        'Make sure the path points to the directory containing your Dockerfile',
+                        'Avoid using relative paths like ./ or ../',
+                        'Double-check the spelling and case sensitivity of the path'
+                    ]
                 );
                 return false;
             }
@@ -600,10 +607,8 @@ temp/
                     debouncedPreview();
                 }
             } catch (error) {
-                showError(
-                    'Failed to load .dockerignore file',
-                    `Unable to read .dockerignore from "${contextDir}". Please check that the directory path is correct and accessible. Error: ${error.message}`
-                );
+                const parsedError = parseError(error);
+                showError(parsedError.title, parsedError.message, parsedError.details, parsedError.suggestions);
             }
         }
 
@@ -651,25 +656,8 @@ temp/
             } catch (error) {
                 loadingState.classList.add('hidden');
                 
-                // Provide specific error messages based on common issues
-                let userMessage = 'Failed to preview build context';
-                let details = error.message;
-                
-                if (error.message.toLowerCase().includes('directory does not exist')) {
-                    userMessage = 'Directory not found';
-                    details = `The directory "${contextDir}" does not exist. Please check the path and ensure it's the correct absolute path to your build context.`;
-                } else if (error.message.toLowerCase().includes('not a directory')) {
-                    userMessage = 'Invalid directory path';
-                    details = `The path "${contextDir}" exists but is not a directory. Please provide the path to a directory, not a file.`;
-                } else if (error.message.toLowerCase().includes('permission') || error.message.toLowerCase().includes('access')) {
-                    userMessage = 'Permission denied';
-                    details = `Unable to access the directory "${contextDir}". Please check that you have read permissions for this directory and all parent directories.`;
-                } else if (error.message.toLowerCase().includes('invalid context directory')) {
-                    userMessage = 'Invalid build context';
-                    details = `The directory "${contextDir}" is not a valid build context. ${error.message}`;
-                }
-                
-                showError(userMessage, details);
+                const parsedError = parseError(error);
+                showError(parsedError.title, parsedError.message, parsedError.details, parsedError.suggestions);
             }
         }
 
@@ -845,16 +833,40 @@ temp/
             errorState.classList.add('hidden');
         }
 
-        // Show error modal
-        function showError(message, details = null) {
+        // Show error modal with structured error information
+        function showError(title, message, details = null, suggestions = null) {
             hideStates();
             
-            // Set the main error message
+            // Set the modal title and main error message
+            document.querySelector('#errorModal .modal-title').textContent = title;
             errorModalMessage.textContent = message;
             
-            // Show or hide details section
+            // Build details content with better structure
+            let detailsContent = '';
+            
             if (details) {
-                errorModalDetailsText.textContent = details;
+                detailsContent += `<div class="mb-3">
+                    <p class="font-medium text-gray-700 mb-1">Technical Details:</p>
+                    <p class="text-sm text-gray-600 font-mono bg-gray-50 p-2 rounded border">${escapeHtml(details)}</p>
+                </div>`;
+            }
+            
+            if (suggestions && suggestions.length > 0) {
+                detailsContent += `<div class="mb-3">
+                    <p class="font-medium text-gray-700 mb-1">Suggestions:</p>
+                    <ul class="text-sm text-gray-600 space-y-1">`;
+                suggestions.forEach(suggestion => {
+                    detailsContent += `<li class="flex items-start">
+                        <span class="text-blue-500 mr-2">•</span>
+                        <span>${escapeHtml(suggestion)}</span>
+                    </li>`;
+                });
+                detailsContent += `</ul></div>`;
+            }
+            
+            // Show or hide details section
+            if (detailsContent) {
+                errorModalDetails.innerHTML = detailsContent;
                 errorModalDetails.classList.remove('hidden');
             } else {
                 errorModalDetails.classList.add('hidden');
@@ -862,6 +874,94 @@ temp/
             
             // Show the modal
             errorModal.classList.add('show');
+        }
+
+        // Parse and structure error messages for better user experience
+        function parseError(error) {
+            const errorMessage = error.message || error.toString();
+            const contextDir = contextDirInput.value.trim();
+            
+            // Common error patterns and their structured responses
+            if (errorMessage.toLowerCase().includes('directory does not exist')) {
+                return {
+                    title: 'Directory Not Found',
+                    message: `The directory "${contextDir}" does not exist.`,
+                    details: errorMessage,
+                    suggestions: [
+                        'Check that the path is spelled correctly',
+                        'Ensure you\'re using the absolute path (starting with /)',
+                        'Verify the directory exists on your system',
+                        'Try navigating to the directory in your terminal to confirm the path'
+                    ]
+                };
+            }
+            
+            if (errorMessage.toLowerCase().includes('not a directory') || errorMessage.toLowerCase().includes('path is not a directory')) {
+                return {
+                    title: 'Invalid Directory Path',
+                    message: `The path "${contextDir}" exists but is not a directory.`,
+                    details: errorMessage,
+                    suggestions: [
+                        'Provide the path to a directory, not a file',
+                        'Check that you\'re pointing to the correct location',
+                        'Ensure the path ends with the directory name, not a file name'
+                    ]
+                };
+            }
+            
+            if (errorMessage.toLowerCase().includes('permission') || errorMessage.toLowerCase().includes('access')) {
+                return {
+                    title: 'Permission Denied',
+                    message: `Unable to access the directory "${contextDir}".`,
+                    details: errorMessage,
+                    suggestions: [
+                        'Check that you have read permissions for this directory',
+                        'Verify permissions for all parent directories',
+                        'Try running the application with appropriate permissions',
+                        'Check if the directory is owned by a different user'
+                    ]
+                };
+            }
+            
+            if (errorMessage.toLowerCase().includes('invalid context directory')) {
+                return {
+                    title: 'Invalid Build Context',
+                    message: `The directory "${contextDir}" is not a valid build context.`,
+                    details: errorMessage,
+                    suggestions: [
+                        'Ensure the directory contains your Docker project files',
+                        'Check that the directory is accessible and readable',
+                        'Verify the path doesn\'t contain special characters that might cause issues'
+                    ]
+                };
+            }
+            
+            if (errorMessage.toLowerCase().includes('failed to read .dockerignore')) {
+                return {
+                    title: 'Dockerignore File Error',
+                    message: 'Unable to read the .dockerignore file.',
+                    details: errorMessage,
+                    suggestions: [
+                        'Check that the .dockerignore file exists in the specified directory',
+                        'Verify the file has proper read permissions',
+                        'Ensure the file is not corrupted or empty',
+                        'Try creating a new .dockerignore file if needed'
+                    ]
+                };
+            }
+            
+            // Default error structure for unknown errors
+            return {
+                title: 'Error',
+                message: 'An unexpected error occurred while processing your request.',
+                details: errorMessage,
+                suggestions: [
+                    'Check that all inputs are valid',
+                    'Try refreshing the page and attempting the operation again',
+                    'Verify that the Docker daemon is running (if applicable)',
+                    'Contact support if the problem persists'
+                ]
+            };
         }
 
         // Show success modal
