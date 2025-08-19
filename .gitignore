@@ -4,9 +4,6 @@
 /dockerutils
 /bin/**/*
 
-# Ignore some temporary documentation
-docs/road_to_open_source/
-
 # Ignore data and temp files
 **/data
 **/tmp
