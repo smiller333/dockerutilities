@@ -47,6 +47,7 @@ Once running, you can:
 2. View detailed analysis results including metadata, layers, and filesystem
 3. Browse extracted image contents
 4. Manage analysis results
+5. Check Docker connectivity status via the "System Status" button
 
 ### CLI Commands
 

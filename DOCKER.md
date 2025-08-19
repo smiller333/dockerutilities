@@ -68,6 +68,12 @@ docker run -d \
 Once the container is running, access the web interface at:
 - **Web Interface:** http://localhost:8080
 
+You can check Docker connectivity status by clicking the "System Status" button in the web interface, which will show:
+- Docker daemon connection status
+- Docker version and system information
+- Container and image counts
+- System architecture and resources
+
 ## Troubleshooting
 
 ### Common Issues
