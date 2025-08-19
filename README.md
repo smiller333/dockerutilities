@@ -8,6 +8,11 @@ A Go-based CLI tool and web interface for Docker image analysis and management. 
 # Clone and build
 git clone https://github.com/smiller333/dockerutilities.git
 cd dockerutilities
+
+# Make scripts executable (required for first-time setup)
+chmod +x scripts/*.sh
+
+# Build the application
 ./scripts/build.sh dev
 
 # Start the web interface
@@ -98,6 +103,8 @@ go test ./...
 # Build release version
 ./scripts/build.sh release
 ```
+
+> **Note**: If you're setting up the project for the first time, make sure to run `chmod +x scripts/*.sh` to make the build scripts executable.
 
 ## Dependencies
 
