@@ -1,0 +1,93 @@
+---
+description: CI/CD implementation standards ensuring workflows follow documented plans and maintain proper separation of concerns
+globs: 
+  - ".github/workflows/*.yml"
+  - "docs/*.md"
+alwaysApply: false
+---
+
+# CI/CD Implementation Standards
+
+## Overview
+This rule ensures that CI/CD implementations strictly follow documented plans and maintain proper separation of concerns between different workflow types.
+
+## Implementation Requirements
+
+### 1. Plan Adherence
+- **ALWAYS** review and follow existing planning documentation before implementing CI/CD workflows
+- **NEVER** deviate from documented architecture without updating the plan first
+- **ALWAYS** implement workflows exactly as specified in planning documents
+- **NEVER** mix concerns between different workflow types (CI vs Release)
+
+### 2. Workflow Separation
+- **CI Workflows** (ci.yml): Testing and validation only
+  - Run tests and generate coverage reports
+  - MAY include basic build verification for validation
+  - MUST NOT include production builds or releases
+  - MUST NOT include GoReleaser or release automation
+
+- **Release Workflows** (release.yml): Cross-platform builds and releases
+  - Handle all cross-platform builds via GoReleaser
+  - Create GitHub releases and upload artifacts
+  - Trigger on git tags (v*)
+  - Include all build complexity and automation
+
+### 3. Implementation Process
+1. **Review Planning**: Read all relevant planning documentation
+2. **Understand Architecture**: Ensure clear separation of concerns
+3. **Implement Exactly**: Follow documented specifications precisely
+4. **Update Documentation**: Mark completed milestones in planning docs
+5. **Test Locally**: Verify workflows work as expected
+
+### 4. Common Mistakes to Avoid
+- **Mixing CI and Release**: Don't put build steps in CI workflows
+- **Ignoring Plans**: Don't implement without following documented architecture
+- **Premature Optimization**: Don't add features not in the current milestone
+- **Inconsistent Naming**: Don't deviate from documented naming conventions
+
+### 5. Validation Checklist
+Before implementing any CI/CD workflow:
+- [ ] Planning document reviewed and understood
+- [ ] Architecture separation clear (CI vs Release)
+- [ ] Implementation matches documented specifications
+- [ ] No mixing of concerns between workflow types
+- [ ] Milestone requirements clearly identified
+- [ ] Local testing planned
+
+## Examples
+
+### ✅ Correct CI Workflow
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    steps:
+    - name: Run tests
+      run: make test
+    - name: Generate coverage
+      run: make test-coverage
+    # Basic build verification only
+    - name: Verify build capability
+      run: make dev
+```
+
+### ❌ Incorrect CI Workflow (Mixes Concerns)
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    steps:
+    - name: Run tests
+      run: make test
+    - name: Build release version  # WRONG: This belongs in release workflow
+      run: make release
+    - name: Run GoReleaser  # WRONG: This belongs in release workflow
+      run: goreleaser release
+```
+
+## Enforcement
+- All CI/CD implementations must be reviewed against this rule
+- Any deviations from documented plans require plan updates first
+- Workflow separation must be maintained at all times
