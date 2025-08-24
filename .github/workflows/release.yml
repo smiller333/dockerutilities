@@ -22,11 +22,60 @@ jobs:
         go-version: '1.24.2'
         cache: true
     
+    - name: Validate GoReleaser configuration
+      run: |
+        echo "Validating GoReleaser configuration..."
+        goreleaser check
+        echo "Configuration is valid!"
+    
+    - name: Run tests before release
+      run: |
+        echo "Running comprehensive tests..."
+        go test -v -race -coverprofile=coverage.out ./...
+        go vet ./...
+        echo "Tests completed successfully!"
+    
+    - name: Build and test locally (dry run)
+      run: |
+        echo "Testing GoReleaser build process..."
+        goreleaser build --snapshot --clean --parallelism=2
+        echo "Local build test completed!"
+    
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v5
       with:
         distribution: goreleaser
         version: latest
-        args: release --clean
+        args: release --clean --parallelism=2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Verify release artifacts
+      run: |
+        echo "Verifying release artifacts..."
+        # Check if release was created
+        if [ -f "dist/checksums.txt" ]; then
+          echo "✅ Checksums file created"
+          cat dist/checksums.txt
+        else
+          echo "❌ Checksums file not found"
+          exit 1
+        fi
+        
+        # Check binary count (should be 6 platforms)
+        BINARY_COUNT=$(find dist -name "dockerutilities-*" -type f | wc -l)
+        echo "Found $BINARY_COUNT binaries"
+        
+        if [ "$BINARY_COUNT" -ge 6 ]; then
+          echo "✅ All platform binaries created"
+        else
+          echo "❌ Expected 6 binaries, found $BINARY_COUNT"
+          exit 1
+        fi
+        
+        # Test one binary if possible
+        if [ -f "dist/dockerutilities-linux-amd64" ]; then
+          echo "Testing Linux binary..."
+          chmod +x dist/dockerutilities-linux-amd64
+          ./dist/dockerutilities-linux-amd64 version || echo "Version command not available"
+        fi
