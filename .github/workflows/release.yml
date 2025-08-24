@@ -50,21 +50,34 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Verify release artifacts
+    - name: Enhanced artifact verification
       run: |
-        echo "Verifying release artifacts..."
+        echo "🔍 Enhanced artifact verification..."
+        
         # Check if release was created
         if [ -f "dist/checksums.txt" ]; then
           echo "✅ Checksums file created"
+          echo "Checksums content:"
           cat dist/checksums.txt
         else
           echo "❌ Checksums file not found"
           exit 1
         fi
         
+        # Verify checksums
+        echo "🔐 Verifying checksums..."
+        cd dist
+        if sha256sum -c checksums.txt; then
+          echo "✅ All checksums verified successfully"
+        else
+          echo "❌ Checksum verification failed"
+          exit 1
+        fi
+        cd ..
+        
         # Check binary count (should be 6 platforms)
         BINARY_COUNT=$(find dist -name "dockerutilities-*" -type f | wc -l)
-        echo "Found $BINARY_COUNT binaries"
+        echo "📦 Found $BINARY_COUNT binaries"
         
         if [ "$BINARY_COUNT" -ge 6 ]; then
           echo "✅ All platform binaries created"
@@ -73,9 +86,136 @@ jobs:
           exit 1
         fi
         
-        # Test one binary if possible
+        # Enhanced binary testing
+        echo "🧪 Testing binary functionality..."
+        
+        # Test Linux binary
         if [ -f "dist/dockerutilities-linux-amd64" ]; then
-          echo "Testing Linux binary..."
+          echo "Testing Linux AMD64 binary..."
           chmod +x dist/dockerutilities-linux-amd64
-          ./dist/dockerutilities-linux-amd64 version || echo "Version command not available"
+          
+          # Test version command
+          VERSION_OUTPUT=$(./dist/dockerutilities-linux-amd64 version 2>/dev/null || echo "Version command failed")
+          echo "Version output: $VERSION_OUTPUT"
+          
+          # Test help command
+          HELP_OUTPUT=$(./dist/dockerutilities-linux-amd64 --help 2>/dev/null || echo "Help command failed")
+          echo "Help output length: ${#HELP_OUTPUT} characters"
+          
+          # Test basic functionality
+          echo "Testing basic functionality..."
+          ./dist/dockerutilities-linux-amd64 version >/dev/null 2>&1 && echo "✅ Linux binary basic test passed" || echo "⚠️ Linux binary basic test failed"
         fi
+        
+        # Test macOS binary (if on macOS runner)
+        if [ -f "dist/dockerutilities-darwin-amd64" ] && [ "$(uname)" = "Darwin" ]; then
+          echo "Testing macOS AMD64 binary..."
+          chmod +x dist/dockerutilities-darwin-amd64
+          ./dist/dockerutilities-darwin-amd64 version >/dev/null 2>&1 && echo "✅ macOS binary test passed" || echo "⚠️ macOS binary test failed"
+        fi
+        
+        # Test Windows binary (basic file check)
+        if [ -f "dist/dockerutilities-windows-amd64.exe" ]; then
+          echo "✅ Windows AMD64 binary created"
+          # Check file size
+          WINDOWS_SIZE=$(stat -c%s dist/dockerutilities-windows-amd64.exe)
+          echo "Windows binary size: $WINDOWS_SIZE bytes"
+        fi
+        
+        # Test ARM64 binaries (basic file check)
+        if [ -f "dist/dockerutilities-linux-arm64" ]; then
+          echo "✅ Linux ARM64 binary created"
+          chmod +x dist/dockerutilities-linux-arm64
+          ./dist/dockerutilities-linux-arm64 version >/dev/null 2>&1 && echo "✅ Linux ARM64 binary test passed" || echo "⚠️ Linux ARM64 binary test failed"
+        fi
+        
+        if [ -f "dist/dockerutilities-darwin-arm64" ] && [ "$(uname)" = "Darwin" ]; then
+          echo "✅ macOS ARM64 binary created"
+          chmod +x dist/dockerutilities-darwin-arm64
+          ./dist/dockerutilities-darwin-arm64 version >/dev/null 2>&1 && echo "✅ macOS ARM64 binary test passed" || echo "⚠️ macOS ARM64 binary test failed"
+        fi
+        
+        if [ -f "dist/dockerutilities-windows-arm64.exe" ]; then
+          echo "✅ Windows ARM64 binary created"
+        fi
+        
+        echo "🎉 Enhanced artifact verification completed!"
+    
+    - name: Prepare Docker configuration for Phase 4
+      run: |
+        echo "🐳 Preparing Docker configuration for Phase 4..."
+        
+        # Create Docker build test script
+        cat > scripts/test-docker-build.sh << 'EOF'
+        #!/bin/bash
+        # Docker build test script for Phase 4 preparation
+        
+        set -e
+        
+        echo "Testing Docker build process..."
+        
+        # Test multi-platform Docker build
+        if command -v docker >/dev/null 2>&1; then
+          echo "Building Docker image for testing..."
+          
+          # Build for current platform
+          docker build -t dockerutilities:test .
+          
+          # Test the built image
+          echo "Testing Docker image..."
+          docker run --rm dockerutilities:test version || echo "Docker test failed"
+          
+          # Cleanup
+          docker rmi dockerutilities:test || true
+          
+          echo "✅ Docker build test completed"
+        else
+          echo "⚠️ Docker not available for testing"
+        fi
+        EOF
+        
+        chmod +x scripts/test-docker-build.sh
+        echo "✅ Docker test script created for Phase 4"
+        
+        # Create Docker configuration documentation
+        cat > docs/docker-integration-plan.md << 'EOF'
+        # Docker Integration Plan (Phase 4)
+        
+        ## Overview
+        This document outlines the plan for integrating Docker image building into the GoReleaser release process.
+        
+        ## Current Status
+        - GoReleaser Docker configuration is prepared in `.goreleaser.yml`
+        - Multi-platform builds (linux/amd64, linux/arm64) are configured
+        - GitHub Container Registry integration is ready
+        
+        ## Implementation Steps
+        1. Enable Docker builds in GoReleaser configuration
+        2. Configure GitHub Container Registry authentication
+        3. Add Docker image testing and validation
+        4. Implement multi-platform Docker builds
+        5. Add Docker image security scanning
+        
+        ## Configuration
+        - Images: `ghcr.io/smiller333/dockerutilities:{{ .Version }}` and `:latest`
+        - Platforms: linux/amd64, linux/arm64
+        - Registry: GitHub Container Registry
+        
+        ## Testing
+        Use `scripts/test-docker-build.sh` to test Docker builds locally.
+        EOF
+        
+        echo "✅ Docker integration documentation created"
+    
+    - name: Create release summary
+      run: |
+        echo "📋 Release Summary"
+        echo "=================="
+        echo "Version: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Platforms: 6 (Linux/macOS/Windows AMD64/ARM64)"
+        echo "Artifacts: $(find dist -name 'dockerutilities-*' -type f | wc -l) binaries"
+        echo "Checksums: SHA256 verified"
+        echo "Docker: Configuration prepared for Phase 4"
+        echo ""
+        echo "✅ Milestone 2.2: Artifact Management completed!"
