@@ -1,0 +1,133 @@
+---
+description: Ensures tasks in task lists are marked as completed when finished in markdown files within the docs directory
+globs: ["docs/**/*.md"]
+alwaysApply: false
+---
+
+# Task Completion Tracking
+
+This rule ensures that tasks in task lists are marked as completed when finished, specifically for markdown files in the `docs/` directory.
+
+## Scope
+- **Applies to**: All markdown files in the `docs/` directory
+- **Task Format**: GitHub-style task lists with `- [ ]` and `- [x]` syntax
+- **Tracking**: Update task status within the same chat session when work is completed
+
+## Task List Format
+- **Pending Tasks**: `- [ ] Task description`
+- **Completed Tasks**: `- [x] Task description`
+- **Location**: Task lists should be in markdown files under `docs/`
+
+## Completion Tracking Rules
+
+### 1. Immediate Updates
+- When a task is completed during a chat session, immediately update the task list
+- Change `- [ ]` to `- [x]` for completed tasks
+- Add completion timestamp or context if relevant
+
+### 2. Milestone Tracking
+- Track completion of entire milestones by updating all tasks within a milestone
+- Use consistent formatting for milestone completion status
+- Update milestone-level completion indicators
+
+### 3. Progress Documentation
+- When completing tasks, provide brief summary of what was accomplished
+- Update any related documentation that references the completed work
+- Ensure task descriptions accurately reflect what was delivered
+
+### 4. Validation
+- Verify that completed tasks actually deliver the intended functionality
+- Test any code changes or configurations mentioned in task descriptions
+- Ensure documentation is updated to reflect completed work
+
+## Implementation Guidelines
+
+### Task List Structure
+```markdown
+## Milestone X.X: Description
+
+- [ ] Task 1: Description of work
+- [ ] Task 2: Description of work
+- [ ] Task 3: Description of work
+
+### Success Criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+```
+
+### Completion Example
+```markdown
+## Milestone 0.1: Build System Analysis
+
+- [x] Review and document current Makefile complexity
+- [x] Identify redundant or overly complex build targets
+- [x] Assess version injection mechanism for GitHub Actions compatibility
+- [x] Evaluate build script wrapper necessity vs direct Makefile usage
+- [x] Document current Docker build process and requirements
+
+### Success Criteria
+- [x] Build system analysis complete
+- [x] Complexity assessment documented
+- [x] Issues identified and documented
+- [x] Recommendations provided
+```
+
+## Best Practices
+
+### 1. Consistent Formatting
+- Use consistent task list formatting across all documents
+- Maintain clear task descriptions that are actionable and measurable
+- Group related tasks under logical milestones
+
+### 2. Progress Visibility
+- Keep task lists visible and up-to-date
+- Use completion status to show project progress
+- Update task lists before moving to next milestone
+
+### 3. Documentation Sync
+- Ensure completed tasks are reflected in related documentation
+- Update any cross-references to completed work
+- Maintain consistency between task completion and actual deliverables
+
+### 4. Quality Assurance
+- Verify task completion before marking as done
+- Test any deliverables mentioned in task descriptions
+- Ensure documentation quality meets project standards
+
+## Enforcement
+
+### During Development
+- Check task lists at the beginning of each development session
+- Update task status immediately upon completion
+- Verify task completion before marking as done
+
+### Code Reviews
+- Include task list updates in code review process
+- Ensure completed tasks are properly documented
+- Validate that task completion aligns with actual deliverables
+
+### Project Management
+- Use task completion status for project progress tracking
+- Update milestone completion indicators based on task status
+- Maintain accurate project status for stakeholders
+
+## Integration with Other Rules
+
+### Documentation Standards
+- Follow documentation standards when updating task descriptions
+- Ensure task lists are well-formatted and readable
+- Maintain consistency with project documentation style
+
+### Project Context
+- Align task completion with project goals and objectives
+- Ensure completed tasks contribute to overall project success
+- Update project status based on task completion
+
+### Testing Standards
+- Verify task completion through appropriate testing
+- Ensure deliverables meet quality standards
+- Validate functionality before marking tasks complete
+description:
+globs:
+alwaysApply: false
+---
