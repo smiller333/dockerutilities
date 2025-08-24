@@ -116,12 +116,12 @@ This document outlines the plan for implementing an automated GitHub build proce
 - [x] Configure GitHub release creation and artifact upload
 
 #### Milestone 1.4: Create Release Notes Template
-- [ ] Update `docs/release-notes-template.md` for GoReleaser integration
-- [ ] Include sections for manual content (Features, Breaking Changes, Testing Notes, etc.)
-- [ ] Add examples of good release note entries
-- [ ] Document integration with GoReleaser changelog
-- [ ] Include guidelines for development vs production releases
-- [ ] Create hybrid approach: GoReleaser changelog + manual enhancements
+- [x] Update `docs/release-notes-template.md` for GoReleaser integration
+- [x] Include sections for manual content (Features, Breaking Changes, Testing Notes, etc.)
+- [x] Add examples of good release note entries
+- [x] Document integration with GoReleaser changelog
+- [x] Include guidelines for development vs production releases
+- [x] Create hybrid approach: GoReleaser changelog + manual enhancements
 
 #### Phase 1 Decisions:
 1. **Go Version**: Pin to Go 1.24.2 (current installed version)
