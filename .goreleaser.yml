@@ -158,17 +158,17 @@ checksum:
   # Current version supports basic SHA256 checksums
 
 # Docker configuration (prepared for Phase 4)
-dockers:
-  - image_templates:
-      - "ghcr.io/smiller333/dockerutilities:{{ .Version }}"
-      - "ghcr.io/smiller333/dockerutilities:latest"
-    dockerfile: Dockerfile
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--platform=linux/arm64"
-    extra_files:
-      - README.md
-      - LICENSE
+# dockers:
+#   - image_templates:
+#       - "ghcr.io/smiller333/dockerutilities:{{ .Version }}"
+#       - "ghcr.io/smiller333/dockerutilities:latest"
+#     dockerfile: Dockerfile
+#     use: buildx
+#     build_flag_templates:
+#       - "--platform=linux/amd64"
+#       - "--platform=linux/arm64"
+#     extra_files:
+#       - README.md
+#       - LICENSE
     # Note: Docker hooks are not supported in current GoReleaser version
     # Docker validation will be handled in GitHub Actions workflow
