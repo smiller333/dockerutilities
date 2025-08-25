@@ -86,58 +86,27 @@ jobs:
           exit 1
         fi
         
-        # Enhanced binary testing
-        echo "🧪 Testing binary functionality..."
+        # Enhanced binary testing with comprehensive verification
+        echo "🧪 Testing binary functionality across all platforms..."
         
-        # Test Linux binary
-        if [ -f "dist/dockerutilities-linux-amd64" ]; then
-          echo "Testing Linux AMD64 binary..."
-          chmod +x dist/dockerutilities-linux-amd64
+        # Use the comprehensive verification script
+        chmod +x scripts/verify-binaries.sh
+        ./scripts/verify-binaries.sh release ./bin/dockerutilities ./dist
+        
+        # Platform-specific binary verification (file existence and basic checks)
+        echo "📦 Platform-specific binary verification..."
+        
+        for platform_info in "${PLATFORMS[@]}"; do
+          IFS=':' read -r binary_path platform_name <<< "$platform_info"
           
-          # Test version command
-          VERSION_OUTPUT=$(./dist/dockerutilities-linux-amd64 version 2>/dev/null || echo "Version command failed")
-          echo "Version output: $VERSION_OUTPUT"
-          
-          # Test help command
-          HELP_OUTPUT=$(./dist/dockerutilities-linux-amd64 --help 2>/dev/null || echo "Help command failed")
-          echo "Help output length: ${#HELP_OUTPUT} characters"
-          
-          # Test basic functionality
-          echo "Testing basic functionality..."
-          ./dist/dockerutilities-linux-amd64 version >/dev/null 2>&1 && echo "✅ Linux binary basic test passed" || echo "⚠️ Linux binary basic test failed"
-        fi
-        
-        # Test macOS binary (if on macOS runner)
-        if [ -f "dist/dockerutilities-darwin-amd64" ] && [ "$(uname)" = "Darwin" ]; then
-          echo "Testing macOS AMD64 binary..."
-          chmod +x dist/dockerutilities-darwin-amd64
-          ./dist/dockerutilities-darwin-amd64 version >/dev/null 2>&1 && echo "✅ macOS binary test passed" || echo "⚠️ macOS binary test failed"
-        fi
-        
-        # Test Windows binary (basic file check)
-        if [ -f "dist/dockerutilities-windows-amd64.exe" ]; then
-          echo "✅ Windows AMD64 binary created"
-          # Check file size
-          WINDOWS_SIZE=$(stat -c%s dist/dockerutilities-windows-amd64.exe)
-          echo "Windows binary size: $WINDOWS_SIZE bytes"
-        fi
-        
-        # Test ARM64 binaries (basic file check)
-        if [ -f "dist/dockerutilities-linux-arm64" ]; then
-          echo "✅ Linux ARM64 binary created"
-          chmod +x dist/dockerutilities-linux-arm64
-          ./dist/dockerutilities-linux-arm64 version >/dev/null 2>&1 && echo "✅ Linux ARM64 binary test passed" || echo "⚠️ Linux ARM64 binary test failed"
-        fi
-        
-        if [ -f "dist/dockerutilities-darwin-arm64" ] && [ "$(uname)" = "Darwin" ]; then
-          echo "✅ macOS ARM64 binary created"
-          chmod +x dist/dockerutilities-darwin-arm64
-          ./dist/dockerutilities-darwin-arm64 version >/dev/null 2>&1 && echo "✅ macOS ARM64 binary test passed" || echo "⚠️ macOS ARM64 binary test failed"
-        fi
-        
-        if [ -f "dist/dockerutilities-windows-arm64.exe" ]; then
-          echo "✅ Windows ARM64 binary created"
-        fi
+          if [[ -f "$binary_path" ]]; then
+            echo "✅ $platform_name binary exists"
+            BINARY_SIZE=$(stat -c%s "$binary_path")
+            echo "   Size: $BINARY_SIZE bytes"
+          else
+            echo "❌ $platform_name binary missing: $binary_path"
+          fi
+        done
         
         echo "🎉 Enhanced artifact verification completed!"
     

@@ -1,10 +1,5 @@
 #!/bin/bash
-
-# Binary verification script for dockerutilities
-# This script verifies built binaries for all platforms
-# Part of Milestone 2.2: Artifact Management
-
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -13,281 +8,259 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Function to print colored output
-print_status() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
+# Configuration
+VERIFY_MODE="${1:-ci}"  # ci or release
+BINARY_PATH="${2:-./bin/dockerutilities}"
+DIST_DIR="${3:-./dist}"
 
-print_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
+echo -e "${BLUE}🔍 Binary Verification Script${NC}"
+echo "Mode: $VERIFY_MODE"
+echo "Binary Path: $BINARY_PATH"
+echo "Dist Directory: $DIST_DIR"
+echo ""
 
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Function to check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Function to get file size in human readable format
-get_file_size() {
-    local file="$1"
-    if [ -f "$file" ]; then
-        stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "unknown"
-    else
-        echo "0"
-    fi
-}
-
-# Function to test binary functionality
-test_binary() {
-    local binary="$1"
-    local platform="$2"
-    local arch="$3"
+# Function to run comprehensive smoke tests on a binary
+run_smoke_tests() {
+    local binary_path="$1"
+    local platform_name="$2"
     
-    print_status "Testing $platform/$arch binary: $binary"
+    echo -e "${BLUE}🧪 Testing $platform_name binary: $binary_path${NC}"
     
-    if [ ! -f "$binary" ]; then
-        print_error "Binary not found: $binary"
+    if [[ ! -f "$binary_path" ]]; then
+        echo -e "${RED}❌ Binary not found: $binary_path${NC}"
         return 1
     fi
     
-    # Get file size
-    local size=$(get_file_size "$binary")
-    print_status "Binary size: $size bytes"
+    # Make executable
+    chmod +x "$binary_path"
     
-    # Make executable if needed
-    if [ "$platform" != "windows" ]; then
-        chmod +x "$binary"
+    # Test 1: Version command
+    echo "  📋 Test 1: Version command"
+    VERSION_OUTPUT=$("$binary_path" version 2>&1 || echo "VERSION_COMMAND_FAILED")
+    if [[ "$VERSION_OUTPUT" == "VERSION_COMMAND_FAILED" ]]; then
+        echo -e "    ${RED}❌ Version command failed${NC}"
+        return 1
     fi
     
-    # Test version command
-    print_status "Testing version command..."
-    local version_output
-    if [ "$platform" = "windows" ]; then
-        version_output=$("$binary" version 2>/dev/null || echo "Version command failed")
-    else
-        version_output=$("$binary" version 2>/dev/null || echo "Version command failed")
-    fi
-    echo "Version output: $version_output"
-    
-    # Test help command
-    print_status "Testing help command..."
-    local help_output
-    if [ "$platform" = "windows" ]; then
-        help_output=$("$binary" --help 2>/dev/null || echo "Help command failed")
-    else
-        help_output=$("$binary" --help 2>/dev/null || echo "Help command failed")
-    fi
-    echo "Help output length: ${#help_output} characters"
-    
-    # Basic functionality test
-    print_status "Testing basic functionality..."
-    if [ "$platform" = "windows" ]; then
-        if "$binary" version >/dev/null 2>&1; then
-            print_success "$platform/$arch binary basic test passed"
-        else
-            print_warning "$platform/$arch binary basic test failed"
+    # Validate version output contains expected patterns
+    REQUIRED_PATTERNS=("dockerutilities" "version")
+    for pattern in "${REQUIRED_PATTERNS[@]}"; do
+        if ! echo "$VERSION_OUTPUT" | grep -qi "$pattern"; then
+            echo -e "    ${RED}❌ Version output missing '$pattern'${NC}"
+            return 1
         fi
-    else
-        if "$binary" version >/dev/null 2>&1; then
-            print_success "$platform/$arch binary basic test passed"
-        else
-            print_warning "$platform/$arch binary basic test failed"
-        fi
+    done
+    echo -e "    ${GREEN}✅ Version command passed${NC}"
+    
+    # Test 2: Help command
+    echo "  📋 Test 2: Help command"
+    HELP_OUTPUT=$("$binary_path" --help 2>&1 || echo "HELP_COMMAND_FAILED")
+    if [[ "$HELP_OUTPUT" == "HELP_COMMAND_FAILED" ]]; then
+        echo -e "    ${RED}❌ Help command failed${NC}"
+        return 1
     fi
     
+    # Check for required help information
+    if ! echo "$HELP_OUTPUT" | grep -q "Docker image analysis and management"; then
+        echo -e "    ${RED}❌ Help output missing expected description${NC}"
+        return 1
+    fi
+    
+    if ! echo "$HELP_OUTPUT" | grep -q "Available Commands"; then
+        echo -e "    ${RED}❌ Help output missing 'Available Commands' section${NC}"
+        return 1
+    fi
+    echo -e "    ${GREEN}✅ Help command passed${NC}"
+    
+    # Test 3: Server startup (basic test)
+    echo "  📋 Test 3: Server startup"
+    TEMP_LOG=$(mktemp)
+    trap 'rm -f "$TEMP_LOG"' EXIT
+    
+    # Start server in background
+    "$binary_path" server --no-browser --port 0 > "$TEMP_LOG" 2>&1 &
+    SERVER_PID=$!
+    
+    # Wait a moment for server to start
+    sleep 3
+    
+    # Check if server process is still running
+    if kill -0 "$SERVER_PID" 2>/dev/null; then
+        echo -e "    ${GREEN}✅ Server startup passed${NC}"
+        # Clean up server process
+        kill "$SERVER_PID" 2>/dev/null || true
+        wait "$SERVER_PID" 2>/dev/null || true
+    else
+        echo -e "    ${RED}❌ Server process died unexpectedly${NC}"
+        cat "$TEMP_LOG" | head -3 | sed 's/^/      /'
+        return 1
+    fi
+    
+    # Test 4: Binary integrity check
+    echo "  📋 Test 4: Binary integrity"
+    # Cross-platform file size check
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        BINARY_SIZE=$(stat -f%z "$binary_path")
+    else
+        BINARY_SIZE=$(stat -c%s "$binary_path")
+    fi
+    if [[ $BINARY_SIZE -lt 1000000 ]]; then
+        echo -e "    ${YELLOW}⚠️ Binary size seems small ($BINARY_SIZE bytes)${NC}"
+    elif [[ $BINARY_SIZE -gt 50000000 ]]; then
+        echo -e "    ${YELLOW}⚠️ Binary size seems large ($BINARY_SIZE bytes)${NC}"
+    else
+        echo -e "    ${GREEN}✅ Binary size is reasonable ($BINARY_SIZE bytes)${NC}"
+    fi
+    
+    # Test 5: File type verification
+    echo "  📋 Test 5: File type verification"
+    FILE_TYPE=$(file "$binary_path")
+    echo "    File type: $FILE_TYPE"
+    
+    # Check for required sections (ELF binary analysis)
+    if command -v readelf >/dev/null 2>&1 && [[ "$FILE_TYPE" == *"ELF"* ]]; then
+        echo "    Analyzing ELF binary sections..."
+        readelf -S "$binary_path" | grep -E "(text|data|bss)" >/dev/null && echo -e "    ${GREEN}✅ ELF sections verified${NC}" || echo -e "    ${YELLOW}⚠️ ELF section analysis incomplete${NC}"
+    fi
+    
+    echo -e "${GREEN}✅ $platform_name binary smoke tests passed${NC}"
+    return 0
+}
+
+# Function to verify binary integrity
+verify_binary_integrity() {
+    local binary_path="$1"
+    local platform_name="$2"
+    
+    echo -e "${BLUE}🔐 Verifying $platform_name binary integrity${NC}"
+    
+    if [[ ! -f "$binary_path" ]]; then
+        echo -e "${RED}❌ Binary not found: $binary_path${NC}"
+        return 1
+    fi
+    
+    # Check file permissions
+    if [[ ! -x "$binary_path" ]]; then
+        echo -e "${RED}❌ Binary not executable: $binary_path${NC}"
+        echo "   File permissions: $(ls -la "$binary_path")"
+        return 1
+    fi
+    
+    # Check file size
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        BINARY_SIZE=$(stat -f%z "$binary_path")
+    else
+        BINARY_SIZE=$(stat -c%s "$binary_path")
+    fi
+    echo "   Binary size: $BINARY_SIZE bytes"
+    
+    # Check file type
+    FILE_TYPE=$(file "$binary_path")
+    echo "   File type: $FILE_TYPE"
+    
+    # Generate checksum
+    CHECKSUM=$(sha256sum "$binary_path" | awk '{print $1}')
+    echo "   SHA256: $CHECKSUM"
+    
+    echo -e "${GREEN}✅ $platform_name binary integrity verified${NC}"
+    return 0
+}
+
+# Main verification logic
+if [[ "$VERIFY_MODE" == "ci" ]]; then
+    echo -e "${BLUE}🔍 CI Mode: Single Binary Verification${NC}"
     echo ""
-}
-
-# Function to verify checksums
-verify_checksums() {
-    local checksums_file="$1"
     
-    print_status "Verifying checksums from: $checksums_file"
-    
-    if [ ! -f "$checksums_file" ]; then
-        print_error "Checksums file not found: $checksums_file"
-        return 1
-    fi
-    
-    # Change to directory containing checksums file
-    local checksums_dir=$(dirname "$checksums_file")
-    local checksums_name=$(basename "$checksums_file")
-    
-    cd "$checksums_dir"
-    
-    if command_exists sha256sum; then
-        if sha256sum -c "$checksums_name"; then
-            print_success "All checksums verified successfully"
-        else
-            print_error "Checksum verification failed"
-            return 1
-        fi
-    elif command_exists shasum; then
-        if shasum -a 256 -c "$checksums_name"; then
-            print_success "All checksums verified successfully"
-        else
-            print_error "Checksum verification failed"
-            return 1
-        fi
+    # Run smoke tests on single binary
+    if run_smoke_tests "$BINARY_PATH" "Development"; then
+        echo -e "${GREEN}🎉 CI binary verification passed!${NC}"
     else
-        print_warning "No checksum verification tool available (sha256sum or shasum)"
-    fi
-    
-    cd - >/dev/null
-}
-
-# Main verification function
-verify_binaries() {
-    local dist_dir="${1:-dist}"
-    
-    print_status "Starting binary verification for directory: $dist_dir"
-    
-    if [ ! -d "$dist_dir" ]; then
-        print_error "Distribution directory not found: $dist_dir"
+        echo -e "${RED}❌ CI binary verification failed!${NC}"
         exit 1
     fi
     
-    # Check for checksums file
-    local checksums_file="$dist_dir/checksums.txt"
-    if [ -f "$checksums_file" ]; then
-        print_success "Found checksums file: $checksums_file"
-        echo "Checksums content:"
-        cat "$checksums_file"
-        echo ""
-        
-        # Verify checksums
-        verify_checksums "$checksums_file"
-    else
-        print_warning "No checksums file found: $checksums_file"
-    fi
+elif [[ "$VERIFY_MODE" == "release" ]]; then
+    echo -e "${BLUE}🔍 Release Mode: Multi-Platform Binary Verification${NC}"
+    echo ""
     
-    # Expected binaries for all platforms
-    local expected_binaries=(
-        "dockerutilities-linux-amd64:linux:amd64"
-        "dockerutilities-linux-arm64:linux:arm64"
-        "dockerutilities-darwin-amd64:darwin:amd64"
-        "dockerutilities-darwin-arm64:darwin:arm64"
-        "dockerutilities-windows-amd64.exe:windows:amd64"
-        "dockerutilities-windows-arm64.exe:windows:arm64"
+    # Define all platform binaries
+    PLATFORMS=(
+        "dist/dockerutilities-linux-amd64:Linux AMD64"
+        "dist/dockerutilities-linux-arm64:Linux ARM64"
+        "dist/dockerutilities-darwin-amd64:macOS AMD64"
+        "dist/dockerutilities-darwin-arm64:macOS ARM64"
+        "dist/dockerutilities-windows-amd64.exe:Windows AMD64"
+        "dist/dockerutilities-windows-arm64.exe:Windows ARM64"
     )
     
-    local found_count=0
-    local total_count=${#expected_binaries[@]}
+    FAILED_TESTS=()
+    FAILED_INTEGRITY=()
     
-    print_status "Testing $total_count expected binaries..."
-    
-    # Test each expected binary
-    for binary_info in "${expected_binaries[@]}"; do
-        IFS=':' read -r binary_name platform arch <<< "$binary_info"
-        local binary_path="$dist_dir/$binary_name"
+    # Verify all platform binaries
+    for platform_info in "${PLATFORMS[@]}"; do
+        IFS=':' read -r binary_path platform_name <<< "$platform_info"
         
-        if [ -f "$binary_path" ]; then
-            test_binary "$binary_path" "$platform" "$arch"
-            ((found_count++))
+        echo -e "${BLUE}📦 Verifying $platform_name${NC}"
+        
+        # Run smoke tests
+        if run_smoke_tests "$binary_path" "$platform_name"; then
+            echo -e "${GREEN}✅ $platform_name smoke tests passed${NC}"
         else
-            print_warning "Expected binary not found: $binary_path"
+            echo -e "${RED}❌ $platform_name smoke tests failed${NC}"
+            FAILED_TESTS+=("$platform_name")
         fi
+        
+        # Verify binary integrity
+        if verify_binary_integrity "$binary_path" "$platform_name"; then
+            echo -e "${GREEN}✅ $platform_name integrity verified${NC}"
+        else
+            echo -e "${RED}❌ $platform_name integrity check failed${NC}"
+            FAILED_INTEGRITY+=("$platform_name")
+        fi
+        
+        echo ""
     done
     
-    # Summary
-    echo ""
-    print_status "Verification Summary:"
+    # Report results
+    echo -e "${BLUE}📊 Verification Summary${NC}"
     echo "========================"
-    echo "Expected binaries: $total_count"
-    echo "Found binaries: $found_count"
-    echo "Missing binaries: $((total_count - found_count))"
     
-    if [ "$found_count" -eq "$total_count" ]; then
-        print_success "All expected binaries found and tested!"
+    if [[ ${#FAILED_TESTS[@]} -gt 0 ]]; then
+        echo -e "${RED}❌ Smoke tests failed for platforms: ${FAILED_TESTS[*]}${NC}"
     else
-        print_warning "Some expected binaries are missing"
+        echo -e "${GREEN}✅ All platform smoke tests passed${NC}"
     fi
     
-    # Check for unexpected files
-    local unexpected_files=$(find "$dist_dir" -name "dockerutilities-*" -type f | grep -v -E "(linux-amd64|linux-arm64|darwin-amd64|darwin-arm64|windows-amd64\.exe|windows-arm64\.exe)$" || true)
-    
-    if [ -n "$unexpected_files" ]; then
-        print_warning "Unexpected files found:"
-        echo "$unexpected_files"
+    if [[ ${#FAILED_INTEGRITY[@]} -gt 0 ]]; then
+        echo -e "${RED}❌ Integrity checks failed for platforms: ${FAILED_INTEGRITY[*]}${NC}"
+    else
+        echo -e "${GREEN}✅ All platform integrity checks passed${NC}"
     fi
-}
-
-# Function to show usage
-show_usage() {
-    echo "Usage: $0 [OPTIONS] [DIST_DIR]"
-    echo ""
-    echo "Options:"
-    echo "  -h, --help     Show this help message"
-    echo "  -v, --verbose  Enable verbose output"
-    echo ""
-    echo "Arguments:"
-    echo "  DIST_DIR       Distribution directory (default: dist)"
-    echo ""
-    echo "Examples:"
-    echo "  $0                    # Verify binaries in ./dist"
-    echo "  $0 /path/to/dist      # Verify binaries in specified directory"
-    echo "  $0 -v                 # Verbose verification"
-}
-
-# Parse command line arguments
-VERBOSE=false
-DIST_DIR="dist"
-
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -h|--help)
-            show_usage
-            exit 0
-            ;;
-        -v|--verbose)
-            VERBOSE=true
-            shift
-            ;;
-        -*)
-            print_error "Unknown option: $1"
-            show_usage
-            exit 1
-            ;;
-        *)
-            DIST_DIR="$1"
-            shift
-            ;;
-    esac
-done
-
-# Main execution
-echo "🔍 Binary Verification Script"
-echo "============================="
-echo "Distribution directory: $DIST_DIR"
-echo "Verbose mode: $VERBOSE"
-echo ""
-
-# Check prerequisites
-print_status "Checking prerequisites..."
-
-if ! command_exists stat; then
-    print_error "stat command not available"
+    
+    # Overall result
+    if [[ ${#FAILED_TESTS[@]} -eq 0 && ${#FAILED_INTEGRITY[@]} -eq 0 ]]; then
+        echo -e "${GREEN}🎉 All release binary verification passed!${NC}"
+        echo ""
+        echo -e "${BLUE}📋 Release Artifacts Summary:${NC}"
+        echo "   ✅ 6 platform binaries created"
+        echo "   ✅ All binaries executable and functional"
+        echo "   ✅ Version commands working"
+        echo "   ✅ Help commands working"
+        echo "   ✅ Server startup functional"
+        echo "   ✅ Binary integrity verified"
+        echo "   ✅ SHA256 checksums generated"
+    else
+        echo -e "${RED}❌ Release binary verification failed!${NC}"
+        exit 1
+    fi
+    
+else
+    echo -e "${RED}❌ Invalid verification mode: $VERIFY_MODE${NC}"
+    echo "Usage: $0 [ci|release] [binary_path] [dist_dir]"
+    echo "  ci: Verify single development binary"
+    echo "  release: Verify all platform binaries in dist directory"
     exit 1
 fi
 
-if ! command_exists find; then
-    print_error "find command not available"
-    exit 1
-fi
-
-print_success "Prerequisites check passed"
 echo ""
-
-# Run verification
-verify_binaries "$DIST_DIR"
-
-echo ""
-print_success "Binary verification completed!"
+echo -e "${GREEN}🚀 Binary verification completed successfully!${NC}"

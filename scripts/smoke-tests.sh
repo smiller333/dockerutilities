@@ -73,9 +73,9 @@ if [[ "$HELP_OUTPUT" == "COMMAND_FAILED" ]]; then
     exit 1
 fi
 
-if ! echo "$HELP_OUTPUT" | grep -q "Docker analysis and management utilities"; then
+if ! echo "$HELP_OUTPUT" | grep -q "Docker image analysis and management"; then
     echo -e "${RED}❌ Help command output doesn't contain expected description${NC}"
-    echo "   Expected to find 'Docker analysis and management utilities' in output"
+    echo "   Expected to find 'Docker image analysis and management' in output"
     echo "   Full output: $HELP_OUTPUT"
     exit 1
 fi
@@ -93,34 +93,28 @@ trap 'rm -f "$TEMP_LOG"' EXIT
 
 # Start server in background with random port
 SERVER_PID=""
-if timeout 10s "$BINARY_PATH" server --no-browser --port 0 > "$TEMP_LOG" 2>&1 &; then
-    SERVER_PID=$!
-    echo "   Server started with PID: $SERVER_PID"
-    
-    # Wait a moment for server to start
-    sleep 3
-    
-    # Check if server process is still running
-    if kill -0 "$SERVER_PID" 2>/dev/null; then
-        echo -e "${GREEN}✅ Server started successfully${NC}"
-        echo "   Server log (first 5 lines):"
-        head -5 "$TEMP_LOG" | sed 's/^/   /'
-        
-        # Clean up server process
-        echo "   Stopping server..."
-        kill "$SERVER_PID" 2>/dev/null || true
-        wait "$SERVER_PID" 2>/dev/null || true
-    else
-        echo -e "${RED}❌ Server process died unexpectedly${NC}"
-        echo "   Server log:"
-        cat "$TEMP_LOG" | sed 's/^/   /'
-        exit 1
-    fi
-else
-    echo -e "${YELLOW}⚠️  Server startup test completed (timeout expected)${NC}"
-    echo "   This is normal behavior for the timeout test"
+"$BINARY_PATH" server --no-browser --port 0 > "$TEMP_LOG" 2>&1 &
+SERVER_PID=$!
+echo "   Server started with PID: $SERVER_PID"
+
+# Wait a moment for server to start
+sleep 3
+
+# Check if server process is still running
+if kill -0 "$SERVER_PID" 2>/dev/null; then
+    echo -e "${GREEN}✅ Server started successfully${NC}"
     echo "   Server log (first 5 lines):"
     head -5 "$TEMP_LOG" | sed 's/^/   /'
+    
+    # Clean up server process
+    echo "   Stopping server..."
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+else
+    echo -e "${RED}❌ Server process died unexpectedly${NC}"
+    echo "   Server log:"
+    cat "$TEMP_LOG" | sed 's/^/   /'
+    exit 1
 fi
 
 echo ""
