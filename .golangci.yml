@@ -1,0 +1,28 @@
+# golangci-lint configuration for dockerutilities project
+# This configuration provides essential code quality checks
+
+version: "2"
+
+run:
+  timeout: 5m
+  go: "1.24.2"
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - misspell
+  disable:
+    - lll  # Line length limit (too strict for this project)
+    - wsl  # Whitespace rules (too opinionated)
+    - gocyclo  # Cyclomatic complexity (too strict for this project)
+    - mnd  # Magic numbers (too strict for this project)
+    - dupl  # Duplicate code (too strict for this project)
+    - gocognit  # Cognitive complexity (too strict for this project)
+
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 50
