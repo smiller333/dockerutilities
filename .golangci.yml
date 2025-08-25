@@ -1,5 +1,5 @@
 # golangci-lint configuration for dockerutilities project
-# This configuration provides essential code quality checks
+# This configuration provides essential code quality checks with realistic expectations
 
 version: "2"
 
@@ -24,5 +24,5 @@ linters:
     - gocognit  # Cognitive complexity (too strict for this project)
 
 issues:
-  max-issues-per-linter: 50
-  max-same-issues: 50
+  max-issues-per-linter: 15
+  max-same-issues: 15

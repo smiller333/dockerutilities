@@ -52,12 +52,16 @@ func TestCloseWithErrorCheck(t *testing.T) {
 			closeWithErrorCheck(tt.closer, tt.resourceName)
 
 			// Restore stdout
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Errorf("Failed to close pipe writer: %v", err)
+			}
 			os.Stdout = oldStdout
 
 			// Read captured output
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Errorf("Failed to read from pipe: %v", err)
+			}
 			output := buf.String()
 
 			// Check output
@@ -164,7 +168,11 @@ CMD ["echo", "hello"]`
 	if err != nil {
 		t.Fatalf("Failed to get current working directory: %v", err)
 	}
-	defer os.Chdir(originalWd)
+	defer func() {
+		if err := os.Chdir(originalWd); err != nil {
+			t.Errorf("Failed to restore working directory: %v", err)
+		}
+	}()
 
 	err = os.Chdir(tmpDir)
 	if err != nil {

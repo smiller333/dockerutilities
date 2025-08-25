@@ -144,7 +144,9 @@ func TestServerCommandFlagParsing(t *testing.T) {
 			serverCmd.SetArgs(tt.args)
 
 			// Parse flags (this simulates what happens when the command is executed)
-			serverCmd.ParseFlags(tt.args)
+			if err := serverCmd.ParseFlags(tt.args); err != nil {
+				t.Errorf("Failed to parse flags: %v", err)
+			}
 
 			// Verify flag values
 			if serverPort != tt.expectedPort {

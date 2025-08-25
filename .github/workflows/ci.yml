@@ -42,19 +42,19 @@ jobs:
         echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
         
         # Determine badge color based on coverage
-        if (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+        if (( $(echo "$COVERAGE >= 60" | bc -l) )); then
           echo "color=green" >> $GITHUB_OUTPUT
-        elif (( $(echo "$COVERAGE >= 60" | bc -l) )); then
+        elif (( $(echo "$COVERAGE >= 40" | bc -l) )); then
           echo "color=orange" >> $GITHUB_OUTPUT
         else
           echo "color=red" >> $GITHUB_OUTPUT
         fi
         
-        if (( $(echo "$COVERAGE < 20" | bc -l) )); then
-          echo "❌ Coverage is below 20% threshold (current: ${COVERAGE}%)"
+        if (( $(echo "$COVERAGE < 40" | bc -l) )); then
+          echo "❌ Coverage is below 40% threshold (current: ${COVERAGE}%)"
           exit 1
         else
-          echo "✅ Coverage meets 20% threshold (current: ${COVERAGE}%)"
+          echo "✅ Coverage meets 40% threshold (current: ${COVERAGE}%)"
         fi
     
     - name: Run golangci-lint

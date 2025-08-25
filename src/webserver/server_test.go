@@ -40,7 +40,9 @@ func createTestServer(t *testing.T) (*Server, string) {
 
 	// Clean up after test
 	t.Cleanup(func() {
-		os.RemoveAll(tmpDir)
+		if err := os.RemoveAll(tmpDir); err != nil {
+			t.Errorf("Failed to remove temp directory: %v", err)
+		}
 	})
 
 	config := &Config{
@@ -562,7 +564,9 @@ func TestRebuildSummaryFile(t *testing.T) {
 	summary := server.imageInfoToSummary(imageInfo)
 	summaryPath := filepath.Join(tmpDir, fmt.Sprintf("summary.%s.json", infoID))
 	summaryData, _ := json.Marshal(summary)
-	os.WriteFile(summaryPath, summaryData, 0644)
+	if err := os.WriteFile(summaryPath, summaryData, 0644); err != nil {
+		t.Fatalf("Failed to write test summary file: %v", err)
+	}
 
 	summaryFilePath := filepath.Join(tmpDir, summaryFileName)
 	summaries, err := server.rebuildSummaryFile(tmpDir, summaryFilePath)
@@ -676,7 +680,9 @@ func TestParseSummaryFile(t *testing.T) {
 
 	// Test parsing invalid JSON
 	invalidPath := filepath.Join(tmpDir, "invalid.json")
-	os.WriteFile(invalidPath, []byte("invalid json"), 0644)
+	if err := os.WriteFile(invalidPath, []byte("invalid json"), 0644); err != nil {
+		t.Fatalf("Failed to write invalid JSON file: %v", err)
+	}
 	_, err = server.parseSummaryFile(invalidPath)
 	if err == nil {
 		t.Error("parseSummaryFile() expected error for invalid JSON, got nil")
@@ -718,7 +724,9 @@ func TestParseInfoFile(t *testing.T) {
 
 	// Test parsing invalid JSON
 	invalidPath := filepath.Join(tmpDir, "invalid-info.json")
-	os.WriteFile(invalidPath, []byte("invalid json"), 0644)
+	if err := os.WriteFile(invalidPath, []byte("invalid json"), 0644); err != nil {
+		t.Fatalf("Failed to write invalid JSON file: %v", err)
+	}
 	_, err = server.parseInfoFile(invalidPath)
 	if err == nil {
 		t.Error("parseInfoFile() expected error for invalid JSON, got nil")
@@ -876,7 +884,9 @@ func TestValidateContextDir(t *testing.T) {
 
 	// Test file instead of directory
 	filePath := filepath.Join(tmpDir, "test-file")
-	os.WriteFile(filePath, []byte("test"), 0644)
+	if err := os.WriteFile(filePath, []byte("test"), 0644); err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
 	_, err = server.validateContextDir(filePath)
 	if err == nil {
 		t.Error("validateContextDir() expected error for file, got nil")
@@ -894,7 +904,9 @@ func TestHandleBuildContextPreview(t *testing.T) {
 
 	// Create a test Dockerfile
 	dockerfilePath := filepath.Join(tmpDir, "Dockerfile")
-	os.WriteFile(dockerfilePath, []byte("FROM ubuntu:20.04\nRUN echo 'test'"), 0644)
+	if err := os.WriteFile(dockerfilePath, []byte("FROM ubuntu:20.04\nRUN echo 'test'"), 0644); err != nil {
+		t.Fatalf("Failed to write test Dockerfile: %v", err)
+	}
 
 	// Test valid request
 	previewReq := BuildContextPreviewRequest{
@@ -936,7 +948,9 @@ func TestHandleBuildContextRead(t *testing.T) {
 
 	// Create a .dockerignore file
 	dockerignorePath := filepath.Join(tmpDir, ".dockerignore")
-	os.WriteFile(dockerignorePath, []byte("node_modules\n.git\n*.log"), 0644)
+	if err := os.WriteFile(dockerignorePath, []byte("node_modules\n.git\n*.log"), 0644); err != nil {
+		t.Fatalf("Failed to write test .dockerignore file: %v", err)
+	}
 
 	// Test valid request
 	readReq := BuildContextReadRequest{

@@ -457,7 +457,9 @@ func TestSecureFileCreate(t *testing.T) {
 				if err != nil {
 					t.Errorf("Expected no error for path '%s', got: %v", tt.path, err)
 				} else {
-					file.Close()
+					if err := file.Close(); err != nil {
+						t.Errorf("Failed to close file: %v", err)
+					}
 					// Verify file was created
 					if _, err := os.Stat(tt.path); os.IsNotExist(err) {
 						t.Errorf("Expected file '%s' to be created", tt.path)
@@ -768,10 +770,18 @@ func createTestTar(t *testing.T, tarPath string, entries []tarEntry) {
 	if err != nil {
 		t.Fatalf("Failed to create tar file: %v", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			t.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	tw := tar.NewWriter(file)
-	defer tw.Close()
+	defer func() {
+		if err := tw.Close(); err != nil {
+			t.Errorf("Failed to close tar writer: %v", err)
+		}
+	}()
 
 	for _, entry := range entries {
 		header := &tar.Header{
@@ -806,13 +816,25 @@ func createTestGzippedTar(t *testing.T, tarPath string, entries []tarEntry) {
 	if err != nil {
 		t.Fatalf("Failed to create gzipped tar file: %v", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			t.Errorf("Failed to close file: %v", err)
+		}
+	}()
 
 	gw := gzip.NewWriter(file)
-	defer gw.Close()
+	defer func() {
+		if err := gw.Close(); err != nil {
+			t.Errorf("Failed to close gzip writer: %v", err)
+		}
+	}()
 
 	tw := tar.NewWriter(gw)
-	defer tw.Close()
+	defer func() {
+		if err := tw.Close(); err != nil {
+			t.Errorf("Failed to close tar writer: %v", err)
+		}
+	}()
 
 	for _, entry := range entries {
 		header := &tar.Header{

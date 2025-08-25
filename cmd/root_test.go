@@ -81,12 +81,16 @@ func TestExecute(t *testing.T) {
 			err := Execute()
 
 			// Restore stdout
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Errorf("Failed to close pipe writer: %v", err)
+			}
 			os.Stdout = oldStdout
 
 			// Read captured output
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Errorf("Failed to read from pipe: %v", err)
+			}
 
 			// Check error expectation
 			if (err != nil) != tt.wantErr {
@@ -160,12 +164,16 @@ func TestVersionCommandExecution(t *testing.T) {
 	versionCmd.Run(versionCmd, []string{})
 
 	// Restore stdout
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Errorf("Failed to close pipe writer: %v", err)
+	}
 	os.Stdout = oldStdout
 
 	// Read captured output
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Errorf("Failed to read from pipe: %v", err)
+	}
 	output := buf.String()
 
 	// Verify output contains version information
@@ -188,12 +196,16 @@ func TestRootCommandHelp(t *testing.T) {
 	err := rootCmd.Execute()
 
 	// Restore stdout
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Errorf("Failed to close pipe writer: %v", err)
+	}
 	os.Stdout = oldStdout
 
 	// Read captured output
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Errorf("Failed to read from pipe: %v", err)
+	}
 	output := buf.String()
 
 	// Check for no error

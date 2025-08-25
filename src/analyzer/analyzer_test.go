@@ -163,12 +163,16 @@ func TestPrintAnalysisResult_ImageAnalysis(t *testing.T) {
 			PrintAnalysisResult(tt.result, tt.showBuildOutput)
 
 			// Restore stdout
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Errorf("Failed to close pipe writer: %v", err)
+			}
 			os.Stdout = oldStdout
 
 			// Read captured output
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Errorf("Failed to read from pipe: %v", err)
+			}
 			output := buf.String()
 
 			// Check that all expected strings are present
@@ -264,12 +268,16 @@ func TestPrintAnalysisResult_DockerfileAnalysis(t *testing.T) {
 			PrintAnalysisResult(tt.result, tt.showBuildOutput)
 
 			// Restore stdout
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Errorf("Failed to close pipe writer: %v", err)
+			}
 			os.Stdout = oldStdout
 
 			// Read captured output
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Errorf("Failed to read from pipe: %v", err)
+			}
 			output := buf.String()
 
 			// Check that all expected strings are present
@@ -372,12 +380,16 @@ func TestPrintAnalysisResult_EdgeCases(t *testing.T) {
 			PrintAnalysisResult(tt.result, tt.showBuildOutput)
 
 			// Restore stdout
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Errorf("Failed to close pipe writer: %v", err)
+			}
 			os.Stdout = oldStdout
 
 			// Read captured output
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Errorf("Failed to read from pipe: %v", err)
+			}
 			output := buf.String()
 
 			// Check that all expected strings are present
