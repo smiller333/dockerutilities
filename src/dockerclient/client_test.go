@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+// closeWithErrorCheck is a helper function to close resources and log any errors in tests
+func closeWithErrorCheck(t testing.TB, closer interface{ Close() error }, resourceName string) {
+	if err := closer.Close(); err != nil {
+		// Log the error but don't fail the test
+		t.Logf("Warning: failed to close %s: %v", resourceName, err)
+	}
+}
+
 func TestNewDockerClient(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -51,7 +59,7 @@ func TestNewDockerClient(t *testing.T) {
 				return
 			}
 			if client != nil {
-				defer client.Close()
+				defer closeWithErrorCheck(t, client, "Docker client")
 
 				// Verify timeout is set correctly
 				expectedTimeout := 30 * time.Second
@@ -76,7 +84,7 @@ func TestNewDefaultClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	// Verify default timeout
 	expectedTimeout := 30 * time.Second
@@ -95,7 +103,7 @@ func TestDockerClient_SetTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	newTimeout := 45 * time.Second
 	client.SetTimeout(newTimeout)
@@ -116,7 +124,7 @@ func TestDockerClient_Ping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -145,7 +153,7 @@ func TestDockerClient_GetInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -177,7 +185,7 @@ func TestDockerClient_GetVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -211,7 +219,7 @@ func TestDockerClient_PullImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -228,7 +236,7 @@ func TestDockerClient_PullImage(t *testing.T) {
 		t.Logf("PullImage() failed (may be due to network issues): %v", err)
 		return
 	}
-	defer reader.Close()
+	defer closeWithErrorCheck(t, reader, "reader")
 
 	// Read some data to ensure the stream is working
 	buffer := make([]byte, 1024)
@@ -249,7 +257,7 @@ func TestDockerClient_PushImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

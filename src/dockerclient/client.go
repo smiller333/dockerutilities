@@ -59,7 +59,7 @@ func ValidateDockerAccess() error {
 
 	// Check if socket exists and is accessible
 	if _, err := os.Stat(socketPath); err != nil {
-		return fmt.Errorf("Docker socket not accessible at %s: %w", socketPath, err)
+		return fmt.Errorf("docker socket not accessible at %s: %w", socketPath, err)
 	}
 
 	// Log security warning

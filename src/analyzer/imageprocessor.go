@@ -28,7 +28,7 @@ func SafeTarExtraction(tarPath string, destDir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open tar file: %w", err)
 	}
-	defer file.Close()
+	defer closeWithErrorCheck(file, "file")
 
 	var reader io.Reader = file
 
@@ -38,7 +38,7 @@ func SafeTarExtraction(tarPath string, destDir string) error {
 		if err != nil {
 			return fmt.Errorf("failed to create gzip reader: %w", err)
 		}
-		defer gzReader.Close()
+		defer closeWithErrorCheck(gzReader, "gzip reader")
 		reader = gzReader
 	}
 
@@ -133,7 +133,7 @@ func extractSecureFile(reader io.Reader, targetPath string, mode int64) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer closeWithErrorCheck(file, "file")
 
 	// Copy with size limit to prevent zip bombs
 	const maxFileSize = 100 * 1024 * 1024 // 100MB limit
@@ -323,7 +323,7 @@ func AnalyzeImageWithTmpDir(imageName string, keepTempFiles bool, forcePull bool
 	if err != nil {
 		return result, fmt.Errorf("failed to create Docker client: %w", err)
 	}
-	defer dockerClient.Close()
+	defer closeWithErrorCheck(dockerClient, "Docker client")
 
 	// Test connection to Docker daemon
 	ctx := context.Background()
@@ -332,7 +332,7 @@ func AnalyzeImageWithTmpDir(imageName string, keepTempFiles bool, forcePull bool
 	}
 
 	// Check if image exists locally unless force pull is requested
-	var needsPull bool = forcePull
+	needsPull := forcePull
 	if !forcePull {
 		// Try to inspect the image to see if it exists locally
 		_, err := dockerClient.InspectImage(ctx, imageName)
@@ -355,7 +355,7 @@ func AnalyzeImageWithTmpDir(imageName string, keepTempFiles bool, forcePull bool
 			return result, fmt.Errorf("failed to pull image %s: %w", imageName, err)
 
 		}
-		defer pullReader.Close()
+		defer closeWithErrorCheck(pullReader, "pull reader")
 
 		// Read and capture pull output
 		_, err = io.ReadAll(pullReader)
@@ -480,14 +480,14 @@ func saveImageToTar(ctx context.Context, dockerClient *dockerclient.DockerClient
 	if err != nil {
 		return fmt.Errorf("failed to save image: %w", err)
 	}
-	defer saveReader.Close()
+	defer closeWithErrorCheck(saveReader, "save reader")
 
 	// Create the tar file with secure permissions
 	tarFile, err := secureFileCreate(tarPath)
 	if err != nil {
 		return fmt.Errorf("failed to create tar file %s: %w", tarPath, err)
 	}
-	defer tarFile.Close()
+	defer closeWithErrorCheck(tarFile, "tar file")
 
 	// Copy the image data to the tar file
 	_, err = io.Copy(tarFile, saveReader)
@@ -570,7 +570,9 @@ func extractLayerFileSystems(extractedImagePath string) error {
 		if err != nil {
 			// If extraction fails, this might not be a tar file - that's okay
 			// Remove the empty directory we created
-			os.RemoveAll(layerDir)
+			if removeErr := os.RemoveAll(layerDir); removeErr != nil {
+				fmt.Printf("Warning: failed to remove layer directory %s: %v\n", layerDir, removeErr)
+			}
 			continue
 		}
 	}
@@ -680,7 +682,7 @@ func copyContainerFilesystem(ctx context.Context, dockerClient *dockerclient.Doc
 	if err != nil {
 		return fmt.Errorf("failed to copy filesystem from container %s: %w", result.ContainerID, err)
 	}
-	defer reader.Close()
+	defer closeWithErrorCheck(reader, "reader")
 
 	// Extract the tar archive directly to the container_contents directory
 	err = extractTarReader(reader, containerFSPath)
@@ -738,7 +740,7 @@ func extractTarReader(reader io.Reader, destDir string) error {
 			}
 
 			_, err = io.Copy(outFile, tarReader)
-			outFile.Close()
+			closeWithErrorCheck(outFile, "outFile")
 			if err != nil {
 				return fmt.Errorf("failed to write file %s: %w", destPath, err)
 			}

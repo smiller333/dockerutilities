@@ -9,6 +9,21 @@ import (
 	"github.com/smiller333/dockerutilities/src/analyzer"
 )
 
+// closeWithErrorCheck is a helper function to close resources and log any errors in tests
+func closeWithErrorCheck(t testing.TB, closer interface{ Close() error }, resourceName string) {
+	if err := closer.Close(); err != nil {
+		// Log the error but don't fail the test
+		t.Logf("Warning: failed to close %s: %v", resourceName, err)
+	}
+}
+
+// closeWithErrorCheckNoReturn is a helper function to close resources that don't return errors
+func closeWithErrorCheckNoReturn(closer interface{ Close() }, resourceName string) {
+	closer.Close()
+	// resourceName is used for consistency with closeWithErrorCheck function signature
+	_ = resourceName // explicitly ignore to satisfy linter
+}
+
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -84,14 +99,14 @@ func TestHealthEndpoint(t *testing.T) {
 	mux := http.NewServeMux()
 	server.registerRoutes(mux)
 	testServer := httptest.NewServer(mux)
-	defer testServer.Close()
+	defer closeWithErrorCheckNoReturn(testServer, "testServer")
 
 	// Test health endpoint
 	resp, err := http.Get(testServer.URL + "/api/health")
 	if err != nil {
 		t.Fatalf("http.Get() unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeWithErrorCheck(t, resp.Body, "response body")
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, resp.StatusCode)
@@ -137,14 +152,14 @@ func TestSummariesEndpoint(t *testing.T) {
 	mux := http.NewServeMux()
 	server.registerRoutes(mux)
 	testServer := httptest.NewServer(mux)
-	defer testServer.Close()
+	defer closeWithErrorCheckNoReturn(testServer, "testServer")
 
 	// Test summaries endpoint
 	resp, err := http.Get(testServer.URL + "/api/summaries")
 	if err != nil {
 		t.Fatalf("http.Get() unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeWithErrorCheck(t, resp.Body, "response body")
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, resp.StatusCode)
@@ -186,14 +201,14 @@ func TestMethodNotAllowed(t *testing.T) {
 	mux := http.NewServeMux()
 	server.registerRoutes(mux)
 	testServer := httptest.NewServer(mux)
-	defer testServer.Close()
+	defer closeWithErrorCheckNoReturn(testServer, "testServer")
 
 	// Test POST to health endpoint (should return 404 with Go 1.22+ pattern matching)
 	resp, err := http.Post(testServer.URL+"/api/health", "application/json", nil)
 	if err != nil {
 		t.Fatalf("http.Post() unexpected error: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeWithErrorCheck(t, resp.Body, "response body")
 
 	// With Go 1.22+ pattern matching, unmatched methods return 404, not 405
 	if resp.StatusCode != http.StatusNotFound {

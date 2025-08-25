@@ -183,7 +183,8 @@ func shouldIgnore(path string, patterns []string) bool {
 	}
 
 	// Use the pattern matcher to check if the path should be excluded
-	matches, err := pm.Matches(path)
+	// Using MatchesOrParentMatches instead of deprecated Matches
+	matches, err := pm.MatchesOrParentMatches(path)
 	if err != nil {
 		// If matching fails, fall back to not ignoring
 		return false
