@@ -115,6 +115,7 @@ $RECYCLE.BIN/
 **/data/
 **/tmp/
 **/temp/
+**/test-tmp-*/
 
 # Docker-related temporary files
 .dockerignore.bak
