@@ -319,7 +319,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	// Add build information
 	response["build"] = version.GetBuildInfo()
 
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // getDockerStatus returns Docker daemon status information
@@ -401,7 +401,7 @@ func (s *Server) handleGetSummaries(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(summaries)
+	encodeJSONResponse(w, summaries)
 }
 
 // handleGetInfo returns a specific image info by ID
@@ -421,7 +421,7 @@ func (s *Server) handleGetInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(info)
+	encodeJSONResponse(w, info)
 }
 
 // handleDeleteInfo handles DELETE requests to remove a specific image info
@@ -445,7 +445,7 @@ func (s *Server) handleDeleteInfo(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"message": fmt.Sprintf("Info %s deleted successfully", path),
 	}
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleAnalyzeImage handles POST requests to analyze a Docker image
@@ -459,7 +459,7 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -471,7 +471,7 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -491,8 +491,7 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 					ImageID: shortImageID,
 					Message: "Image has already been analyzed",
 				}
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(response)
+				encodeJSONResponse(w, response)
 				return
 			}
 		}
@@ -508,7 +507,7 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -542,8 +541,7 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 		Message: "Image analysis completed successfully",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleAnalyzeImageAsync handles POST requests to analyze a Docker image asynchronously
@@ -557,7 +555,7 @@ func (s *Server) handleAnalyzeImageAsync(w http.ResponseWriter, r *http.Request)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -569,7 +567,7 @@ func (s *Server) handleAnalyzeImageAsync(w http.ResponseWriter, r *http.Request)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -590,8 +588,7 @@ func (s *Server) handleAnalyzeImageAsync(w http.ResponseWriter, r *http.Request)
 						RequestID: shortImageID,
 						Message:   "Image has already been analyzed",
 					}
-					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(response)
+					encodeJSONResponse(w, response)
 					return
 				}
 
@@ -602,8 +599,7 @@ func (s *Server) handleAnalyzeImageAsync(w http.ResponseWriter, r *http.Request)
 						RequestID: info.RequestID,
 						Message:   "Image analysis is already in progress",
 					}
-					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(response)
+					encodeJSONResponse(w, response)
 					return
 				}
 			}
@@ -691,8 +687,7 @@ func (s *Server) handleAnalyzeImageAsync(w http.ResponseWriter, r *http.Request)
 		Message:   "Image analysis started successfully",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // findSummaries reads the summaries from the summary file or rebuilds it if missing/corrupt
@@ -1237,7 +1232,7 @@ func (s *Server) handleBuildContextPreview(w http.ResponseWriter, r *http.Reques
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -1250,7 +1245,7 @@ func (s *Server) handleBuildContextPreview(w http.ResponseWriter, r *http.Reques
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -1263,7 +1258,7 @@ func (s *Server) handleBuildContextPreview(w http.ResponseWriter, r *http.Reques
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -1274,8 +1269,7 @@ func (s *Server) handleBuildContextPreview(w http.ResponseWriter, r *http.Reques
 		Excluded: excluded,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
 }
 
 // handleBuildContextRead handles POST requests to read .dockerignore file content
@@ -1289,7 +1283,7 @@ func (s *Server) handleBuildContextRead(w http.ResponseWriter, r *http.Request) 
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -1302,7 +1296,7 @@ func (s *Server) handleBuildContextRead(w http.ResponseWriter, r *http.Request) 
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -1315,7 +1309,7 @@ func (s *Server) handleBuildContextRead(w http.ResponseWriter, r *http.Request) 
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		encodeJSONResponse(w, response)
 		return
 	}
 
@@ -1325,6 +1319,13 @@ func (s *Server) handleBuildContextRead(w http.ResponseWriter, r *http.Request) 
 		Content: content,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	encodeJSONResponse(w, response)
+}
+
+// encodeJSONResponse is a helper function to encode JSON responses and handle errors
+func encodeJSONResponse(w http.ResponseWriter, data interface{}) {
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("Error encoding JSON response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }

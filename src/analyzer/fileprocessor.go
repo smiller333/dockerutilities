@@ -15,6 +15,14 @@ import (
 	"github.com/smiller333/dockerutilities/src/dockerclient"
 )
 
+// closeWithErrorCheck is a helper function to close resources and log any errors
+func closeWithErrorCheck(closer io.Closer, resourceName string) {
+	if err := closer.Close(); err != nil {
+		// Log the error but don't fail the operation
+		fmt.Printf("Warning: failed to close %s: %v\n", resourceName, err)
+	}
+}
+
 // AnalyzeDockerfile reads and analyzes a Dockerfile at the specified path, then builds the image
 func AnalyzeDockerfile(dockerfilePath string) (*AnalysisResult, error) {
 	// Check if the file exists
@@ -58,7 +66,7 @@ func AnalyzeDockerfile(dockerfilePath string) (*AnalysisResult, error) {
 		result.BuildOutput = fmt.Sprintf("Failed to create Docker client: %v", err)
 		return result, nil // Return result with build failure, don't fail the analysis
 	}
-	defer dockerClient.Close()
+	defer closeWithErrorCheck(dockerClient, "Docker client")
 
 	// Test Docker connection
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -87,7 +95,7 @@ func AnalyzeDockerfile(dockerfilePath string) (*AnalysisResult, error) {
 		result.BuildOutput = fmt.Sprintf("Build failed: %v", err)
 		return result, nil
 	}
-	defer buildResponse.Close()
+	defer closeWithErrorCheck(buildResponse, "Build response")
 
 	// Read the build output
 	buildOutput, err := io.ReadAll(buildResponse)
