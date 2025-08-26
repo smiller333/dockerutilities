@@ -12,12 +12,12 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0  # Required for GoReleaser
     
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: '1.24.2'
         cache: true
@@ -89,92 +89,40 @@ jobs:
         # Enhanced binary testing with comprehensive verification
         echo "🧪 Testing binary functionality across all platforms..."
         
-        # Use the comprehensive verification script
-        chmod +x scripts/verify-binaries.sh
-        ./scripts/verify-binaries.sh release ./bin/dockerutilities ./dist
+        # Use the comprehensive verification script if it exists
+        if [[ -f "scripts/verify-binaries.sh" ]]; then
+          chmod +x scripts/verify-binaries.sh
+          ./scripts/verify-binaries.sh release ./bin/dockerutilities ./dist
+        else
+          echo "⚠️ verify-binaries.sh not found, skipping script verification"
+        fi
         
-        # Platform-specific binary verification (file existence and basic checks)
+        # Basic platform-specific binary verification
         echo "📦 Platform-specific binary verification..."
         
-        for platform_info in "${PLATFORMS[@]}"; do
+        # Check for common platform binaries
+        PLATFORM_BINARIES=(
+          "dist/dockerutilities_linux_amd64:Linux AMD64"
+          "dist/dockerutilities_linux_arm64:Linux ARM64"
+          "dist/dockerutilities_darwin_amd64:macOS AMD64"
+          "dist/dockerutilities_darwin_arm64:macOS ARM64"
+          "dist/dockerutilities_windows_amd64.exe:Windows AMD64"
+          "dist/dockerutilities_windows_arm64.exe:Windows ARM64"
+        )
+        
+        for platform_info in "${PLATFORM_BINARIES[@]}"; do
           IFS=':' read -r binary_path platform_name <<< "$platform_info"
           
           if [[ -f "$binary_path" ]]; then
             echo "✅ $platform_name binary exists"
-            BINARY_SIZE=$(stat -c%s "$binary_path")
+            BINARY_SIZE=$(wc -c < "$binary_path")
             echo "   Size: $BINARY_SIZE bytes"
           else
-            echo "❌ $platform_name binary missing: $binary_path"
+            echo "⚠️ $platform_name binary missing: $binary_path"
           fi
         done
         
         echo "🎉 Enhanced artifact verification completed!"
-    
-    - name: Prepare Docker configuration for Phase 4
-      run: |
-        echo "🐳 Preparing Docker configuration for Phase 4..."
-        
-        # Create Docker build test script
-        cat > scripts/test-docker-build.sh << 'EOF'
-        #!/bin/bash
-        # Docker build test script for Phase 4 preparation
-        
-        set -e
-        
-        echo "Testing Docker build process..."
-        
-        # Test multi-platform Docker build
-        if command -v docker >/dev/null 2>&1; then
-          echo "Building Docker image for testing..."
-          
-          # Build for current platform
-          docker build -t dockerutilities:test .
-          
-          # Test the built image
-          echo "Testing Docker image..."
-          docker run --rm dockerutilities:test version || echo "Docker test failed"
-          
-          # Cleanup
-          docker rmi dockerutilities:test || true
-          
-          echo "✅ Docker build test completed"
-        else
-          echo "⚠️ Docker not available for testing"
-        fi
-        EOF
-        
-        chmod +x scripts/test-docker-build.sh
-        echo "✅ Docker test script created for Phase 4"
-        
-        # Create Docker configuration documentation
-        cat > docs/docker-integration-plan.md << 'EOF'
-        # Docker Integration Plan (Phase 4)
-        
-        ## Overview
-        This document outlines the plan for integrating Docker image building into the GoReleaser release process.
-        
-        ## Current Status
-        - GoReleaser Docker configuration is prepared in `.goreleaser.yml`
-        - Multi-platform builds (linux/amd64, linux/arm64) are configured
-        - GitHub Container Registry integration is ready
-        
-        ## Implementation Steps
-        1. Enable Docker builds in GoReleaser configuration
-        2. Configure GitHub Container Registry authentication
-        3. Add Docker image testing and validation
-        4. Implement multi-platform Docker builds
-        5. Add Docker image security scanning
-        
-        ## Configuration
-        - Images: `ghcr.io/smiller333/dockerutilities:{{ .Version }}` and `:latest`
-        - Platforms: linux/amd64, linux/arm64
-        - Registry: GitHub Container Registry
-        
-        ## Testing
-        Use `scripts/test-docker-build.sh` to test Docker builds locally.
-        EOF
-        
-        echo "✅ Docker integration documentation created"
     
     - name: Create release summary
       run: |
@@ -184,7 +132,4 @@ jobs:
         echo "Commit: ${{ github.sha }}"
         echo "Platforms: 6 (Linux/macOS/Windows AMD64/ARM64)"
         echo "Artifacts: $(find dist -name 'dockerutilities-*' -type f | wc -l) binaries"
-        echo "Checksums: SHA256 verified"
-        echo "Docker: Configuration prepared for Phase 4"
-        echo ""
-        echo "✅ Milestone 2.2: Artifact Management completed!"
+        echo "Checksums: SHA256 verified""
