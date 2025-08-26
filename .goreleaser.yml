@@ -14,8 +14,6 @@ before:
 builds:
   - env:
       - CGO_ENABLED=0
-      - GOOS=linux
-      - GOARCH=amd64
     goos:
       - linux
       - windows
@@ -59,14 +57,6 @@ archives:
     format_overrides:
       - goos: windows
         format: zip
-    files:
-      - README.md
-      - LICENSE
-      - docs/release-notes-template.md
-      - docs/automated-build-planning.md
-    # Enhanced file organization
-    # Note: meta section is not supported in current GoReleaser version
-    # File organization is handled by naming template and included files
 
 # Enhanced changelog configuration
 changelog:
@@ -96,7 +86,17 @@ release:
   github:
     owner: smiller333
     name: dockerutilities
-  # Enhanced release notes template integration
+  
+  # You can change the name of the release
+  # Default: '{{.Tag}}'
+  name_template: "{{.ProjectName}} v{{.Version}}"
+  
+  # What to do with the release notes in case the release already exists
+  # Valid options: keep-existing, append, prepend, replace
+  # Default: 'keep-existing'
+  mode: replace
+  
+  # Header for the release body
   header: |
     {{ if .IsPatch }}
     ## 🐛 Bug Fix Release
@@ -116,6 +116,8 @@ release:
     **Go Version**: {{ .Env.GO_VERSION }}
     
     ---
+  
+  # Footer for the release body
   footer: |
     ---
     
@@ -149,13 +151,19 @@ release:
     
     ### 📝 Release Notes Template
     For detailed release notes and guidelines, see [docs/release-notes-template.md](https://github.com/smiller333/dockerutilities/blob/main/docs/release-notes-template.md)
+  
+  # Upload metadata.json and artifacts.json to the release as well
+  include_meta: true
+  
+  # You can add extra pre-existing files to the release
+  extra_files:
+    - glob: README.md
+    - glob: LICENSE
 
 # Enhanced checksums configuration
 checksum:
   name_template: 'checksums.txt'
   algorithm: sha256
-  # Note: GPG signature support can be added in future GoReleaser versions
-  # Current version supports basic SHA256 checksums
 
 # Docker configuration (prepared for Phase 4)
 # dockers:
@@ -170,5 +178,3 @@ checksum:
 #     extra_files:
 #       - README.md
 #       - LICENSE
-    # Note: Docker hooks are not supported in current GoReleaser version
-    # Docker validation will be handled in GitHub Actions workflow
