@@ -21,10 +21,30 @@ A Go-based CLI tool and web interface for Docker image analysis and management. 
 
 Prebuilt binaries are available for multiple platforms on the [GitHub Releases page](https://github.com/smiller333/dockerutilities/releases).
 
-1. Download the appropriate binary for your platform (Linux/macOS/Windows, amd64/arm64)
-2. Make it executable: `chmod +x dockerutilities`
-3. Start the web interface: `./dockerutilities server`
-4. Access at http://localhost:8080
+#### Installation Steps:
+
+1. **Download the appropriate binary** for your platform from the [releases page](https://github.com/smiller333/dockerutilities/releases)
+2. **Set up your environment**:
+   ```bash
+   # Create bin directory (if it doesn't exist)
+   mkdir -p ~/bin
+   
+   # Move binary to bin directory
+   mv dockerutilities-* ~/bin/
+   
+   # Make executable (Linux/macOS)
+   chmod +x ~/bin/dockerutilities-*
+   
+   # Add to PATH (add to your shell profile if needed)
+   export PATH="$HOME/bin:$PATH"
+   ```
+3. **Start the web interface**: `dockerutilities server`
+4. **Access at**: http://localhost:8080
+
+#### Platform Support:
+- **Linux**: x86_64, ARM64
+- **macOS**: Intel (x86_64), Apple Silicon (ARM64)  
+- **Windows**: x86_64, ARM64 (ZIP format)
 
 ### Option 2: Build from Source
 

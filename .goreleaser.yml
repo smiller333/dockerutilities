@@ -110,14 +110,21 @@ release:
     
     ### 📋 Installation
     
-    Download the appropriate binary for your platform:
+    Download the appropriate binary for your platform from the assets above, then:
     
-    **Linux (x86_64)**: `dockerutilities-{{ .Version }}-linux-x86_64`
-    **Linux (ARM64)**: `dockerutilities-{{ .Version }}-linux-arm64`
-    **macOS (Intel)**: `dockerutilities-{{ .Version }}-darwin-x86_64`
-    **macOS (Apple Silicon)**: `dockerutilities-{{ .Version }}-darwin-arm64`
-    **Windows (x86_64)**: `dockerutilities-{{ .Version }}-windows-x86_64.zip`
-    **Windows (ARM64)**: `dockerutilities-{{ .Version }}-windows-arm64.zip`
+    ```bash
+    # Create bin directory (if it doesn't exist)
+    mkdir -p ~/bin
+    
+    # Move binary to bin directory
+    mv dockerutilities-* ~/bin/
+    
+    # Make executable (Linux/macOS)
+    chmod +x ~/bin/dockerutilities-*
+    
+    # Add to PATH (add to your shell profile if needed)
+    export PATH="$HOME/bin:$PATH"
+    ```
     
     ### 🔐 Verification
     
@@ -135,9 +142,6 @@ release:
     - [Documentation](https://github.com/smiller333/dockerutilities#readme)
     - [Issues](https://github.com/smiller333/dockerutilities/issues)
     - [Discussions](https://github.com/smiller333/dockerutilities/discussions)
-    
-    ### 📝 Release Notes Template
-    For detailed release notes and guidelines, see [docs/release-notes-template.md](https://github.com/smiller333/dockerutilities/blob/main/docs/release-notes-template.md)
   
   # Upload metadata.json and artifacts.json to the release as well
   include_meta: true
