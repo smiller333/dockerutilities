@@ -61,7 +61,7 @@ run_smoke_tests() {
     fi
     
     # Check for required help information
-    if ! echo "$HELP_OUTPUT" | grep -q "Docker image analysis and management"; then
+    if ! echo "$HELP_OUTPUT" | grep -q "analyzing Docker images and managing Docker build contexts"; then
         echo -e "    ${RED}❌ Help output missing expected description${NC}"
         return 1
     fi

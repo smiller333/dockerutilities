@@ -73,9 +73,9 @@ if [[ "$HELP_OUTPUT" == "COMMAND_FAILED" ]]; then
     exit 1
 fi
 
-if ! echo "$HELP_OUTPUT" | grep -q "Docker image analysis and management"; then
+if ! echo "$HELP_OUTPUT" | grep -q "analyzing Docker images and managing Docker build contexts"; then
     echo -e "${RED}❌ Help command output doesn't contain expected description${NC}"
-    echo "   Expected to find 'Docker image analysis and management' in output"
+    echo "   Expected to find 'analyzing Docker images and managing Docker build contexts' in output"
     echo "   Full output: $HELP_OUTPUT"
     exit 1
 fi
