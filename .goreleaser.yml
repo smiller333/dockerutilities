@@ -60,6 +60,7 @@ archives:
 
 # Enhanced changelog configuration
 changelog:
+  use: github
   sort: asc
   filters:
     exclude:
@@ -89,72 +90,15 @@ release:
   
   # You can change the name of the release
   # Default: '{{.Tag}}'
-  name_template: "{{.ProjectName}} v{{.Version}}"
+  # name_template: "v{{.Version}}"
   
   # What to do with the release notes in case the release already exists
   # Valid options: keep-existing, append, prepend, replace
   # Default: 'keep-existing'
   mode: replace
   
-  # Header for the release body
-  header: |
-    ## 🚀 Release {{ .Version }}
-    
-    **Release Date**: {{ .Date }}
-    **Commit**: {{ .Commit }}
-    ---
-  
-  # Footer for the release body
-  footer: |
-    ---
-    
-    ### 📋 Installation
-    
-    Download the appropriate binary for your platform from the assets above, then:
-    
-    ```bash
-    # Create bin directory (if it doesn't exist)
-    mkdir -p ~/bin
-    
-    # Move binary to bin directory
-    mv dockerutilities-* ~/bin/
-    
-    # Make executable (Linux/macOS)
-    chmod +x ~/bin/dockerutilities-*
-    
-    # Add to PATH (add to your shell profile if needed)
-    export PATH="$HOME/bin:$PATH"
-    ```
-    
-    ### 🔐 Verification
-    
-    All binaries are signed and verified. You can verify the integrity using:
-    
-    ```bash
-    # Download checksums file
-    curl -LO https://github.com/smiller333/dockerutilities/releases/download/{{ .Tag }}/checksums.txt
-    
-    # Verify binary (replace with your platform)
-    sha256sum -c checksums.txt
-    ```
-    
-    ### 🔗 Quick Links
-    - [Documentation](https://github.com/smiller333/dockerutilities#readme)
-    - [Issues](https://github.com/smiller333/dockerutilities/issues)
-    - [Discussions](https://github.com/smiller333/dockerutilities/discussions)
-  
   # Upload metadata.json and artifacts.json to the release as well
-  include_meta: true
-  
-  # You can add extra pre-existing files to the release
-  extra_files:
-    - glob: README.md
-    - glob: LICENSE
-
-# Enhanced checksums configuration
-checksum:
-  name_template: 'checksums.txt'
-  algorithm: sha256
+  include_meta: false
 
 # Docker configuration (prepared for Phase 4)
 # dockers:
