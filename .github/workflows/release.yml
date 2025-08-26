@@ -30,13 +30,3 @@ jobs:
         args: release --clean --parallelism=2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Create release summary
-      run: |
-        echo "📋 Release Summary"
-        echo "=================="
-        echo "Version: ${{ github.ref_name }}"
-        echo "Commit: ${{ github.sha }}"
-        echo "Platforms: 6 (Linux/macOS/Windows AMD64/ARM64)"
-        echo "Artifacts: $(find dist -name 'dockerutilities-*' -type f | wc -l) binaries"
-        echo "Checksums: SHA256 verified""
