@@ -34,19 +34,19 @@ var serverCmd = &cobra.Command{
 	Long: `Start a local web server that provides Docker image analysis tools through both a web interface and REST API.
 
 The server provides:
-- Interactive web interface for analyzing Docker images in real-time
-- Live Docker image analysis with detailed metadata extraction  
+- Interactive web interface for analyzing Docker images
 - REST API endpoints for programmatic access to analysis data
+- Docker build context preview and .dockerignore validation
+- Image filesystem exploration with file size limits
 - Asynchronous image analysis operations with progress tracking
 - File management and cleanup of analysis results
-- Embedded modern UI with responsive design
 
 Key Features:
-- Analyze local and remote Docker images
-- Extract and browse image filesystem contents
+- Analyze local and remote Docker images via web interface
+- Extract and browse image filesystem contents (with configurable size limits)
 - View layer information and build history
-- Generate comprehensive analysis reports
-- Docker build context preview and .dockerignore validation
+- Preview Docker build contexts with .dockerignore validation
+- REST API for programmatic access to analysis data
 
 Examples:
   	dockerutilities server                                       # Start server on default port 8080 (opens browser automatically)

@@ -124,12 +124,12 @@ func TestRootCommandProperties(t *testing.T) {
 		t.Errorf("Expected root command use 'dockerutilities', got '%s'", rootCmd.Use)
 	}
 
-	if rootCmd.Short != "Docker analysis and management utilities" {
+	if rootCmd.Short != "Docker image analysis and build context utilities" {
 		t.Errorf("Expected root command short description, got '%s'", rootCmd.Short)
 	}
 
-	if !strings.Contains(rootCmd.Long, "dockerutilities is a comprehensive CLI tool") {
-		t.Errorf("Expected root command long description to contain comprehensive description")
+	if !strings.Contains(rootCmd.Long, "dockerutilities is a CLI tool for analyzing Docker images") {
+		t.Errorf("Expected root command long description to contain CLI tool description")
 	}
 
 	if rootCmd.Version != version.GetVersionString() {

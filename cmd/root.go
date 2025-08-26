@@ -14,22 +14,21 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "dockerutilities",
-	Short: "Docker analysis and management utilities",
-	Long: `dockerutilities is a comprehensive CLI tool for Docker image analysis and management.
+	Short: "Docker image analysis and build context utilities",
+	Long: `dockerutilities is a CLI tool for analyzing Docker images and managing Docker build contexts.
 
 This tool provides:
-- Interactive web interface for Docker image analysis
-- Command-line utilities for Docker operations
-- REST API for programmatic access to analysis data
-- Docker build context preview and validation
+- Web interface for Docker image analysis with REST API
+- Docker build context preview and .dockerignore validation
 - Image filesystem exploration and metadata extraction
+- Local development utilities (not for production use)
 
 Key Features:
-- Analyze local and remote Docker images
-- Extract and browse image filesystem contents  
+- Analyze local and remote Docker images via web interface
+- Extract and browse image filesystem contents (with size limits)
 - View layer information and build history
-- Generate comprehensive analysis reports
-- Docker build context preview and .dockerignore validation
+- Preview Docker build contexts with .dockerignore validation
+- REST API for programmatic access to analysis data
 
 Examples:
   	dockerutilities --version                    # Show version information
