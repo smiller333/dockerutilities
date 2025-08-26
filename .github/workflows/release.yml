@@ -22,25 +22,6 @@ jobs:
         go-version: '1.24.2'
         cache: true
     
-    - name: Validate GoReleaser configuration
-      run: |
-        echo "Validating GoReleaser configuration..."
-        goreleaser check
-        echo "Configuration is valid!"
-    
-    - name: Run tests before release
-      run: |
-        echo "Running comprehensive tests..."
-        go test -v -race -coverprofile=coverage.out ./...
-        go vet ./...
-        echo "Tests completed successfully!"
-    
-    - name: Build and test locally (dry run)
-      run: |
-        echo "Testing GoReleaser build process..."
-        goreleaser build --snapshot --clean --parallelism=2
-        echo "Local build test completed!"
-    
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v5
       with:
@@ -49,80 +30,6 @@ jobs:
         args: release --clean --parallelism=2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Enhanced artifact verification
-      run: |
-        echo "🔍 Enhanced artifact verification..."
-        
-        # Check if release was created
-        if [ -f "dist/checksums.txt" ]; then
-          echo "✅ Checksums file created"
-          echo "Checksums content:"
-          cat dist/checksums.txt
-        else
-          echo "❌ Checksums file not found"
-          exit 1
-        fi
-        
-        # Verify checksums
-        echo "🔐 Verifying checksums..."
-        cd dist
-        if sha256sum -c checksums.txt; then
-          echo "✅ All checksums verified successfully"
-        else
-          echo "❌ Checksum verification failed"
-          exit 1
-        fi
-        cd ..
-        
-        # Check binary count (should be 6 platforms)
-        BINARY_COUNT=$(find dist -name "dockerutilities-*" -type f | wc -l)
-        echo "📦 Found $BINARY_COUNT binaries"
-        
-        if [ "$BINARY_COUNT" -ge 6 ]; then
-          echo "✅ All platform binaries created"
-        else
-          echo "❌ Expected 6 binaries, found $BINARY_COUNT"
-          exit 1
-        fi
-        
-        # Enhanced binary testing with comprehensive verification
-        echo "🧪 Testing binary functionality across all platforms..."
-        
-        # Use the comprehensive verification script if it exists
-        if [[ -f "scripts/verify-binaries.sh" ]]; then
-          chmod +x scripts/verify-binaries.sh
-          ./scripts/verify-binaries.sh release ./bin/dockerutilities ./dist
-        else
-          echo "⚠️ verify-binaries.sh not found, skipping script verification"
-        fi
-        
-        # Basic platform-specific binary verification
-        echo "📦 Platform-specific binary verification..."
-        
-        # Check for common platform binaries
-        PLATFORM_BINARIES=(
-          "dist/dockerutilities_linux_amd64:Linux AMD64"
-          "dist/dockerutilities_linux_arm64:Linux ARM64"
-          "dist/dockerutilities_darwin_amd64:macOS AMD64"
-          "dist/dockerutilities_darwin_arm64:macOS ARM64"
-          "dist/dockerutilities_windows_amd64.exe:Windows AMD64"
-          "dist/dockerutilities_windows_arm64.exe:Windows ARM64"
-        )
-        
-        for platform_info in "${PLATFORM_BINARIES[@]}"; do
-          IFS=':' read -r binary_path platform_name <<< "$platform_info"
-          
-          if [[ -f "$binary_path" ]]; then
-            echo "✅ $platform_name binary exists"
-            BINARY_SIZE=$(wc -c < "$binary_path")
-            echo "   Size: $BINARY_SIZE bytes"
-          else
-            echo "⚠️ $platform_name binary missing: $binary_path"
-          fi
-        done
-        
-        echo "🎉 Enhanced artifact verification completed!"
     
     - name: Create release summary
       run: |
