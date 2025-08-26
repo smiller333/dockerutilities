@@ -60,7 +60,7 @@ archives:
 
 # Enhanced changelog configuration
 changelog:
-  use: github
+  use: git
   sort: asc
   filters:
     exclude:
