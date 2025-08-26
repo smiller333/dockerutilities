@@ -101,9 +101,9 @@ jobs:
         fi
         
         # Check for required help information
-        if ! echo "$HELP_OUTPUT" | grep -q "Docker image analysis and management"; then
+        if ! echo "$HELP_OUTPUT" | grep -q "analyzing Docker images and managing Docker build contexts"; then
           echo "❌ Help output missing expected description"
-          echo "Expected: 'Docker image analysis and management'"
+          echo "Expected: 'analyzing Docker images and managing Docker build contexts'"
           echo "Help output (first 5 lines):"
           echo "$HELP_OUTPUT" | head -5
           exit 1
