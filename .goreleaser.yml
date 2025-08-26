@@ -98,18 +98,7 @@ release:
   
   # Header for the release body
   header: |
-    {{ if .IsPatch }}
-    ## 🐛 Bug Fix Release
-    {{ else if .IsMinor }}
-    ## 🎉 Feature Release
-    {{ else }}
-    ## ⚠️ Major Release
-    {{ end }}
-    
-    {{ if .IsPrerelease }}
-    ### 🧪 Development Release
-    This is a development release for testing purposes. Not recommended for production use.
-    {{ end }}
+    ## 🚀 Release {{ .Version }}
     
     **Release Date**: {{ .Date }}
     **Commit**: {{ .Commit }}
