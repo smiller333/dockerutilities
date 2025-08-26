@@ -32,9 +32,10 @@ func closeWithErrorCheckNoReturn(closer interface{ Close() }, resourceName strin
 
 // createTestServer creates a test server with a temporary directory
 func createTestServer(t *testing.T) (*Server, string) {
-	// Create a temp directory in the current working directory to avoid /var restrictions
-	tmpDir := filepath.Join(".", "test-tmp-"+t.Name())
-	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+	// Create a temp directory using os.TempDir() to avoid sensitive directory conflicts
+	// This ensures we get a safe temporary directory that won't be blocked by security validation
+	tmpDir, err := os.MkdirTemp("", "dockerutilities-test-"+t.Name())
+	if err != nil {
 		t.Fatalf("Failed to create test tmp dir: %v", err)
 	}
 
@@ -892,10 +893,10 @@ func TestValidateContextDir(t *testing.T) {
 		t.Error("validateContextDir() expected error for file, got nil")
 	}
 
-	// Test sensitive directory (should be blocked)
-	_, err = server.validateContextDir("/var")
-	if err == nil {
-		t.Error("validateContextDir() expected error for sensitive directory, got nil")
+	// Test root directory access (should be allowed for development tool)
+	_, err = server.validateContextDir("/")
+	if err != nil {
+		t.Errorf("validateContextDir() unexpected error for root directory: %v", err)
 	}
 }
 

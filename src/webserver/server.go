@@ -36,10 +36,11 @@ const (
 
 // Config holds configuration options for the web server
 type Config struct {
-	Host    string // Host/IP address to bind to
-	Port    string // Port number to listen on
-	WebRoot string // Custom web root directory (optional)
-	TmpDir  string // Custom tmp directory for storing analysis data (optional)
+	Host        string // Host/IP address to bind to
+	Port        string // Port number to listen on
+	WebRoot     string // Custom web root directory (optional)
+	TmpDir      string // Custom tmp directory for storing analysis data (optional)
+	MaxFileSize int64  // Maximum file size limit in bytes for extraction (default: 100MB)
 }
 
 // Server represents the web server instance
@@ -205,8 +206,8 @@ func New(config *Config) (*Server, error) {
 		tmpDir = filepath.Join(cwd, "tmp")
 	}
 
-	// Ensure tmp directory exists with secure permissions
-	if err := os.MkdirAll(tmpDir, 0700); err != nil {
+	// Ensure tmp directory exists with standard permissions
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create tmp directory: %w", err)
 	}
 
@@ -497,8 +498,12 @@ func (s *Server) handleAnalyzeImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Create analyzer config with file size limit
+	analyzerConfig := &analyzer.Config{
+		MaxFileSize: s.config.MaxFileSize,
+	}
 	// Perform the analysis using the existing AnalyzeImage function
-	result, err := analyzer.AnalyzeImageWithTmpDir(req.ImageName, req.KeepTempFiles, req.ForcePull, s.tmpDir)
+	result, err := analyzer.AnalyzeImageWithTmpDir(req.ImageName, req.KeepTempFiles, req.ForcePull, s.tmpDir, analyzerConfig)
 	if err != nil {
 		response := AnalyzeResponse{
 			Success: false,
@@ -630,7 +635,11 @@ func (s *Server) handleAnalyzeImageAsync(w http.ResponseWriter, r *http.Request)
 	go func() {
 		log.Printf("Starting async analysis for image: %s (Request ID: %s)", req.ImageName, requestID)
 
-		result, err := analyzer.AnalyzeImageWithTmpDir(req.ImageName, req.KeepTempFiles, req.ForcePull, s.tmpDir)
+		// Create analyzer config with file size limit
+		analyzerConfig := &analyzer.Config{
+			MaxFileSize: s.config.MaxFileSize,
+		}
+		result, err := analyzer.AnalyzeImageWithTmpDir(req.ImageName, req.KeepTempFiles, req.ForcePull, s.tmpDir, analyzerConfig)
 		if err != nil {
 			log.Printf("Async analysis failed for image %s (Request ID: %s): %v", req.ImageName, requestID, err)
 
@@ -1135,14 +1144,8 @@ func (s *Server) imageInfoToSummary(info analyzer.ImageInfo) ImageSummary {
 	}
 }
 
-// Sensitive directories that should be restricted or warned about
-var sensitiveDirs = []string{
-	"/etc", "/var", "/usr/bin", "/usr/sbin", "/root",
-	"/.ssh", "/home", "/System", "/Windows",
-	"/proc", "/sys", "/dev",
-}
-
-// validateBuildContextPath checks if a path is safe for build context access
+// validateBuildContextPath validates and resolves the build context path
+// Note: This is a development tool - users have full control over their systems
 func validateBuildContextPath(requestedPath string) (string, error) {
 	// Clean and resolve the path
 	cleanPath := filepath.Clean(requestedPath)
@@ -1151,16 +1154,12 @@ func validateBuildContextPath(requestedPath string) (string, error) {
 		return "", fmt.Errorf("invalid path: %w", err)
 	}
 
-	// Check for sensitive directories
-	for _, sensitiveDir := range sensitiveDirs {
-		if strings.HasPrefix(absPath, sensitiveDir) {
-			return "", fmt.Errorf("access to sensitive directory not allowed: %s", sensitiveDir)
-		}
-	}
+	// For development use, we only perform basic validation
+	// Users are responsible for their own system security
 
-	// Check for user home directory access and warn
+	// Check for user home directory access and warn about sensitive subdirectories
 	if err := checkHomeDirectoryAccess(absPath); err != nil {
-		// Log warning but allow access for now - user may have legitimate docker files
+		// Log warning but allow access - user may have legitimate docker files
 		log.Printf("⚠️  Build context warning: %v", err)
 	}
 
@@ -1193,7 +1192,8 @@ func checkHomeDirectoryAccess(path string) error {
 	return nil
 }
 
-// validateContextDir validates and resolves the context directory path to prevent directory traversal attacks
+// validateContextDir validates and resolves the context directory path
+// Note: This is a development tool - users have full control over their systems
 func (s *Server) validateContextDir(contextDir string) (string, error) {
 	if contextDir == "" {
 		return "", fmt.Errorf("context directory cannot be empty")

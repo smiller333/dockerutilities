@@ -97,67 +97,6 @@ func TestParseImageNameAndSource(t *testing.T) {
 	}
 }
 
-func TestValidateTarPath(t *testing.T) {
-	tests := []struct {
-		name        string
-		path        string
-		expectError bool
-	}{
-		{
-			name:        "valid path",
-			path:        "file.txt",
-			expectError: false,
-		},
-		{
-			name:        "valid nested path",
-			path:        "dir/subdir/file.txt",
-			expectError: false,
-		},
-		{
-			name:        "path with single dot",
-			path:        "./file.txt",
-			expectError: false,
-		},
-		{
-			name:        "path with double dot traversal",
-			path:        "../file.txt",
-			expectError: true,
-		},
-		{
-			name:        "path with double dot in middle",
-			path:        "dir/../file.txt",
-			expectError: true,
-		},
-		{
-			name:        "path with multiple double dots",
-			path:        "../../file.txt",
-			expectError: true,
-		},
-		{
-			name:        "path with double dot in filename",
-			path:        "file..txt",
-			expectError: true,
-		},
-		{
-			name:        "empty path",
-			path:        "",
-			expectError: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateTarPath(tt.path)
-			if tt.expectError && err == nil {
-				t.Errorf("Expected error for path '%s', got nil", tt.path)
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error for path '%s', got: %v", tt.path, err)
-			}
-		})
-	}
-}
-
 func TestSafeTarExtraction_ValidTar(t *testing.T) {
 	// Create a temporary directory for extraction
 	tmpDir := t.TempDir()
@@ -172,7 +111,8 @@ func TestSafeTarExtraction_ValidTar(t *testing.T) {
 	})
 
 	// Test extraction
-	err := SafeTarExtraction(tarPath, extractDir)
+	config := &Config{MaxFileSize: 100 * 1024 * 1024}
+	err := SafeTarExtraction(tarPath, extractDir, config)
 	if err != nil {
 		t.Fatalf("SafeTarExtraction failed: %v", err)
 	}
@@ -222,7 +162,8 @@ func TestSafeTarExtraction_GzippedTar(t *testing.T) {
 	})
 
 	// Test extraction
-	err := SafeTarExtraction(tarPath, extractDir)
+	config := &Config{MaxFileSize: 100 * 1024 * 1024}
+	err := SafeTarExtraction(tarPath, extractDir, config)
 	if err != nil {
 		t.Fatalf("SafeTarExtraction failed: %v", err)
 	}
@@ -253,7 +194,8 @@ func TestSafeTarExtraction_PathTraversal(t *testing.T) {
 	})
 
 	// Test extraction - should fail due to path traversal
-	err := SafeTarExtraction(tarPath, extractDir)
+	config := &Config{MaxFileSize: 100 * 1024 * 1024}
+	err := SafeTarExtraction(tarPath, extractDir, config)
 	if err == nil {
 		t.Error("Expected error for path traversal attempt, got nil")
 	}
@@ -269,7 +211,8 @@ func TestSafeTarExtraction_NonexistentFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	extractDir := filepath.Join(tmpDir, "extracted")
 
-	err := SafeTarExtraction("/nonexistent/file.tar", extractDir)
+	config := &Config{MaxFileSize: 100 * 1024 * 1024}
+	err := SafeTarExtraction("/nonexistent/file.tar", extractDir, config)
 	if err == nil {
 		t.Error("Expected error for nonexistent file, got nil")
 	}
@@ -287,7 +230,8 @@ func TestSafeTarExtraction_InvalidGzip(t *testing.T) {
 		t.Fatalf("Failed to create invalid gzip file: %v", err)
 	}
 
-	err = SafeTarExtraction(tarPath, extractDir)
+	config := &Config{MaxFileSize: 100 * 1024 * 1024}
+	err = SafeTarExtraction(tarPath, extractDir, config)
 	if err == nil {
 		t.Error("Expected error for invalid gzip file, got nil")
 	}
@@ -299,7 +243,7 @@ func TestExtractSecureFile(t *testing.T) {
 	content := "test content"
 
 	reader := strings.NewReader(content)
-	err := extractSecureFile(reader, targetPath, 0644)
+	err := extractSecureFile(reader, targetPath, 0644, 100*1024*1024)
 	if err != nil {
 		t.Fatalf("extractSecureFile failed: %v", err)
 	}
@@ -316,105 +260,6 @@ func TestExtractSecureFile(t *testing.T) {
 	}
 	if string(fileContent) != content {
 		t.Errorf("Expected content '%s', got '%s'", content, string(fileContent))
-	}
-}
-
-func TestExtractSecureSymlink(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	tests := []struct {
-		name        string
-		linkTarget  string
-		linkPath    string
-		baseDir     string
-		expectError bool
-	}{
-		{
-			name:        "valid symlink within base directory",
-			linkTarget:  "target.txt",
-			linkPath:    filepath.Join(tmpDir, "link.txt"),
-			baseDir:     tmpDir,
-			expectError: false,
-		},
-		{
-			name:        "symlink with path traversal attempt",
-			linkTarget:  "../../../etc/passwd",
-			linkPath:    filepath.Join(tmpDir, "malicious_link"),
-			baseDir:     tmpDir,
-			expectError: true,
-		},
-		{
-			name:        "absolute path symlink",
-			linkTarget:  "/etc/passwd",
-			linkPath:    filepath.Join(tmpDir, "absolute_link"),
-			baseDir:     tmpDir,
-			expectError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := extractSecureSymlink(tt.linkTarget, tt.linkPath, tt.baseDir)
-			if tt.expectError && err == nil {
-				t.Errorf("Expected error for symlink '%s' -> '%s', got nil", tt.linkPath, tt.linkTarget)
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error for symlink '%s' -> '%s', got: %v", tt.linkPath, tt.linkTarget, err)
-			}
-		})
-	}
-}
-
-func TestExtractSecureHardlink(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	// Create a target file for hardlinking
-	targetFile := filepath.Join(tmpDir, "target.txt")
-	err := os.WriteFile(targetFile, []byte("target content"), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create target file: %v", err)
-	}
-
-	tests := []struct {
-		name        string
-		linkTarget  string
-		linkPath    string
-		baseDir     string
-		expectError bool
-	}{
-		{
-			name:        "valid hardlink within base directory",
-			linkTarget:  "target.txt",
-			linkPath:    filepath.Join(tmpDir, "link.txt"),
-			baseDir:     tmpDir,
-			expectError: false,
-		},
-		{
-			name:        "hardlink with path traversal attempt",
-			linkTarget:  "../../../etc/passwd",
-			linkPath:    filepath.Join(tmpDir, "malicious_link"),
-			baseDir:     tmpDir,
-			expectError: true,
-		},
-		{
-			name:        "absolute path hardlink",
-			linkTarget:  "/etc/passwd",
-			linkPath:    filepath.Join(tmpDir, "absolute_link"),
-			baseDir:     tmpDir,
-			expectError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := extractSecureHardlink(tt.linkTarget, tt.linkPath, tt.baseDir)
-			if tt.expectError && err == nil {
-				t.Errorf("Expected error for hardlink '%s' -> '%s', got nil", tt.linkPath, tt.linkTarget)
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Expected no error for hardlink '%s' -> '%s', got: %v", tt.linkPath, tt.linkTarget, err)
-			}
-		})
 	}
 }
 

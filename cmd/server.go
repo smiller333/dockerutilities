@@ -19,11 +19,12 @@ import (
 
 var (
 	// Flags for the server command
-	serverPort string
-	webRoot    string
-	host       string
-	tmpDir     string
-	noBrowser  bool
+	serverPort  string
+	webRoot     string
+	host        string
+	tmpDir      string
+	noBrowser   bool
+	maxFileSize int64
 )
 
 // serverCmd represents the server command
@@ -54,6 +55,7 @@ Examples:
 	dockerutilities server --web-root ./custom-ui               # Use custom web root directory
 	dockerutilities server --tmp-dir /app/data                  # Use custom tmp directory for analysis data
 	dockerutilities server --no-browser                         # Start server without opening browser automatically
+	dockerutilities server --max-file-size 200MB                # Set file size limit to 200MB
 
 The server will automatically open your default web browser to the analysis tools interface.
 Use --no-browser to disable automatic browser opening.`,
@@ -71,6 +73,7 @@ func init() {
 	serverCmd.Flags().StringVar(&webRoot, "web-root", "", "Custom path to web root directory for custom UI (optional)")
 	serverCmd.Flags().StringVar(&tmpDir, "tmp-dir", "", "Custom path to temporary directory for analysis data (optional)")
 	serverCmd.Flags().BoolVar(&noBrowser, "no-browser", false, "Disable automatic browser opening when server starts")
+	serverCmd.Flags().Int64Var(&maxFileSize, "max-file-size", 100*1024*1024, "Maximum file size limit in bytes for extraction (default: 100MB)")
 }
 
 // runServer starts the web server for viewing Docker image analysis results
@@ -87,10 +90,11 @@ func runServer(cmd *cobra.Command, args []string) error {
 
 	// Create server configuration
 	config := &webserver.Config{
-		Host:    host,
-		Port:    serverPort,
-		WebRoot: webRoot,
-		TmpDir:  tmpDir,
+		Host:        host,
+		Port:        serverPort,
+		WebRoot:     webRoot,
+		TmpDir:      tmpDir,
+		MaxFileSize: maxFileSize,
 	}
 
 	// Create and start the web server
