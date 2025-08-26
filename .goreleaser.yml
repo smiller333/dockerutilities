@@ -102,8 +102,6 @@ release:
     
     **Release Date**: {{ .Date }}
     **Commit**: {{ .Commit }}
-    **Go Version**: {{ .Env.GO_VERSION }}
-    
     ---
   
   # Footer for the release body
