@@ -39,14 +39,6 @@ var (
 	ErrImageNotFound = errors.New("image not found")
 )
 
-var trustedRegistries = []string{
-	"docker.io",
-	"gcr.io",
-	"quay.io",
-	"registry.k8s.io",
-	"ghcr.io",
-}
-
 // ValidateDockerAccess checks Docker socket access and warns about risks
 func ValidateDockerAccess() error {
 	var socketPath string
@@ -59,7 +51,7 @@ func ValidateDockerAccess() error {
 
 	// Check if socket exists and is accessible
 	if _, err := os.Stat(socketPath); err != nil {
-		return fmt.Errorf("Docker socket not accessible at %s: %w", socketPath, err)
+		return fmt.Errorf("docker socket not accessible at %s: %w", socketPath, err)
 	}
 
 	// Log security warning
@@ -69,41 +61,6 @@ func ValidateDockerAccess() error {
 	log.Printf("   Recommendation: Only use with images from trusted sources")
 
 	return nil
-}
-
-// ValidateImageSource checks if an image comes from a trusted source
-func ValidateImageSource(imageName string) (bool, string) {
-	// Parse image name to extract registry
-	parts := strings.Split(imageName, "/")
-	var registry string
-
-	if len(parts) > 1 && strings.Contains(parts[0], ".") {
-		registry = parts[0]
-	} else {
-		registry = "docker.io" // Default registry
-	}
-
-	// Check against trusted registries
-	for _, trusted := range trustedRegistries {
-		if registry == trusted {
-			return true, "Trusted registry"
-		}
-	}
-
-	return false, fmt.Sprintf("Untrusted registry: %s", registry)
-}
-
-// WarnUntrustedImage displays warnings for untrusted images
-func WarnUntrustedImage(imageName string) {
-	trusted, reason := ValidateImageSource(imageName)
-
-	if !trusted {
-		log.Printf("🚨 SECURITY WARNING: Analyzing potentially untrusted image")
-		log.Printf("   Image: %s", imageName)
-		log.Printf("   Reason: %s", reason)
-		log.Printf("   Risk: Malicious images could exploit the analysis process")
-		log.Printf("   Recommendation: Only proceed if you trust this image source")
-	}
 }
 
 // ValidateImageName validates Docker image name format

@@ -1,0 +1,105 @@
+# GoReleaser configuration for dockerutilities
+# This file configures automated releases with cross-platform builds
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod verify
+    - go vet ./...
+    - go test -v ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    binary: dockerutilities
+    ldflags:
+      - -s -w
+      - -X github.com/smiller333/dockerutilities/src/version.Version={{.Version}}
+      - -X github.com/smiller333/dockerutilities/src/version.GitCommit={{.Commit}}
+      - -X github.com/smiller333/dockerutilities/src/version.BuildTime={{.Date}}
+    hooks:
+      pre: |
+        echo "Building {{ .Os }}/{{ .Arch }} binary..."
+        echo "Version: {{ .Version }}"
+        echo "Commit: {{ .Commit }}"
+      post: |
+        echo "Built binary for {{ .Os }}/{{ .Arch }}"
+        # Enhanced binary validation
+        if [ -f "{{ .Path }}" ]; then
+          echo "Binary size: $(stat -c%s {{ .Path }}) bytes"
+          # Test version command and basic functionality
+          if [ "{{ .Os }}" = "linux" ] || [ "{{ .Os }}" = "darwin" ]; then
+            chmod +x {{ .Path }}
+            echo "Testing binary functionality..."
+            {{ .Path }} version 2>/dev/null || echo "Version command not available"
+            {{ .Path }} --help 2>/dev/null || echo "Help command not available"
+          fi
+        fi
+
+archives:
+  - format: binary
+    name_template: >-
+      {{ .ProjectName }}-
+      {{- title .Os }}-
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+
+changelog:
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+      - Merge pull request
+      - Merge branch
+      - '^wip:'
+      - '^temp:'
+    include:
+      - '^feat:'
+      - '^fix:'
+      - '^improve:'
+      - '^perf:'
+      - '^refactor:'
+      - '^security:'
+      - '^breaking:'
+
+
+release:
+  # GitHub release settings
+  github:
+    owner: smiller333
+    name: dockerutilities
+  
+  mode: replace
+  include_meta: false
+  
+  # Footer for the release body with compare link
+  footer: |
+    Full Changelog: [{{ .PreviousTag }}...{{ .Tag }}](https://github.com/smiller333/dockerutilities/compare/{{ .PreviousTag }}...{{ .Tag }})
+
+# Docker configuration (prepared for Phase 4)
+# dockers:
+#   - image_templates:
+#       - "ghcr.io/smiller333/dockerutilities:{{ .Version }}"
+#       - "ghcr.io/smiller333/dockerutilities:latest"
+#     dockerfile: Dockerfile
+#     use: buildx
+#     build_flag_templates:
+#       - "--platform=linux/amd64"
+#       - "--platform=linux/arm64"
+#     extra_files:
+#       - README.md
+#       - LICENSE

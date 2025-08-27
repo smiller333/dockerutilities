@@ -3,9 +3,165 @@ package dockerclient
 
 import (
 	"context"
+	"os"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 )
+
+// closeWithErrorCheck is a helper function to close resources and log any errors in tests
+func closeWithErrorCheck(t testing.TB, closer interface{ Close() error }, resourceName string) {
+	if err := closer.Close(); err != nil {
+		// Log the error but don't fail the test
+		t.Logf("Warning: failed to close %s: %v", resourceName, err)
+	}
+}
+
+// TestValidateDockerAccess tests the ValidateDockerAccess function
+func TestValidateDockerAccess(t *testing.T) {
+	err := ValidateDockerAccess()
+
+	// The function may or may not return an error depending on whether Docker is running
+	// We just test that it doesn't panic and handles both cases gracefully
+	if err != nil {
+		// If there's an error, verify it contains the expected socket path
+		expectedPath := "/var/run/docker.sock"
+		if runtime.GOOS == "windows" {
+			expectedPath = `\\.\pipe\docker_engine`
+		}
+		if !strings.Contains(err.Error(), expectedPath) {
+			t.Errorf("ValidateDockerAccess() error message should contain %s, got: %s", expectedPath, err.Error())
+		}
+	} else {
+		// If no error, that's also valid (Docker might be running)
+		t.Log("ValidateDockerAccess() succeeded - Docker socket is accessible")
+	}
+}
+
+// TestValidateImageName tests the ValidateImageName function
+func TestValidateImageName(t *testing.T) {
+	tests := []struct {
+		name      string
+		imageName string
+		wantErr   bool
+	}{
+		{
+			name:      "valid simple image name",
+			imageName: "alpine",
+			wantErr:   false,
+		},
+		{
+			name:      "valid image with tag",
+			imageName: "alpine:latest",
+			wantErr:   false,
+		},
+		{
+			name:      "valid image with registry",
+			imageName: "docker.io/library/alpine:latest",
+			wantErr:   false,
+		},
+		{
+			name:      "valid image with namespace",
+			imageName: "myorg/myimage:latest",
+			wantErr:   false,
+		},
+		{
+			name:      "valid image with underscore",
+			imageName: "my_image:latest",
+			wantErr:   false,
+		},
+		{
+			name:      "valid image with hyphen",
+			imageName: "my-image:latest",
+			wantErr:   false,
+		},
+		{
+			name:      "valid image with dot",
+			imageName: "my.image:latest",
+			wantErr:   false,
+		},
+		{
+			name:      "empty image name",
+			imageName: "",
+			wantErr:   true,
+		},
+		{
+			name:      "image name too long",
+			imageName: strings.Repeat("a", 256),
+			wantErr:   true,
+		},
+		{
+			name:      "invalid image name with special characters",
+			imageName: "my@image:latest",
+			wantErr:   true,
+		},
+		{
+			name:      "invalid image name starting with dot",
+			imageName: ".myimage:latest",
+			wantErr:   true,
+		},
+		{
+			name:      "invalid image name starting with underscore",
+			imageName: "_myimage:latest",
+			wantErr:   true,
+		},
+		{
+			name:      "invalid image name starting with hyphen",
+			imageName: "-myimage:latest",
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateImageName(tt.imageName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateImageName() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestDockerClient_BuildImage_FileOperations tests the file operations in BuildImage
+func TestDockerClient_BuildImage_FileOperations(t *testing.T) {
+	// Test with nonexistent Dockerfile
+	_, err := NewDefaultClient()
+	if err != nil {
+		t.Skipf("Cannot create Docker client for testing: %v", err)
+	}
+
+	// Test with nonexistent Dockerfile
+	_, err = NewDefaultClient()
+	if err != nil {
+		t.Skipf("Cannot create Docker client for testing: %v", err)
+	}
+
+	// Create a temporary Dockerfile for testing
+	tmpDir := t.TempDir()
+	dockerfilePath := tmpDir + "/Dockerfile"
+	dockerfileContent := "FROM alpine:latest\nRUN echo 'test'"
+
+	err = os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test Dockerfile: %v", err)
+	}
+
+	// Test that the file exists and is readable
+	if _, err := os.Stat(dockerfilePath); err != nil {
+		t.Fatalf("Test Dockerfile should exist: %v", err)
+	}
+
+	// Test reading the file content
+	content, err := os.ReadFile(dockerfilePath)
+	if err != nil {
+		t.Fatalf("Failed to read test Dockerfile: %v", err)
+	}
+
+	if string(content) != dockerfileContent {
+		t.Errorf("Dockerfile content mismatch: got %s, want %s", string(content), dockerfileContent)
+	}
+}
 
 func TestNewDockerClient(t *testing.T) {
 	tests := []struct {
@@ -51,7 +207,7 @@ func TestNewDockerClient(t *testing.T) {
 				return
 			}
 			if client != nil {
-				defer client.Close()
+				defer closeWithErrorCheck(t, client, "Docker client")
 
 				// Verify timeout is set correctly
 				expectedTimeout := 30 * time.Second
@@ -76,7 +232,7 @@ func TestNewDefaultClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	// Verify default timeout
 	expectedTimeout := 30 * time.Second
@@ -95,7 +251,7 @@ func TestDockerClient_SetTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	newTimeout := 45 * time.Second
 	client.SetTimeout(newTimeout)
@@ -116,7 +272,7 @@ func TestDockerClient_Ping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -145,7 +301,7 @@ func TestDockerClient_GetInfo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -177,7 +333,7 @@ func TestDockerClient_GetVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -211,7 +367,7 @@ func TestDockerClient_PullImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -228,7 +384,7 @@ func TestDockerClient_PullImage(t *testing.T) {
 		t.Logf("PullImage() failed (may be due to network issues): %v", err)
 		return
 	}
-	defer reader.Close()
+	defer closeWithErrorCheck(t, reader, "reader")
 
 	// Read some data to ensure the stream is working
 	buffer := make([]byte, 1024)
@@ -249,7 +405,7 @@ func TestDockerClient_PushImage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDefaultClient() error = %v", err)
 	}
-	defer client.Close()
+	defer closeWithErrorCheck(t, client, "Docker client")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

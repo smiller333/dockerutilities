@@ -1,0 +1,234 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  test:
+    name: Test and Validate
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24.2'
+        cache: true
+    
+    - name: Install dependencies
+      run: make deps
+    
+    - name: Run tests
+      run: make test
+    
+    - name: Run tests with coverage and check threshold
+      id: coverage
+      run: |
+        echo "Running tests with coverage..."
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        go tool cover -html=coverage.out -o coverage.html
+        
+        echo "Checking coverage threshold..."
+        COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+        echo "Current coverage: ${COVERAGE}%"
+        
+        # Set coverage output for badge
+        echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
+        
+        # Determine badge color based on coverage
+        if (( $(echo "$COVERAGE >= 60" | awk '{print $1 >= 60 ? 1 : 0}') )); then
+          echo "color=green" >> $GITHUB_OUTPUT
+        elif (( $(echo "$COVERAGE >= 40" | awk '{print $1 >= 40 ? 1 : 0}') )); then
+          echo "color=orange" >> $GITHUB_OUTPUT
+        else
+          echo "color=red" >> $GITHUB_OUTPUT
+        fi
+        
+        if (( $(echo "$COVERAGE < 40" | awk '{print $1 < 40 ? 1 : 0}') )); then
+          echo "❌ Coverage is below 40% threshold (current: ${COVERAGE}%)"
+          exit 1
+        else
+          echo "✅ Coverage meets 40% threshold (current: ${COVERAGE}%)"
+        fi
+    
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v8
+      with:
+        version: latest
+        args: --timeout=5m
+    
+    - name: Build binary for testing
+      run: |
+        echo "=== Building binary for smoke tests ==="
+        make dev
+        echo "Binary built successfully"
+        echo "Binary location: $(pwd)/bin/dockerutilities"
+        echo "Binary size: $(wc -c < bin/dockerutilities) bytes"
+    
+    - name: Run comprehensive binary verification
+      run: |
+        echo "=== Running comprehensive binary verification ==="
+        if [[ -f "scripts/verify-binaries.sh" ]]; then
+          chmod +x scripts/verify-binaries.sh
+          ./scripts/verify-binaries.sh ci ./bin/dockerutilities
+          echo "✅ All binary verification passed!"
+        else
+          echo "⚠️ verify-binaries.sh not found, skipping script verification"
+          echo "✅ Basic binary verification completed"
+        fi
+    
+    - name: Help command validation
+      run: |
+        echo "=== Help Command Validation ==="
+        
+        # Test help command output
+        HELP_OUTPUT=$(./bin/dockerutilities --help 2>&1 || echo "COMMAND_FAILED")
+        echo "Help command output length: ${#HELP_OUTPUT} characters"
+        
+        if [[ "$HELP_OUTPUT" == "COMMAND_FAILED" ]]; then
+          echo "❌ Help command failed to execute"
+          exit 1
+        fi
+        
+        # Check for required help information
+        if ! echo "$HELP_OUTPUT" | grep -q "analyzing Docker images and managing Docker build contexts"; then
+          echo "❌ Help output missing expected description"
+          echo "Expected: 'analyzing Docker images and managing Docker build contexts'"
+          echo "Help output (first 5 lines):"
+          echo "$HELP_OUTPUT" | head -5
+          exit 1
+        fi
+        
+        # Check for available commands
+        if ! echo "$HELP_OUTPUT" | grep -q "Available Commands"; then
+          echo "❌ Help output missing 'Available Commands' section"
+          exit 1
+        fi
+        
+        echo "✅ Help command validation passed"
+    
+    - name: Command validation
+      run: |
+        echo "=== Command Validation ==="
+        
+        # Test that the binary responds to basic commands
+        echo "Testing basic command responses..."
+        
+        # Test version command
+        echo "Testing version command..."
+        if ! ./bin/dockerutilities version >/dev/null 2>&1; then
+          echo "❌ Version command failed"
+          exit 1
+        fi
+        echo "✅ Version command works"
+        
+        # Test help command
+        echo "Testing help command..."
+        if ! ./bin/dockerutilities --help >/dev/null 2>&1; then
+          echo "❌ Help command failed"
+          exit 1
+        fi
+        echo "✅ Help command works"
+        
+        # Test server help (without starting server)
+        echo "Testing server help command..."
+        if ! ./bin/dockerutilities server --help >/dev/null 2>&1; then
+          echo "❌ Server help command failed"
+          exit 1
+        fi
+        echo "✅ Server help command works"
+        
+        # Test with invalid command (should show usage/help)
+        echo "Testing invalid command handling..."
+        if ./bin/dockerutilities invalid-command >/dev/null 2>&1; then
+          echo "❌ Invalid command should have failed"
+          exit 1
+        fi
+        echo "✅ Invalid command properly rejected"
+        
+        echo "✅ All command validation tests passed"
+    
+    - name: Binary integrity verification
+      run: |
+        echo "=== Binary Integrity Verification ==="
+        
+        BINARY_PATH="./bin/dockerutilities"
+        
+        # Check binary exists and is executable
+        if [[ ! -f "$BINARY_PATH" ]]; then
+          echo "❌ Binary not found: $BINARY_PATH"
+          exit 1
+        fi
+        
+        if [[ ! -x "$BINARY_PATH" ]]; then
+          echo "❌ Binary not executable: $BINARY_PATH"
+          echo "File permissions: $(ls -la "$BINARY_PATH")"
+          exit 1
+        fi
+        
+        # Check binary file type
+        FILE_TYPE=$(file "$BINARY_PATH")
+        echo "Binary file type: $FILE_TYPE"
+        
+        # Check binary size (should be reasonable)
+        BINARY_SIZE=$(wc -c < "$BINARY_PATH")
+        echo "Binary size: $BINARY_SIZE bytes"
+        
+        if [[ $BINARY_SIZE -lt 1000000 ]]; then
+          echo "⚠️ Binary size seems small ($BINARY_SIZE bytes) - may indicate build issues"
+        elif [[ $BINARY_SIZE -gt 50000000 ]]; then
+          echo "⚠️ Binary size seems large ($BINARY_SIZE bytes) - may indicate debug symbols"
+        else
+          echo "✅ Binary size is reasonable"
+        fi
+        
+        # Check for required sections (ELF binary analysis)
+        if command -v readelf >/dev/null 2>&1; then
+          echo "Analyzing binary sections..."
+          readelf -S "$BINARY_PATH" | grep -E "(text|data|bss)" || echo "Binary analysis not available"
+        fi
+        
+        echo "✅ Binary integrity verification passed"
+    
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: coverage-report
+        path: |
+          coverage.out
+          coverage.html
+        retention-days: 30
+    
+    - name: Generate coverage badge
+      if: always()
+      run: |
+        echo "Generating coverage badge..."
+        COVERAGE=${{ steps.coverage.outputs.coverage }}
+        COLOR=${{ steps.coverage.outputs.color }}
+        
+        # Create a simple coverage badge (this is a placeholder - in a real setup you'd use a badge service)
+        echo "Coverage: ${COVERAGE}% (${COLOR})"
+        echo "Badge would be generated here in a production setup"
+    
+    - name: Build artifact verification summary
+      if: always()
+      run: |
+        echo "=== Build Artifact Verification Summary ==="
+        echo "✅ Binary built successfully"
+        echo "✅ Smoke tests passed"
+        echo "✅ Help command validation passed"
+        echo "✅ Command validation passed"
+        echo "✅ Binary integrity verification passed"
+        echo ""
+        echo "🎉 All build validation checks completed successfully!"

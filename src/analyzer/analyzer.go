@@ -8,6 +8,18 @@ import (
 	"fmt"
 )
 
+// Config holds configuration options for the analyzer
+type Config struct {
+	MaxFileSize int64 // Maximum file size limit in bytes for extraction (default: 100MB)
+}
+
+// DefaultConfig returns the default configuration for the analyzer
+func DefaultConfig() *Config {
+	return &Config{
+		MaxFileSize: 100 * 1024 * 1024, // 100MB default
+	}
+}
+
 // AnalysisResult contains the results of analyzing a Dockerfile or Docker image
 type AnalysisResult struct {
 	ImageID      string // ID of the Docker image
