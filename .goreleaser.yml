@@ -1,6 +1,8 @@
 # GoReleaser configuration for dockerutilities
 # This file configures automated releases with cross-platform builds
 
+version: 2
+
 before:
   hooks:
     - go mod tidy
@@ -44,7 +46,7 @@ builds:
         fi
 
 archives:
-  - format: binary
+  - formats: ['binary']
     name_template: >-
       {{ .ProjectName }}-
       {{- title .Os }}-
@@ -52,7 +54,7 @@ archives:
       {{- else }}{{ .Arch }}{{ end }}
     format_overrides:
       - goos: windows
-        format: zip
+        formats: ['zip']
 
 changelog:
   use: git
