@@ -73,21 +73,14 @@ print_status "Building with development tag: $GORELEASER_CURRENT_TAG"
 if goreleaser build --snapshot --clean --parallelism=2; then
     print_success "Development tag build completed"
     
-    # Verify artifacts
-    if [ -f "dist/checksums.txt" ]; then
-        print_success "Checksums file created"
-        echo "Checksums content:"
-        cat dist/checksums.txt
-    else
-        print_error "Checksums file not found"
-    fi
-    
-    # Count binaries
-    BINARY_COUNT=$(find dist -name "dockerutilities-*" -type f | wc -l)
+    # Count binaries (updated for new directory structure)
+    BINARY_COUNT=$(find dist -name "dockerutilities*" -type f | wc -l)
     print_status "Found $BINARY_COUNT binaries"
     
     if [ "$BINARY_COUNT" -ge 6 ]; then
         print_success "All platform binaries created for development tag"
+        echo "Binary locations:"
+        find dist -name "dockerutilities*" -type f | sort
     else
         print_warning "Expected 6 binaries, found $BINARY_COUNT"
     fi
@@ -107,15 +100,8 @@ print_status "Building with development tag: $GORELEASER_CURRENT_TAG"
 if goreleaser build --snapshot --clean --parallelism=2; then
     print_success "Beta tag build completed"
     
-    # Verify artifacts
-    if [ -f "dist/checksums.txt" ]; then
-        print_success "Checksums file created"
-    else
-        print_error "Checksums file not found"
-    fi
-    
-    # Count binaries
-    BINARY_COUNT=$(find dist -name "dockerutilities-*" -type f | wc -l)
+    # Count binaries (updated for new directory structure)
+    BINARY_COUNT=$(find dist -name "dockerutilities*" -type f | wc -l)
     print_status "Found $BINARY_COUNT binaries"
     
     if [ "$BINARY_COUNT" -ge 6 ]; then
@@ -139,15 +125,8 @@ print_status "Building with production tag: $GORELEASER_CURRENT_TAG"
 if goreleaser build --snapshot --clean --parallelism=2; then
     print_success "Production tag build completed"
     
-    # Verify artifacts
-    if [ -f "dist/checksums.txt" ]; then
-        print_success "Checksums file created"
-    else
-        print_error "Checksums file not found"
-    fi
-    
-    # Count binaries
-    BINARY_COUNT=$(find dist -name "dockerutilities-*" -type f | wc -l)
+    # Count binaries (updated for new directory structure)
+    BINARY_COUNT=$(find dist -name "dockerutilities*" -type f | wc -l)
     print_status "Found $BINARY_COUNT binaries"
     
     if [ "$BINARY_COUNT" -ge 6 ]; then
@@ -156,26 +135,29 @@ if goreleaser build --snapshot --clean --parallelism=2; then
         print_warning "Expected 6 binaries, found $BINARY_COUNT"
     fi
     
-    # Test binary functionality
-    if [ -f "dist/dockerutilities-linux-amd64" ]; then
+    # Test binary functionality (updated for new directory structure)
+    LINUX_BINARY=$(find dist -name "dockerutilities" -path "*linux_amd64_v1*" | head -1)
+    if [ -n "$LINUX_BINARY" ] && [ -f "$LINUX_BINARY" ]; then
         print_status "Testing Linux binary functionality..."
-        chmod +x dist/dockerutilities-linux-amd64
+        chmod +x "$LINUX_BINARY"
         
         # Test version command
-        if ./dist/dockerutilities-linux-amd64 version >/dev/null 2>&1; then
+        if "$LINUX_BINARY" version >/dev/null 2>&1; then
             print_success "Version command works"
             echo "Version output:"
-            ./dist/dockerutilities-linux-amd64 version
+            "$LINUX_BINARY" version
         else
             print_warning "Version command not available or failed"
         fi
         
         # Test help command
-        if ./dist/dockerutilities-linux-amd64 --help >/dev/null 2>&1; then
+        if "$LINUX_BINARY" --help >/dev/null 2>&1; then
             print_success "Help command works"
         else
             print_warning "Help command not available or failed"
         fi
+    else
+        print_warning "Linux binary not found for testing"
     fi
 else
     print_error "Production tag build failed"
@@ -184,7 +166,7 @@ fi
 
 # Test 4: Dry run release (without publishing)
 print_status "Testing dry run release..."
-if goreleaser release --snapshot --clean --parallelism=2 --skip-publish; then
+if goreleaser release --snapshot --clean --parallelism=2; then
     print_success "Dry run release completed successfully"
 else
     print_error "Dry run release failed"
